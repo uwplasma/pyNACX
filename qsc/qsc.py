@@ -172,7 +172,13 @@ class Qsc():
         self.binormal_cylindrical = binormal_cylindrical
         self.Bbar = Bbar
         self.d_l_d_varphi = abs_G0_over_B0
-        self.solve_sigma_equation()
+        sigma, iota, iotaN = self.solve_sigma_equation(nphi=self.nphi,
+                                                        sigma0=self.sigma0,
+                                                        helicity=self.helicity,
+                                                        nfp=self.nfp)
+        self.sigma = sigma
+        self.iota = iota
+        self.iotaN = iotaN
         self.r1_diagnostics()
         if self.order != 'r1':
             self.calculate_r2()
