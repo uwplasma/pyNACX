@@ -139,7 +139,7 @@ def B_mag(self, r, theta, phi, Boozer_toroidal = False):
     # Add O(r^2) terms if necessary:
     if self.order != 'r1':
         if Boozer_toroidal == False:
-            self.B20_spline = self.convert_to_spline(self.B20)
+            self.B20_spline = self.convert_to_spline(self.B20, self.phi, self.nfp)
         else:
             self.B20_spline = spline(np.append(self.varphi, 2 * np.pi / self.nfp),
                                      np.append(self.B20, self.B20[0]),

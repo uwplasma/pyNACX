@@ -155,9 +155,9 @@ def Frenet_to_cylindrical(self, r, ntheta=20):
                                          + self.Y3c3_untwisted * cos3theta + self.Y3s3_untwisted * sin3theta)
                 Z_at_this_theta += r3 * (self.Z3c1_untwisted * costheta + self.Z3s1_untwisted * sintheta
                                          + self.Z3c3_untwisted * cos3theta + self.Z3s3_untwisted * sin3theta)
-        self.X_spline = self.convert_to_spline(X_at_this_theta)
-        self.Y_spline = self.convert_to_spline(Y_at_this_theta)
-        self.Z_spline = self.convert_to_spline(Z_at_this_theta)
+        self.X_spline = self.convert_to_spline(X_at_this_theta, self.phi, self.nfp)
+        self.Y_spline = self.convert_to_spline(Y_at_this_theta, self.phi, self.nfp)
+        self.Z_spline = self.convert_to_spline(Z_at_this_theta, self.phi, self.nfp)
         for j_phi in range(nphi_conversion):
             # Solve for the phi0 such that r0 + X1 n + Y1 b has the desired phi
             phi_target = phi_conversion[j_phi]
