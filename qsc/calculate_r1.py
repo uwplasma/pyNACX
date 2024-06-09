@@ -49,11 +49,11 @@ def _jacobian(self, x):
     #logger.debug("_jacobian called with x={}, jac={}".format(x, jac))
     return jac
 
-def solve_sigma_equation(self):
+def solve_sigma_equation(self, nphi, sigma0, helicity, nfp):
     """
     Solve the sigma equation.
     """
-    x0 = np.full(self.nphi, self.sigma0)
+    x0 = np.full(nphi, sigma0)
     x0[0] = 0 # Initial guess for iota
     """
     soln = scipy.optimize.root(self._residual, x0, jac=self._jacobian, method='lm')
@@ -61,10 +61,11 @@ def solve_sigma_equation(self):
     self.sigma = np.copy(soln.x)
     self.sigma[0] = self.sigma0
     """
-    self.sigma = newton(self._residual, x0, jac=self._jacobian)
-    self.iota = self.sigma[0]
-    self.iotaN = self.iota + self.helicity * self.nfp
-    self.sigma[0] = self.sigma0
+    sigma = newton(self._residual, x0, jac=self._jacobian)
+    iota = sigma[0]
+    iotaN = iota + helicity * nfp
+    sigma[0] = sigma0
+    return sigma, iota, iotaN
 
 def _determine_helicity(self):
     """
