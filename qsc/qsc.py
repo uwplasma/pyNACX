@@ -109,7 +109,69 @@ class Qsc():
         """
         Driver for the main calculations.
         """
-        self.init_axis()
+        helicity,\
+        normal_cylindrical, \
+        etabar_squared_over_curvature_squared, \
+        varphi, \
+        d_d_phi, \
+        d_varphi_d_phi, \
+        d_d_varphi, \
+        phi, \
+        abs_G0_over_B0, \
+        d_phi, \
+        R0, \
+        Z0, \
+        R0p, \
+        Z0p, \
+        R0pp, \
+        Z0pp, \
+        R0ppp, \
+        Z0ppp, \
+        G0, \
+        d_l_d_phi, \
+        axis_length, \
+        curvature, \
+        torsion, \
+        X1s, \
+        X1c, \
+        min_R0, \
+        tangent_cylindrical, \
+        normal_cylindrical, \
+        binormal_cylindrical, \
+        Bbar, \
+        abs_G0_over_B0 = self.init_axis(self.nphi, self.nfp, self.rc, self.rs, self.zc, self.zs, self.nfourier, self.sG, self.B0, self.etabar,
+                        self.spsi, self.sigma0, self.order, self.B2s)
+        self.helicity = helicity
+        self.normal_cylindrical = normal_cylindrical
+        self.etabar_squared_over_curvature_squared = etabar_squared_over_curvature_squared
+        self.varphi = varphi
+        self.d_d_phi = d_d_phi
+        self.d_varphi_d_phi = d_varphi_d_phi
+        self.d_d_varphi = d_d_varphi
+        self.phi = phi
+        self.abs_G0_over_B0 = abs_G0_over_B0
+        self.d_phi = d_phi
+        self.R0 = R0
+        self.Z0 = Z0
+        self.R0p = R0p
+        self.Z0p = Z0p
+        self.R0pp = R0pp
+        self.Z0pp = Z0pp
+        self.R0ppp = R0ppp
+        self.Z0ppp = Z0ppp
+        self.G0 = G0
+        self.d_l_d_phi = d_l_d_phi
+        self.axis_length = axis_length
+        self.curvature = curvature
+        self.torsion = torsion
+        self.X1s = X1s
+        self.X1c = X1c
+        self.min_R0 = min_R0
+        self.tangent_cylindrical = tangent_cylindrical
+        self.normal_cylindrical = normal_cylindrical
+        self.binormal_cylindrical = binormal_cylindrical
+        self.Bbar = Bbar
+        self.d_l_d_varphi = abs_G0_over_B0
         self.solve_sigma_equation()
         self.r1_diagnostics()
         if self.order != 'r1':
