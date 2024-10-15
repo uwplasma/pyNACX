@@ -1,9 +1,11 @@
 """
-This module contains a function for Newton's method.
+This module contains a function for Newton's method refactored to JAX.
 """
 
-import logging
+import jax.numpy as jnp
 import numpy as np
+from jax.scipy.linalg import toeplitz
+from jax import jit
 
 #logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,11 +21,10 @@ def newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
     niter = max number of Newton iterations.
     tol = stop when the residual norm is less than this.
     """
-
-    x = np.copy(x0)
-    x_best = np.copy(x0)
+    x = jnp.np.copy(x0)
+    x_best = jnp.np.copy(x0)
     residual = f(x0)
-    initial_residual_norm = np.sqrt(np.sum(residual * residual))
+    initial_residual_norm = jnp.np.sqrt(jnp.np.sum(residual * residual))
     residual_norm = initial_residual_norm
     logger.info('Beginning Newton method. residual {}'.format(residual_norm))
 
@@ -35,18 +36,18 @@ def newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
             break
 
         j = jac(x)
-        x0 = np.copy(x)
+        x0 = jnp.np.copy(x)
         logger.info('Newton iteration {}'.format(jnewton))
-        step_direction = -np.linalg.solve(j, residual)
+        step_direction =- jnp.np.linalg.solve(j, residual)
 
         step_scale = 1.0
         for jlinesearch in range(nlinesearch):
             x = x0 + step_scale * step_direction
             residual = f(x)
-            residual_norm = np.sqrt(np.sum(residual * residual))
+            residual_norm = jnp.np.sqrt(jnp.np.sum(residual * residual))
             logger.info('  Line search step {} residual {}'.format(jlinesearch, residual_norm))
             if residual_norm < last_residual_norm:
-                x_best = np.copy(x)
+                x_best = jnp.np.copy(x)
                 break
 
             step_scale /= 2

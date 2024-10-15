@@ -18,7 +18,8 @@ class NewtonTests(unittest.TestCase):
                              [1, 1]])
         x0 = np.zeros(2)
         soln = newton(func, x0, jac)
-        np.testing.assert_allclose(soln, [-0.5671432904097838, 0.5671432904097838])
+        np.testing.assert_allclose(soln, [-0.5671432904097838, 0.5671432904097838]) 
+           
         
 if __name__ == "__main__":
     unittest.main()
