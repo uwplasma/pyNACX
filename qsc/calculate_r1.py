@@ -7,6 +7,7 @@ import logging
 import numpy as np
 from .util import fourier_minimum
 from .newton import newton
+import jax.numpy as jnp
 
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -17,14 +18,16 @@ def _residual(self, x):
     the state vector, corresponding to sigma on the phi grid,
     except that the first element of x is actually iota.
     """
-    sigma = np.copy(x)
-    sigma[0] = self.sigma0
+    sigma = jnp.copy(x)
+    sigma.at[0].set(self.sigma0)
+
     iota = x[0]
-    r = np.matmul(self.d_d_varphi, sigma) \
+    r = jnp.matmul(self.d_d_varphi, sigma) \
         + (iota + self.helicity * self.nfp) * \
         (self.etabar_squared_over_curvature_squared * self.etabar_squared_over_curvature_squared + 1 + sigma * sigma) \
         - 2 * self.etabar_squared_over_curvature_squared * (-self.spsi * self.torsion + self.I2 / self.B0) * self.G0 / self.B0
     #logger.debug("_residual called with x={}, r={}".format(x, r))
+    
     return r
 
 def _jacobian(self, x):
