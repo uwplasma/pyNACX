@@ -8,6 +8,7 @@ import numpy as np
 from .util import fourier_minimum
 from .newton import newton
 import jax.numpy as jnp
+from jax import jacobian
 
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -56,8 +57,8 @@ def solve_sigma_equation(self, nphi, sigma0, helicity, nfp):
     """
     Solve the sigma equation.
     """
-    x0 = np.full(nphi, sigma0)
-    x0[0] = 0 # Initial guess for iota
+    x0 = jnp.full(nphi, sigma0)
+    x0.at[0].set(0) # Initial guess for iota
     """
     soln = scipy.optimize.root(self._residual, x0, jac=self._jacobian, method='lm')
     self.iota = soln.x[0]

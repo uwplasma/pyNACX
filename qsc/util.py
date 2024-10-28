@@ -10,10 +10,13 @@ import scipy.optimize
 from qsc.fourier_interpolation import fourier_interpolation
 from scipy.interpolate import CubicSpline as spline
 
+import jax.numpy as jnp
+
+
 #logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-mu0 = 4 * np.pi * 1e-7
+mu0 = 4 * jnp.pi * 1e-7
 
 class Struct():
     """
@@ -28,17 +31,17 @@ def fourier_minimum(y):
     minimum of the spectral interpolant.
     """
     # Handle the case of a constant:
-    if (np.max(y) - np.min(y)) / np.max([1e-14, np.abs(np.mean(y))]) < 1e-14:
+    if (jnp.max(y) - jnp.min(y)) / jnp.max([1e-14, jnp.abs(jnp.mean(y))]) < 1e-14:
         return y[0]
     
     n = len(y)
-    dx = 2 * np.pi / n
+    dx = 2 * jnp.pi / n
     # Compute a rough guess for the minimum, given by the minimum of
     # the discrete data:
-    index = np.argmin(y)
+    index = jnp.argmin(y)
 
     def func(x):
-        interp = fourier_interpolation(y, np.array([x]))
+        interp = fourier_interpolation(y, jnp.array([x]))
         logger.debug('fourier_minimum.func called at x={}, y={}'.format(x, interp[0]))
         return interp[0]
 

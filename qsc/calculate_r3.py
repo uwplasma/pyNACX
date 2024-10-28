@@ -6,6 +6,8 @@ import logging
 import numpy as np
 from scipy import integrate as integ
 from .util import mu0
+import jax.numpy as jnp
+
 
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -101,12 +103,12 @@ def calculate_r3(self):
         -sign_G * sign_psi * B0 * I2 / (4*G0) * (-abs_G0_over_B0 * torsion * (X1c*X1c + Y1c*Y1c + Y1s*Y1s) + Y1c * d_X1c_d_varphi - X1c * d_Y1c_d_varphi)
 
     logger.debug('max|flux_constraint_coefficient - predicted_flux_constraint_coefficient|: '
-                 f'{np.max(abs(flux_constraint_coefficient - predicted_flux_constraint_coefficient))}')
+                 f'{jnp.max(abs(flux_constraint_coefficient - predicted_flux_constraint_coefficient))}')
     logger.debug('max|flux_constraint_coefficient - B0_order_a_squared_to_cancel/(2*B0)|: '
-                 f'{np.max(abs(flux_constraint_coefficient - B0_order_a_squared_to_cancel/(2*B0)))}')
+                 f'{jnp.max(abs(flux_constraint_coefficient - B0_order_a_squared_to_cancel/(2*B0)))}')
 
-    if np.max(abs(flux_constraint_coefficient - predicted_flux_constraint_coefficient)) > 1e-7 \
-    or np.max(abs(flux_constraint_coefficient - B0_order_a_squared_to_cancel/(2*B0))) > 1e-7:
+    if jnp.max(abs(flux_constraint_coefficient - predicted_flux_constraint_coefficient)) > 1e-7 \
+    or jnp.max(abs(flux_constraint_coefficient - B0_order_a_squared_to_cancel/(2*B0))) > 1e-7:
         logger.warning("Methods of computing lambda disagree!! Higher nphi resolution might be needed.")
 
     self.flux_constraint_coefficient = flux_constraint_coefficient
@@ -127,16 +129,16 @@ def calculate_r3(self):
         self.Z3c3_untwisted = self.Z3c3
     else:
         angle = -self.helicity * self.nfp * self.varphi
-        sinangle = np.sin(angle)
-        cosangle = np.cos(angle)
+        sinangle = jnp.sin(angle)
+        cosangle = jnp.cos(angle)
         self.X3s1_untwisted = self.X3s1 *   cosangle  + self.X3c1 * sinangle
         self.X3c1_untwisted = self.X3s1 * (-sinangle) + self.X3c1 * cosangle
         self.Y3s1_untwisted = self.Y3s1 *   cosangle  + self.Y3c1 * sinangle
         self.Y3c1_untwisted = self.Y3s1 * (-sinangle) + self.Y3c1 * cosangle
         self.Z3s1_untwisted = self.Z3s1 *   cosangle  + self.Z3c1 * sinangle
         self.Z3c1_untwisted = self.Z3s1 * (-sinangle) + self.Z3c1 * cosangle
-        sinangle = np.sin(3*angle)
-        cosangle = np.cos(3*angle)
+        sinangle = jnp.sin(3*angle)
+        cosangle = jnp.cos(3*angle)
         self.X3s3_untwisted = self.X3s3 *   cosangle  + self.X3c3 * sinangle
         self.X3c3_untwisted = self.X3s3 * (-sinangle) + self.X3c3 * cosangle
         self.Y3s3_untwisted = self.Y3s3 *   cosangle  + self.Y3c3 * sinangle
@@ -161,7 +163,7 @@ def calculate_shear(self,B31c = 0):
     # J. Plasma Physics (2019) it is defined r=\sqrt(2*psi/B0). Need to transform between the
     # two.
 
-    eps_scale = np.sqrt(2/self.B0) 
+    eps_scale = jnp.sqrt(2/self.B0) 
 
     # sign_psi = self.spsi
     # sign_G   = self.sG  # Sign is taken to be positive for simplicity. To include this, need to track expressions
@@ -203,7 +205,7 @@ def calculate_shear(self,B31c = 0):
     Ba1 = G2 + self.iotaN*I2
     eta = self.etabar*np.sqrt(2)*B0**0.25
     B1c = -2*B0*eta
-    B20 = (0.75*self.etabar**2/np.sqrt(B0) - self.B20)*4*B0**2
+    B20 = (0.75*self.etabar**2/jnp.sqrt(B0) - self.B20)*4*B0**2
     B31s = 0 # To preserve stellarator symmetry
     I4 = 0 # Take current variations at this order to be 0
             
@@ -217,7 +219,7 @@ def calculate_shear(self,B31c = 0):
         2*Ba0*X1c*Y20*Z2s - 4*Ba0*X1c*Y2c*Z2s + 2*X1c*dX20dp + X1c*dX2cdp+2*Y1c*dY20dp +
         Y1c*dY2cdp + Y1s*dY2sdp)
          
-    dZ31cdp = np.matmul(d_d_varphi, Z31c)
+    dZ31cdp = jnp.matmul(d_d_varphi, Z31c)
             
     Z31s = 1/3/Ba0/X1c/Y1s*(2*iota*(X1c*X2c + Y1c*Y2c + Y1s*Y2s) - 2*Ba0*X2c*Y1c*Z20 + 
         2*Ba0*X1c*Y2c*Z20 - 2*Ba0*X2s*Y1s*Z20 + 2*Ba0*X20*Y1c*Z2c - 2*Ba0*X1c*Y20*Z2c +
@@ -225,7 +227,7 @@ def calculate_shear(self,B31c = 0):
         2*I2*X20*Y1s - I2*X2c*Y1s - I2*X1c*Y2s + torsion*(X2s*Y1c + 2*X20*Y1s - X2c*Y1s -
         X1c*Y2s) - curvature*X1c*Z2s) - X1c*dX2sdp - 2*Y1s*dY20dp + Y1s*dY2cdp - Y1c*dY2sdp)
             
-    dZ31sdp = np.matmul(d_d_varphi, Z31s)
+    dZ31sdp = jnp.matmul(d_d_varphi, Z31s)
 
             
     # Equation J3: expression for X31c/s
@@ -276,25 +278,25 @@ def calculate_shear(self,B31c = 0):
 
     # Distinguish between the stellarator symmetric case and the non-symmetric one at order r^1.
     # Distinction leads to the expSig function being periodic (stell. sym.) or not.
-    if self.sigma0 == 0 and np.max(np.abs(self.rs)) == 0 and np.max(np.abs(self.zc)) == 0:
+    if self.sigma0 == 0 and jnp.max(jnp.abs(self.rs)) == 0 and jnp.max(jnp.abs(self.zc)) == 0:
         # Case in which sigma is stellarator-symmetric:
-        integSig = np.linalg.solve(DMred,self.sigma[1:])   # Invert differentiation matrix: as if first entry a zero, need to add it later
-        integSig = np.insert(integSig,0,0)  # Add the first entry 0
-        expSig = np.exp(2*iota*integSig)
+        integSig = jnp.linalg.solve(DMred,self.sigma[1:])   # Invert differentiation matrix: as if first entry a zero, need to add it later
+        integSig = jnp.insert(integSig,0,0)  # Add the first entry 0
+        expSig = jnp.exp(2*iota*integSig)
         # d_phi_d_varphi = 1 + np.matmul(d_d_varphi,self.phi-self.varphi)
         self.iota2 = self.B0/2*sum(expSig*LamTilde*self.d_varphi_d_phi)/sum(expSig*(X1c**2 + Y1c**2 + Y1s**2)/Y1s**2*self.d_varphi_d_phi) 
     else:
         # Case in which sigma is not stellarator-symmetric:
         # d_phi_d_varphi = 1 + np.matmul(d_d_varphi,self.phi-self.varphi)
         avSig = sum(self.sigma*self.d_varphi_d_phi)/len(self.sigma)     # Separate the piece that gives secular part, so all things periodic
-        integSigPer = np.linalg.solve(DMred,self.sigma[1:]-avSig)   # Invert differentiation matrix: as if first entry a zero, need to add it later
+        integSigPer = jnp.linalg.solve(DMred,self.sigma[1:]-avSig)   # Invert differentiation matrix: as if first entry a zero, need to add it later
         integSig = integSigPer + avSig*self.varphi[1:]  # Include the secular piece
-        integSig = np.insert(integSig,0,0)  # Add the first entry 0
-        expSig_ext = np.append(np.exp(2*iota*integSig),np.exp(2*iota*(avSig*2*np.pi/self.nfp))) # Add endpoint at 2*pi for better integration
-        LamTilde_ext = np.append(LamTilde,LamTilde[0])
+        integSig = jnp.insert(integSig,0,0)  # Add the first entry 0
+        expSig_ext = jnp.append(jnp.exp(2*iota*integSig),jnp.exp(2*iota*(avSig*2*jnp.pi/self.nfp))) # Add endpoint at 2*pi for better integration
+        LamTilde_ext = jnp.append(LamTilde,LamTilde[0])
         fac_denom = (X1c**2 + Y1c**2 + Y1s**2) / Y1s**2
-        fac_denom_ext = np.append(fac_denom, fac_denom[0])
-        varphi_ext = np.append(self.varphi, 2 * np.pi / self.nfp)
+        fac_denom_ext = jnp.append(fac_denom, fac_denom[0])
+        varphi_ext = jnp.append(self.varphi, 2 * jnp.pi / self.nfp)
         self.iota2 = self.B0 / 2 \
             * integ.trapezoid(expSig_ext * LamTilde_ext, varphi_ext) \
             / integ.trapezoid(expSig_ext * fac_denom_ext, varphi_ext)

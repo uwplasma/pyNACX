@@ -7,6 +7,7 @@ data that is known on a uniform grid in a periodic domain.
 
 import numpy as np
 #from numba import njit
+import jax.numpy as jnp
 
 # Get machine precision
 eps = np.finfo(float).eps
@@ -33,10 +34,10 @@ def fourier_interpolation(fk, x):
 
     # Compute equidistant points
     #xk = np.linspace(0.0, 2 * np.pi, N, endpoint=False)
-    xk = (np.arange(N) * 2 * np.pi) / N
+    xk = (jnp.arange(N) * 2 * jnp.pi) / N
 
     # Weights for trig interpolation
-    w = (-1.0) ** np.arange(0, N)
+    w = (-1.0) ** jnp.arange(0, N)
     #w = np.array((-1) ** np.arange(0, N), dtype='f')
 
     """
@@ -49,17 +50,17 @@ def fourier_interpolation(fk, x):
     D = 0.5 * (np.outer(x, np.ones(N)) - np.outer(np.ones(M), xk))
     print(Dold - D)
     """
-    D = 0.5 * (np.outer(x, np.ones(N)) - np.outer(np.ones(M), xk))
+    D = 0.5 * (jnp.outer(x, jnp.ones(N)) - jnp.outer(jnp.ones(M), xk))
     
-    if np.mod(N, 2) == 0:
+    if jnp.mod(N, 2) == 0:
         # Formula for N even
-        D = 1 / np.tan(D + eps * (D==0))
+        D = 1 / jnp.tan(D + eps * (D==0))
     else:
         # Formula for N odd
-        D = 1 / np.sin(D + eps * (D==0))
+        D = 1 / jnp.sin(D + eps * (D==0))
 
     # Evaluate interpolant as matrix-vector products
     #return np.matmul(D, w * fk) / np.matmul(D, w)
-    return np.dot(D, w * fk) / np.dot(D, w)
+    return jnp.dot(D, w * fk) / jnp.dot(D, w)
     #return (D @ w * fk) / (D @ w)
     #return D.dot(w * fk) / D.dot(w)

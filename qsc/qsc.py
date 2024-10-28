@@ -6,6 +6,8 @@ stellarator construction.
 import logging
 import numpy as np
 from scipy.io import netcdf
+import jax.numpy as jnp
+
 #from numba import jit
 
 #logging.basicConfig(level=logging.DEBUG)
@@ -41,19 +43,19 @@ class Qsc():
         """
         # First, force {rc, zs, rs, zc} to have the same length, for
         # simplicity.
-        nfourier = np.max([len(rc), len(zs), len(rs), len(zc)])
+        nfourier = jnp.max([len(rc), len(zs), len(rs), len(zc)])
         self.nfourier = nfourier
-        self.rc = np.zeros(nfourier)
-        self.zs = np.zeros(nfourier)
-        self.rs = np.zeros(nfourier)
-        self.zc = np.zeros(nfourier)
+        self.rc = jnp.zeros(nfourier)
+        self.zs = jnp.zeros(nfourier)
+        self.rs = jnp.zeros(nfourier)
+        self.zc = jnp.zeros(nfourier)
         self.rc[:len(rc)] = rc
         self.zs[:len(zs)] = zs
         self.rs[:len(rs)] = rs
         self.zc[:len(zc)] = zc
 
         # Force nphi to be odd:
-        if np.mod(nphi, 2) == 0:
+        if jnp.mod(nphi, 2) == 0:
             nphi += 1
 
         if sG != 1 and sG != -1:
@@ -88,11 +90,11 @@ class Qsc():
         rs_old = self.rs
         zc_old = self.zc
         zs_old = self.zs
-        index = np.min((self.nfourier, nfourier_new))
-        self.rc = np.zeros(nfourier_new)
-        self.rs = np.zeros(nfourier_new)
-        self.zc = np.zeros(nfourier_new)
-        self.zs = np.zeros(nfourier_new)
+        index = jnp.min((self.nfourier, nfourier_new))
+        self.rc = jnp.zeros(nfourier_new)
+        self.rs = jnp.zeros(nfourier_new)
+        self.zc = jnp.zeros(nfourier_new)
+        self.zs = jnp.zeros(nfourier_new)
         self.rc[:index] = rc_old[:index]
         self.rs[:index] = rs_old[:index]
         self.zc[:index] = zc_old[:index]
@@ -190,8 +192,8 @@ class Qsc():
         Return a 1D numpy vector of all possible optimizable
         degrees-of-freedom, for simsopt.
         """
-        return np.concatenate((self.rc, self.zs, self.rs, self.zc,
-                               np.array([self.etabar, self.sigma0, self.B2s, self.B2c, self.p2, self.I2, self.B0])))
+        return jnp.concatenate((self.rc, self.zs, self.rs, self.zc,
+                               jnp.array([self.etabar, self.sigma0, self.B2s, self.B2c, self.p2, self.I2, self.B0])))
 
     def set_dofs(self, x):
         """
@@ -287,5 +289,5 @@ class Qsc():
         This function can be used in optimization to penalize situations
         in which min(R0) < min_R0_constraint.
         """
-        return np.max((0, self.min_R0_threshold - self.min_R0)) ** 2
+        return jnp.max((0, self.min_R0_threshold - self.min_R0)) ** 2
         

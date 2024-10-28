@@ -8,6 +8,8 @@ become singular.
 import logging
 import warnings
 import numpy as np
+import jax.numpy as jnp
+
 #from .util import Struct, fourier_minimum
 
 #logging.basicConfig(level=logging.DEBUG)
@@ -38,7 +40,7 @@ def calculate_r_singularity(self, high_order=False):
 
     iota_N0 = s.iotaN
     iota = s.iota
-    lp = np.abs(s.G0) / s.B0
+    lp = jnp.abs(s.G0) / s.B0
 
     curvature = s.curvature
     torsion = s.torsion
@@ -79,10 +81,10 @@ def calculate_r_singularity(self, high_order=False):
     d_curvature_d_varphi = s.d_curvature_d_varphi
     d_torsion_d_varphi = s.d_torsion_d_varphi
 
-    r_singularity_basic_vs_varphi = np.zeros(nphi)
-    r_singularity_vs_varphi = np.zeros(nphi)
-    r_singularity_residual_sqnorm = np.zeros(nphi)
-    r_singularity_theta_vs_varphi = np.zeros(nphi)
+    r_singularity_basic_vs_varphi = jnp.zeros(nphi)
+    r_singularity_vs_varphi = jnp.zeros(nphi)
+    r_singularity_residual_sqnorm = jnp.zeros(nphi)
+    r_singularity_theta_vs_varphi = jnp.zeros(nphi)
     
     # Write sqrt(g) = r * [g0 + r*g1c*cos(theta) + (r^2)*(g20 + g2s*sin(2*theta) + g2c*cos(2*theta) + ...]
     # The coefficients are evaluated in "20200322-02 Max r for Garren Boozer.nb", in the section "Order r^2 construction, quasisymmetry"
@@ -278,7 +280,7 @@ def calculate_r_singularity(self, high_order=False):
 
     K4c = g1c*g1c*g2c - 8*g0*g2c*g2c + 8*g0*g2s*g2s
 
-    coefficients = np.zeros((nphi,5))
+    coefficients =jnp.zeros((nphi,5))
     
     coefficients[:, 4] = 4*(K4c*K4c + K4s*K4s)
 
@@ -293,12 +295,12 @@ def calculate_r_singularity(self, high_order=False):
     for jphi in range(nphi):
         # Solve for the roots of the quartic polynomial:
         try:
-            roots = np.polynomial.polynomial.polyroots(coefficients[jphi, :]) # Do I need to reverse the order of the coefficients?
-        except np.linalg.LinAlgError:
+            roots = jnp.polynomial.polynomial.polyroots(coefficients[jphi, :]) # Do I need to reverse the order of the coefficients?
+        except jnp.linalg.LinAlgError:
             raise RuntimeError('Problem with polyroots. coefficients={} lp={} B0={} g0={} g1c={}'.format(coefficients[jphi, :], lp, s.B0, g0, g1c))
 
-        real_parts = np.real(roots)
-        imag_parts = np.imag(roots)
+        real_parts = jnp.real(roots)
+        imag_parts = jnp.imag(roots)
 
         logger.debug('jphi={} g0={} g1c={} g20={} g2s={} g2c={} K0={} K2s={} K2c={} K4s={} K4c={} coefficients={} real={} imag={}'.format(jphi, g0[jphi], g1c[jphi], g20[jphi], g2s[jphi], g2c[jphi], K0[jphi], K2s[jphi], K2c[jphi], K4s[jphi], K4c[jphi], coefficients[jphi,:], real_parts, imag_parts))
 
@@ -309,22 +311,22 @@ def calculate_r_singularity(self, high_order=False):
             # Loop over the roots of the equation for w.
 
             # If root is not purely real, skip it.
-            if np.abs(imag_parts[jr]) > 1e-7:
+            if jnp.abs(imag_parts[jr]) > 1e-7:
                 logger.debug("Skipping root with jr={} since imag part is {}".format(jr, imag_parts[jr]))
                 continue
 
             sin2theta = real_parts[jr]
 
             # Discard any roots that have magnitude larger than 1. (I'm not sure this ever happens, but check to be sure.)
-            if np.abs(sin2theta) > 1:
+            if jnp.abs(sin2theta) > 1:
                 logger.debug("Skipping root with jr={} since sin2theta={}".format(jr, sin2theta))
                 continue
 
             # Determine varpi by checking which choice gives the smaller residual in the K equation
-            abs_cos2theta = np.sqrt(1 - sin2theta * sin2theta)
-            residual_if_varpi_plus  = np.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] *   abs_cos2theta \
+            abs_cos2theta = jnp.sqrt(1 - sin2theta * sin2theta)
+            residual_if_varpi_plus  = jnp.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] *   abs_cos2theta \
                                              + K4s[jphi] * 2 * sin2theta *   abs_cos2theta  + K4c[jphi] * (1 - 2 * sin2theta * sin2theta))
-            residual_if_varpi_minus = np.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] * (-abs_cos2theta) \
+            residual_if_varpi_minus = jnp.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] * (-abs_cos2theta) \
                                              + K4s[jphi] * 2 * sin2theta * (-abs_cos2theta) + K4c[jphi] * (1 - 2 * sin2theta * sin2theta))
 
             if residual_if_varpi_plus > residual_if_varpi_minus:
@@ -349,9 +351,9 @@ def calculate_r_singularity(self, high_order=False):
             # avoid precision loss when cos2theta is added to or subtracted from 1:
             get_cos_from_cos2 = cos2theta > 0
             if get_cos_from_cos2:
-                abs_costheta = np.sqrt(0.5*(1 + cos2theta))
+                abs_costheta = jnp.sqrt(0.5*(1 + cos2theta))
             else:
-                abs_sintheta = np.sqrt(0.5 * (1 - cos2theta))
+                abs_sintheta = jnp.sqrt(0.5 * (1 - cos2theta))
                 
             logger.debug("  jr={}  sin2theta={}  cos2theta={}".format(jr, sin2theta, cos2theta))
             for varsigma in [-1, 1]:
@@ -364,8 +366,8 @@ def calculate_r_singularity(self, high_order=False):
                 logger.debug("    varsigma={}  costheta={}  sintheta={}".format(varsigma, costheta, sintheta))
 
                 # Sanity test
-                if np.abs(costheta*costheta + sintheta*sintheta - 1) > 1e-13:
-                    msg = "Error! sintheta={} costheta={} jphi={} jr={} sin2theta={} cos2theta={} abs(costheta*costheta + sintheta*sintheta - 1)={}".format(sintheta, costheta, jphi, jr, sin2theta, cos2theta, np.abs(costheta*costheta + sintheta*sintheta - 1))
+                if jnp.abs(costheta*costheta + sintheta*sintheta - 1) > 1e-13:
+                    msg = "Error! sintheta={} costheta={} jphi={} jr={} sin2theta={} cos2theta={} abs(costheta*costheta + sintheta*sintheta - 1)={}".format(sintheta, costheta, jphi, jr, sin2theta, cos2theta, jnp.abs(costheta*costheta + sintheta*sintheta - 1))
                     logger.error(msg)
                     raise RuntimeError(msg)
 
@@ -406,12 +408,12 @@ def calculate_r_singularity(self, high_order=False):
                 # Try to get r using the simpler method, the equation that is linear in r.
                 linear_solutions = []
                 denominator = 2 * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-                if np.abs(denominator) > 1e-8:
+                if jnp.abs(denominator) > 1e-8:
                     # This method cannot be used if we would need to divide by 0
                     rr = g1c[jphi] * sintheta / denominator
                     residual = g0[jphi] + rr * g1c[jphi] * costheta + rr * rr * (g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta) # Residual in the equation sqrt(g)=0.
                     logger.debug("    Linear method: rr={}  residual={}".format(rr, residual))
-                    if (rr>0) and np.abs(residual) < 1e-5:
+                    if (rr>0) and jnp.abs(residual) < 1e-5:
                         linear_solutions = [rr]
                         
                 # Use the more complicated method to determine rr by solving a quadratic equation.
@@ -420,32 +422,32 @@ def calculate_r_singularity(self, high_order=False):
                 quadratic_B = costheta * g1c[jphi]
                 quadratic_C = g0[jphi]
                 radicand = quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C
-                if np.abs(quadratic_A) < 1e-13:
+                if jnp.abs(quadratic_A) < 1e-13:
                     rr = -quadratic_C / quadratic_B
                     residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
                     logger.debug("    Quadratic method but A is small: A={} rr={}  residual={}".format(quadratic_A, rr, residual))
-                    if rr > 0 and np.abs(residual) < 1e-5:
+                    if rr > 0 and jnp.abs(residual) < 1e-5:
                         quadratic_solutions.append(rr)
                 else:
                     # quadratic_A is nonzero, so we can apply the quadratic formula.
                     # I've seen a case where radicand is <0 due I think to under-resolution in phi.
                     if radicand >= 0:
-                        radical = np.sqrt(radicand)
+                        radical = jnp.sqrt(radicand)
                         for sign_quadratic in [-1, 1]:
                             rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
                             residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
                             logger.debug("    Quadratic method: A={} B={} C={} radicand={}, radical={}  rr={}  residual={}".format(quadratic_A, quadratic_B, quadratic_C, quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C, radical, rr, residual))
-                            if (rr>0) and np.abs(residual) < 1e-5:
+                            if (rr>0) and jnp.abs(residual) < 1e-5:
                                 quadratic_solutions.append(rr)
 
                 logger.debug("    # linear solutions={}  # quadratic solutions={}".format(len(linear_solutions), len(quadratic_solutions)))
                 if len(quadratic_solutions) > 1:
                     # Pick the smaller one
-                    quadratic_solutions = [np.min(quadratic_solutions)]
+                    quadratic_solutions = [jnp.min(quadratic_solutions)]
                     
                 # If both methods find a solution, check that they agree:
                 if len(linear_solutions) > 0 and len(quadratic_solutions) > 0:
-                    diff = np.abs(linear_solutions[0] - quadratic_solutions[0])
+                    diff = jnp.abs(linear_solutions[0] - quadratic_solutions[0])
                     logger.debug("  linear solution={}  quadratic solution={}  diff={}".format(linear_solutions[0], quadratic_solutions[0], diff))
                     if diff > 1e-5:
                         warnings.warn("  Difference between linear solution {} and quadratic solution {} is {}".format(linear_solutions[0], quadratic_solutions[0], diff))
@@ -475,7 +477,7 @@ def calculate_r_singularity(self, high_order=False):
     self.r_singularity_vs_varphi = r_singularity_vs_varphi
     self.inv_r_singularity_vs_varphi = 1 / r_singularity_vs_varphi
     self.r_singularity_basic_vs_varphi = r_singularity_basic_vs_varphi
-    self.r_singularity = np.min(r_singularity_vs_varphi)    
+    self.r_singularity = jnp.min(r_singularity_vs_varphi)    
     self.r_singularity_theta_vs_varphi = r_singularity_theta_vs_varphi
     self.r_singularity_residual_sqnorm = r_singularity_residual_sqnorm
     
