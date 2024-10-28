@@ -6,6 +6,7 @@ from datetime import datetime
 import numpy as np
 from .Frenet_to_cylindrical import Frenet_to_cylindrical
 from .util import mu0, to_Fourier
+import jax.numpy as jnp
 
 def to_vmec(self, filename, r=0.1, params=dict(), ntheta=20, ntorMax=14):
     """
@@ -22,7 +23,7 @@ def to_vmec(self, filename, r=0.1, params=dict(), ntheta=20, ntorMax=14):
     """
     if "mpol" not in params.keys():
         mpol1d = 100 # maximum number of mode numbers VMEC can handle
-        mpol = int(np.floor(min(ntheta / 2, mpol1d)))
+        mpol = int(jnp.floor(min(ntheta / 2, mpol1d)))
     else:
         mpol = int(params["mpol"])
     if "ntor" not in params.keys():
@@ -44,7 +45,7 @@ def to_vmec(self, filename, r=0.1, params=dict(), ntheta=20, ntorMax=14):
     if "niter_array" not in params.keys():
         params["niter_array"] = [2000,2000,2000]
 
-    phiedge = np.pi * r * r * self.spsi * self.Bbar
+    phiedge = jnp.pi * r * r * self.spsi * self.Bbar
 
     # Set pressure Profile
     temp = - self.p2 * r * r
@@ -56,7 +57,7 @@ def to_vmec(self, filename, r=0.1, params=dict(), ntheta=20, ntorMax=14):
     ncurr = 1
     pcurr_type = 'power_series'
     ac = [1]
-    curtor = 2 * np.pi / mu0 * self.I2 * r * r
+    curtor = 2 * jnp.pi / mu0 * self.I2 * r * r
 
     # Get surface shape at fixed off-axis toroidal angle phi
     R_2D, Z_2D, phi0_2D = self.Frenet_to_cylindrical(r, ntheta)

@@ -50,7 +50,7 @@ def fourier_minimum(y):
     f0 = func(index * dx)
     found_bracket = False
     for j in range(1, 4):
-        bracket = np.array([index - j, index, index + j]) * dx
+        bracket = jnp.array([index - j, index, index + j]) * dx
         fm = func(bracket[0])
         fp = func(bracket[2])
         if f0 < fm and f0 < fp:
@@ -84,34 +84,34 @@ def to_Fourier(R_2D, Z_2D, nfp, mpol, ntor, lasym):
         ntor: resolution in toroidal Fourier space
         lasym: False if stellarator-symmetric, True if not
     """
-    shape = np.array(R_2D).shape
+    shape = jnp.array(R_2D).shape
     ntheta = shape[0]
     nphi_conversion = shape[1]
-    theta = np.linspace(0, 2 * np.pi, ntheta, endpoint=False)
-    phi_conversion = np.linspace(0, 2 * np.pi / nfp, nphi_conversion, endpoint=False)
-    RBC = np.zeros((int(2 * ntor + 1), int(mpol + 1)))
-    RBS = np.zeros((int(2 * ntor + 1), int(mpol + 1)))
-    ZBC = np.zeros((int(2 * ntor + 1), int(mpol + 1)))
-    ZBS = np.zeros((int(2 * ntor + 1), int(mpol + 1)))
+    theta = jnp.linspace(0, 2 * jnp.pi, ntheta, endpoint=False)
+    phi_conversion = jnp.linspace(0, 2 * jnp.pi / nfp, nphi_conversion, endpoint=False)
+    RBC = jnp.zeros((int(2 * ntor + 1), int(mpol + 1)))
+    RBS = jnp.zeros((int(2 * ntor + 1), int(mpol + 1)))
+    ZBC = jnp.zeros((int(2 * ntor + 1), int(mpol + 1)))
+    ZBS = jnp.zeros((int(2 * ntor + 1), int(mpol + 1)))
     factor = 2 / (ntheta * nphi_conversion)
-    phi2d, theta2d = np.meshgrid(phi_conversion, theta)
+    phi2d, theta2d = jnp.meshgrid(phi_conversion, theta)
     for m in range(mpol+1):
         nmin = -ntor
         if m==0: nmin = 1
         for n in range(nmin, ntor+1):
             angle = m * theta2d - n * nfp * phi2d
-            sinangle = np.sin(angle)
-            cosangle = np.cos(angle)
+            sinangle = jnp.sin(angle)
+            cosangle = jnp.cos(angle)
             factor2 = factor
             # The next 2 lines ensure inverse Fourier transform(Fourier transform) = identity
-            if np.mod(ntheta,2) == 0 and m  == (ntheta/2): factor2 = factor2 / 2
-            if np.mod(nphi_conversion,2) == 0 and abs(n) == (nphi_conversion/2): factor2 = factor2 / 2
-            RBC[n + ntor, m] = np.sum(R_2D * cosangle * factor2)
-            RBS[n + ntor, m] = np.sum(R_2D * sinangle * factor2)
-            ZBC[n + ntor, m] = np.sum(Z_2D * cosangle * factor2)
-            ZBS[n + ntor, m] = np.sum(Z_2D * sinangle * factor2)
-    RBC[ntor,0] = np.sum(R_2D) / (ntheta * nphi_conversion)
-    ZBC[ntor,0] = np.sum(Z_2D) / (ntheta * nphi_conversion)
+            if jnp.mod(ntheta,2) == 0 and m  == (ntheta/2): factor2 = factor2 / 2
+            if jnp.mod(nphi_conversion,2) == 0 and abs(n) == (nphi_conversion/2): factor2 = factor2 / 2
+            RBC[n + ntor, m] = jnp.sum(R_2D * cosangle * factor2)
+            RBS[n + ntor, m] = jnp.sum(R_2D * sinangle * factor2)
+            ZBC[n + ntor, m] = jnp.sum(Z_2D * cosangle * factor2)
+            ZBS[n + ntor, m] = jnp.sum(Z_2D * sinangle * factor2)
+    RBC[ntor,0] = jnp.sum(R_2D) / (ntheta * nphi_conversion)
+    ZBC[ntor,0] = jnp.sum(Z_2D) / (ntheta * nphi_conversion)
 
     if not lasym:
         RBS = 0
@@ -137,17 +137,17 @@ def B_mag(self, r, theta, phi, Boozer_toroidal = False):
     else:
         thetaN = theta - (self.iota - self.iotaN) * phi
 
-    B = self.B0*(1 + r * self.etabar * np.cos(thetaN))
+    B = self.B0*(1 + r * self.etabar * jnp.cos(thetaN))
 
     # Add O(r^2) terms if necessary:
     if self.order != 'r1':
         if Boozer_toroidal == False:
             self.B20_spline = self.convert_to_spline(self.B20, self.phi, self.nfp)
         else:
-            self.B20_spline = spline(np.append(self.varphi, 2 * np.pi / self.nfp),
-                                     np.append(self.B20, self.B20[0]),
+            self.B20_spline = spline(jnp.append(self.varphi, 2 * jnp.pi / self.nfp),
+                                     jnp.append(self.B20, self.B20[0]),
                                      bc_type='periodic')
 
-        B += (r**2) * (self.B20_spline(phi) + self.B2c * np.cos(2 * thetaN) + self.B2s * np.sin(2 * thetaN))
+        B += (r**2) * (self.B20_spline(phi) + self.B2c * jnp.cos(2 * thetaN) + self.B2s * jnp.sin(2 * thetaN))
 
     return B

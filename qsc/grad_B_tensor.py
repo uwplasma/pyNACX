@@ -6,6 +6,7 @@ Functions for computing the grad B tensor and grad grad B tensor.
 
 import logging
 import numpy as np
+import jax.nump as jnp
 from .util import Struct, fourier_minimum
 
 #logging.basicConfig(level=logging.INFO)
@@ -36,7 +37,7 @@ def calculate_grad_B_tensor(self):
                           + s.sG * s.spsi * s.d_l_d_varphi * s.torsion \
                           + s.iotaN * (s.Y1s * s.Y1s + s.Y1c * s.Y1c))
     if hasattr(s.B0, "__len__"): # if B0 is an array (in quasisymmetry B0 is a scalar)
-        tensor.tt = s.sG * np.matmul(s.d_d_varphi, s.B0) / s.d_l_d_varphi
+        tensor.tt = s.sG * jnp.matmul(s.d_d_varphi, s.B0) / s.d_l_d_varphi
     else:
         tensor.tt = 0
 
@@ -45,7 +46,7 @@ def calculate_grad_B_tensor(self):
     t = s.tangent_cylindrical.transpose()
     n = s.normal_cylindrical.transpose()
     b = s.binormal_cylindrical.transpose()
-    self.grad_B_tensor_cylindrical = np.array([[
+    self.grad_B_tensor_cylindrical = jnp.array([[
                               tensor.nn * n[i] * n[j] \
                             + tensor.bn * b[i] * n[j] + tensor.nb * n[i] * b[j] \
                             + tensor.bb * b[i] * b[j] \
@@ -58,7 +59,7 @@ def calculate_grad_B_tensor(self):
         + tensor.nb * tensor.nb + tensor.bn * tensor.bn \
         + tensor.tt * tensor.tt
 
-    self.L_grad_B = s.B0 * np.sqrt(2 / self.grad_B_colon_grad_B)
+    self.L_grad_B = s.B0 * jnp.sqrt(2 / self.grad_B_colon_grad_B)
     self.inv_L_grad_B = 1.0 / self.L_grad_B
     self.min_L_grad_B = fourier_minimum(self.L_grad_B)
     
@@ -97,7 +98,7 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
 
     iota_N0 = s.iotaN
     iota = s.iota
-    lp = np.abs(s.G0) / s.B0
+    lp = jnp.abs(s.G0) / s.B0
 
     curvature = s.curvature
     torsion = s.torsion
@@ -136,8 +137,8 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
     d_curvature_d_varphi = s.d_curvature_d_varphi
     d_torsion_d_varphi = s.d_torsion_d_varphi
 
-    grad_grad_B = np.zeros((s.nphi, 3, 3, 3))
-    grad_grad_B_alt = np.zeros((s.nphi, 3, 3, 3))
+    grad_grad_B = jnp.zeros((s.nphi, 3, 3, 3))
+    grad_grad_B_alt = jnp.zeros((s.nphi, 3, 3, 3))
 
     # The elements that follow are computed in the Mathematica notebook "20200407-01 Grad grad B tensor near axis"
     # and then formatted for fortran by the python script process_grad_grad_B_tensor_code
@@ -549,10 +550,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
 
     # Compute the (inverse) scale length
     squared = grad_grad_B * grad_grad_B
-    norm_squared = np.sum(squared, axis=(1,2,3))
-    self.grad_grad_B_inverse_scale_length_vs_varphi = np.sqrt(np.sqrt(norm_squared) / (4*B0))
+    norm_squared = jnp.sum(squared, axis=(1,2,3))
+    self.grad_grad_B_inverse_scale_length_vs_varphi = jnp.sqrt(jnp.sqrt(norm_squared) / (4*B0))
     self.L_grad_grad_B = 1 / self.grad_grad_B_inverse_scale_length_vs_varphi
-    self.grad_grad_B_inverse_scale_length = np.max(self.grad_grad_B_inverse_scale_length_vs_varphi)
+    self.grad_grad_B_inverse_scale_length = jnp.max(self.grad_grad_B_inverse_scale_length_vs_varphi)
 
     if not two_ways:
         return
@@ -1245,11 +1246,11 @@ def Bfield_cylindrical(self, r=0, theta=0):
         return B0_vector
     else:
         factor = B0 * B0 / G0
-        B1_vector_t = factor * (X1c * np.cos(theta) + X1s * np.sin(theta)) * d_l_d_varphi * curvature
-        B1_vector_n = factor * (np.cos(theta) * (d_X1c_d_varphi - Y1c * d_l_d_varphi * torsion + iotaN * X1s) \
-                                + np.sin(theta) * (d_X1s_d_varphi - Y1s * d_l_d_varphi * torsion - iotaN * X1c))
-        B1_vector_b = factor * (np.cos(theta) * (d_Y1c_d_varphi + X1c * d_l_d_varphi * torsion + iotaN * Y1s) \
-                                + np.sin(theta) * (d_Y1s_d_varphi + X1s * d_l_d_varphi * torsion - iotaN * Y1c))
+        B1_vector_t = factor * (X1c * jnp.cos(theta) + X1s * jnp.sin(theta)) * d_l_d_varphi * curvature
+        B1_vector_n = factor * (jnp.cos(theta) * (d_X1c_d_varphi - Y1c * d_l_d_varphi * torsion + iotaN * X1s) \
+                                + jnp.sin(theta) * (d_X1s_d_varphi - Y1s * d_l_d_varphi * torsion - iotaN * X1c))
+        B1_vector_b = factor * (jnp.cos(theta) * (d_Y1c_d_varphi + X1c * d_l_d_varphi * torsion + iotaN * Y1s) \
+                                + jnp.sin(theta) * (d_Y1s_d_varphi + X1s * d_l_d_varphi * torsion - iotaN * Y1c))
 
         B1_vector = B1_vector_t * t + B1_vector_n * n + B1_vector_b * b
         B_vector_cylindrical = B0_vector + r * B1_vector
@@ -1270,11 +1271,11 @@ def Bfield_cartesian(self, r=0, theta=0):
     B_vector_cylindrical = self.Bfield_cylindrical(r,theta)
     phi = self.phi
 
-    B_x = np.cos(phi) * B_vector_cylindrical[0] - np.sin(phi) * B_vector_cylindrical[1]
-    B_y = np.sin(phi) * B_vector_cylindrical[0] + np.cos(phi) * B_vector_cylindrical[1]
+    B_x = jnp.cos(phi) * B_vector_cylindrical[0] - jnp.sin(phi) * B_vector_cylindrical[1]
+    B_y = jnp.sin(phi) * B_vector_cylindrical[0] + jnp.cos(phi) * B_vector_cylindrical[1]
     B_z = B_vector_cylindrical[2]
 
-    B_vector_cartesian = np.array([B_x, B_y, B_z])
+    B_vector_cartesian = jnp.array([B_x, B_y, B_z])
 
     return B_vector_cartesian
 
@@ -1287,11 +1288,11 @@ def grad_B_tensor_cartesian(self):
 
     B0, B1, B2 = self.Bfield_cylindrical()
     nablaB = self.grad_B_tensor_cylindrical
-    cosphi = np.cos(self.phi)
-    sinphi = np.sin(self.phi)
+    cosphi = jnp.cos(self.phi)
+    sinphi = jnp.sin(self.phi)
     R0 = self.R0
 
-    grad_B_vector_cartesian = np.array([
+    grad_B_vector_cartesian = jnp.array([
 [cosphi**2*nablaB[0, 0] - cosphi*sinphi*(nablaB[0, 1] + nablaB[1, 0]) + 
    sinphi**2*nablaB[1, 1], cosphi**2*nablaB[0, 1] - sinphi**2*nablaB[1, 0] + 
    cosphi*sinphi*(nablaB[0, 0] - nablaB[1, 1]), cosphi*nablaB[0, 2] - 
@@ -1311,7 +1312,7 @@ def grad_grad_B_tensor_cylindrical(self):
     vector B=(B_R,B_phi,B_Z) at every point along the axis (hence with nphi points)
     where R, phi and Z are the standard cylindrical coordinates.
     '''
-    return np.transpose(self.grad_grad_B,(1,2,3,0))
+    return jnp.transpose(self.grad_grad_B,(1,2,3,0))
 
 def grad_grad_B_tensor_cartesian(self):
     '''
@@ -1320,10 +1321,10 @@ def grad_grad_B_tensor_cartesian(self):
     where x, y and z are the standard cartesian coordinates.
     '''
     nablanablaB = self.grad_grad_B_tensor_cylindrical()
-    cosphi = np.cos(self.phi)
-    sinphi = np.sin(self.phi)
+    cosphi = jnp.cos(self.phi)
+    sinphi = jnp.sin(self.phi)
 
-    grad_grad_B_vector_cartesian = np.array([[
+    grad_grad_B_vector_cartesian = jnp.array([[
 [cosphi**3*nablanablaB[0, 0, 0] - cosphi**2*sinphi*(nablanablaB[0, 0, 1] + 
       nablanablaB[0, 1, 0] + nablanablaB[1, 0, 0]) + 
     cosphi*sinphi**2*(nablanablaB[0, 1, 1] + nablanablaB[1, 0, 1] + 

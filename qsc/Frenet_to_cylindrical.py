@@ -5,6 +5,7 @@ off-axis cylindrical toroidal angle
 """
 
 import numpy as np
+import jax.numpy as jnp
 from scipy.optimize import root_scalar
 
 def Frenet_to_cylindrical_residual_func(phi0, phi_target, qsc):
@@ -18,8 +19,8 @@ def Frenet_to_cylindrical_residual_func(phi0, phi_target, qsc):
         phi0 (float): toroidal angle on the axis
         phi_target (float): standard cylindrical toroidal angle
     """
-    sinphi0 = np.sin(phi0)
-    cosphi0 = np.cos(phi0)
+    sinphi0 = jnp.sin(phi0)
+    cosphi0 = jnp.cos(phi0)
     R0_at_phi0   = qsc.R0_func(phi0)
     X_at_phi0    = qsc.X_spline(phi0)
     Y_at_phi0    = qsc.Y_spline(phi0)
@@ -47,10 +48,10 @@ def Frenet_to_cylindrical_residual_func(phi0, phi_target, qsc):
         total_x = total_x + Z_at_phi0 * tangent_x
         total_y = total_y + Z_at_phi0 * tangent_y
 
-    Frenet_to_cylindrical_residual = np.arctan2(total_y, total_x) - phi_target
+    Frenet_to_cylindrical_residual = jnp.arctan2(total_y, total_x) - phi_target
     # We expect the residual to be less than pi in absolute value, so if it is not, the reason must be the branch cut:
-    if (Frenet_to_cylindrical_residual >  np.pi): Frenet_to_cylindrical_residual = Frenet_to_cylindrical_residual - 2*np.pi
-    if (Frenet_to_cylindrical_residual < -np.pi): Frenet_to_cylindrical_residual = Frenet_to_cylindrical_residual + 2*np.pi
+    if (Frenet_to_cylindrical_residual >  jnp.pi): Frenet_to_cylindrical_residual = Frenet_to_cylindrical_residual - 2*np.pi
+    if (Frenet_to_cylindrical_residual < -jnp.pi): Frenet_to_cylindrical_residual = Frenet_to_cylindrical_residual + 2*np.pi
     return Frenet_to_cylindrical_residual
 
 def Frenet_to_cylindrical_1_point(phi0, qsc):
@@ -62,8 +63,8 @@ def Frenet_to_cylindrical_1_point(phi0, qsc):
     Args:
         phi0: toroidal angle on the axis
     """
-    sinphi0 = np.sin(phi0)
-    cosphi0 = np.cos(phi0)
+    sinphi0 = jnp.sin(phi0)
+    cosphi0 = jnp.cos(phi0)
     R0_at_phi0   = qsc.R0_func(phi0)
     z0_at_phi0   = qsc.Z0_func(phi0)
     X_at_phi0    = qsc.X_spline(phi0)
@@ -98,8 +99,8 @@ def Frenet_to_cylindrical_1_point(phi0, qsc):
         total_y = total_y + Z_at_phi0 * tangent_y
         total_z = total_z + Z_at_phi0 * tangent_z
 
-    total_R = np.sqrt(total_x * total_x + total_y * total_y)
-    total_phi=np.arctan2(total_y, total_x)
+    total_R = jnp.sqrt(total_x * total_x + total_y * total_y)
+    total_phi=jnp.arctan2(total_y, total_x)
 
     return total_R, total_z, total_phi
 
@@ -124,30 +125,30 @@ def Frenet_to_cylindrical(self, r, ntheta=20):
 
     """
     nphi_conversion = self.nphi
-    theta = np.linspace(0,2*np.pi,ntheta,endpoint=False)
-    phi_conversion = np.linspace(0,2*np.pi/self.nfp,nphi_conversion,endpoint=False)
-    R_2D = np.zeros((ntheta,nphi_conversion))
-    Z_2D = np.zeros((ntheta,nphi_conversion))
-    phi0_2D = np.zeros((ntheta,nphi_conversion))
+    theta = jnp.linspace(0,2*np.pi,ntheta,endpoint=False)
+    phi_conversion = jnp.linspace(0,2*np.pi/self.nfp,nphi_conversion,endpoint=False)
+    R_2D = jnp.zeros((ntheta,nphi_conversion))
+    Z_2D = jnp.zeros((ntheta,nphi_conversion))
+    phi0_2D = jnp.zeros((ntheta,nphi_conversion))
     for j_theta in range(ntheta):
-        costheta = np.cos(theta[j_theta])
-        sintheta = np.sin(theta[j_theta])
+        costheta = jnp.cos(theta[j_theta])
+        sintheta = jnp.sin(theta[j_theta])
         X_at_this_theta = r * (self.X1c_untwisted * costheta + self.X1s_untwisted * sintheta)
         Y_at_this_theta = r * (self.Y1c_untwisted * costheta + self.Y1s_untwisted * sintheta)
         Z_at_this_theta = 0 * X_at_this_theta
         if self.order != 'r1':
             # We need O(r^2) terms:
-            cos2theta = np.cos(2 * theta[j_theta])
-            sin2theta = np.sin(2 * theta[j_theta])
+            cos2theta = jnp.cos(2 * theta[j_theta])
+            sin2theta = jnp.sin(2 * theta[j_theta])
             X_at_this_theta += r * r * (self.X20_untwisted + self.X2c_untwisted * cos2theta + self.X2s_untwisted * sin2theta)
             Y_at_this_theta += r * r * (self.Y20_untwisted + self.Y2c_untwisted * cos2theta + self.Y2s_untwisted * sin2theta)
             Z_at_this_theta += r * r * (self.Z20_untwisted + self.Z2c_untwisted * cos2theta + self.Z2s_untwisted * sin2theta)
             if self.order == 'r3':
                 # We need O(r^3) terms:
-                costheta  = np.cos(theta[j_theta])
-                sintheta  = np.sin(theta[j_theta])
-                cos3theta = np.cos(3 * theta[j_theta])
-                sin3theta = np.sin(3 * theta[j_theta])
+                costheta  = jnp.cos(theta[j_theta])
+                sintheta  = jnp.sin(theta[j_theta])
+                cos3theta = jnp.cos(3 * theta[j_theta])
+                sin3theta = jnp.sin(3 * theta[j_theta])
                 r3 = r * r * r
                 X_at_this_theta += r3 * (self.X3c1_untwisted * costheta + self.X3s1_untwisted * sintheta
                                          + self.X3c3_untwisted * cos3theta + self.X3s3_untwisted * sin3theta)
@@ -192,12 +193,12 @@ def to_RZ(self,points):
         r      = point[0]
         theta  = point[1]
         phi0   = point[2]
-        costheta = np.cos(theta)
-        sintheta = np.sin(theta)
-        cos2theta = np.cos(2*theta)
-        sin2theta = np.sin(2*theta)
-        cos3theta = np.cos(3*theta)
-        sin3theta = np.sin(3*theta)
+        costheta = jnp.cos(theta)
+        sintheta = jnp.sin(theta)
+        cos2theta = jnp.cos(2*theta)
+        sin2theta = jnp.sin(2*theta)
+        cos3theta = jnp.cos(3*theta)
+        sin3theta = jnp.sin(3*theta)
         X_at_this_theta = r * (self.X1c_untwisted * costheta + self.X1s_untwisted * sintheta)
         Y_at_this_theta = r * (self.Y1c_untwisted * costheta + self.Y1s_untwisted * sintheta)
         Z_at_this_theta = 0 * X_at_this_theta

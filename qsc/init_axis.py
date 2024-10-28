@@ -24,7 +24,7 @@ def calculate_helicity(nphi, normal_cylindrical, spsi, sG):
     by counting the number of times the normal vector rotates
     poloidally as you follow the axis around toroidally.
     """
-    quadrant = np.zeros(nphi + 1)
+    quadrant = jnp.zeros(nphi + 1)
     for j in range(nphi):
         if normal_cylindrical[j,0] >= 0:
             if normal_cylindrical[j,2] >= 0:
@@ -56,7 +56,7 @@ def calculate_helicity(nphi, normal_cylindrical, spsi, sG):
 
 # Define periodic spline interpolant conversion used in several scripts and plotting
 def convert_to_spline(self,array, phi, nfp):
-    sp=spline(np.append(phi,2*np.pi/nfp), np.append(array,array[0]), bc_type='periodic')
+    sp=spline(jnp.append(phi,2*np.pi/nfp), jnp.append(array,array[0]), bc_type='periodic')
     return sp
 
 def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0, order, B2s):
@@ -150,7 +150,7 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
     d_d_varphi = d_d_phi / d_varphi_d_phi[:, np.newaxis]
     
     # Compute the Boozer toroidal angle:
-    varphi = np.zeros(nphi)
+    varphi = jnp.zeros(nphi)
     for j in range(1, nphi):
         # To get toroidal angle on the full mesh, we need d_l_d_phi on the half mesh.
         varphi[j] = varphi[j-1] + (d_l_d_phi[j-1] + d_l_d_phi[j])
@@ -158,7 +158,7 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
 
 
     # Add all results to self:
-    X1s = np.zeros(nphi)
+    X1s = jnp.zeros(nphi)
     X1c = etabar / curvature
     min_R0 = fourier_minimum(R0)
     Bbar = spsi * B0
@@ -166,15 +166,15 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
     # The output is not stellarator-symmetric if (1) R0s is nonzero,
     # (2) Z0c is nonzero, (3) sigma_initial is nonzero, or (B2s is
     # nonzero and order != 'r1')
-    lasym = np.max(np.abs(rs)) > 0 or np.max(np.abs(zc)) > 0 \
+    lasym = jnp.max(jnp.abs(rs)) > 0 or jnp.max(jnp.abs(zc)) > 0 \
         or sigma0 != 0 or (order != 'r1' and B2s != 0)
 
     # Functions that converts a toroidal angle phi0 on the axis to the axis radial and vertical coordinates
-    R0_func = self.convert_to_spline(sum([rc[i]*np.cos(i*nfp*phi) +\
-                                               rs[i]*np.sin(i*nfp*phi) \
+    R0_func = self.convert_to_spline(sum([rc[i]*jnp.cos(i*nfp*phi) +\
+                                               rs[i]*jnp.sin(i*nfp*phi) \
                                               for i in range(len(rc))]), phi, nfp)
-    Z0_func = self.convert_to_spline(sum([zc[i]*np.cos(i*nfp*phi) +\
-                                               zs[i]*np.sin(i*nfp*phi) \
+    Z0_func = self.convert_to_spline(sum([zc[i]*jnp.cos(i*nfp*phi) +\
+                                               zs[i]*jnp.sin(i*nfp*phi) \
                                               for i in range(len(zs))]), phi, nfp)
     self.lasym = lasym
     self.R0_func = R0_func

@@ -115,7 +115,7 @@ def calculate_r2(self):
         - spsi * I2_over_B0 * (-0.5 * curvature * X1c * X1c + 2 * X2c) * abs_G0_over_B0 + 0.5 * abs_G0_over_B0 * beta_1s * X1c
 
     matrix = jnp.zeros((2 * nphi, 2 * nphi))
-    right_hand_side = np.zeros(2 * nphi)
+    right_hand_side = jnp.zeros(2 * nphi)
     for j in range(nphi):
         # Handle the terms involving d X_0 / d zeta and d Y_0 / d zeta:
         # ----------------------------------------------------------------
