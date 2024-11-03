@@ -9,6 +9,7 @@ from .util import fourier_minimum
 from .newton import newton
 import jax.numpy as jnp
 from jax import jacobian
+import calculate_r1_helpers 
 
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -67,7 +68,7 @@ def solve_sigma_equation(self, nphi, sigma0, helicity, nfp):
     """
     sigma = newton(self._residual, x0, jac=self._jacobian)
     iota = sigma[0]
-    iotaN = iota + helicity * nfp
+    iotaN = calculate_r1_helpers.calc_iotaN(iota, helicity, nfp)
     sigma[0] = sigma0
     return sigma, iota, iotaN
 
@@ -111,8 +112,10 @@ def r1_diagnostics(self):
     Compute various properties of the O(r^1) solution, once sigma and
     iota are solved for.
     """
-    self.Y1s = self.sG * self.spsi * self.curvature / self.etabar
-    self.Y1c = self.sG * self.spsi * self.curvature * self.sigma / self.etabar
+    #self.Y1s = self.sG * self.spsi * self.curvature / self.etabar
+    self.Y1s = calculate_r1_helpers.calc_Y1s(self.sG ,self.spsi,self.curvature, self.etabar)
+    #self.Y1c = self.sG * self.spsi * self.curvature * self.sigma / self.etabar
+    self.Y1c = calculate_r1_helpers.calc_Y1c(self.sG, self.spsi, self.curvature, self.sigma, self.etabar)
 
     # If helicity is nonzero, then the original X1s/X1c/Y1s/Y1c variables are defined with respect to a "poloidal" angle that
     # is actually helical, with the theta=0 curve wrapping around the magnetic axis as you follow phi around toroidally. Therefore
@@ -123,20 +126,25 @@ def r1_diagnostics(self):
         self.Y1s_untwisted = self.Y1s
         self.Y1c_untwisted = self.Y1c
     else:
-        angle = -self.helicity * self.nfp * self.varphi
+        angle = calculate_r1_helpers.calc_angle(self.helicity, self.nfp, self.varphi)
         sinangle = np.sin(angle)
         cosangle = np.cos(angle)
-        self.X1s_untwisted = self.X1s *   cosangle  + self.X1c * sinangle
-        self.X1c_untwisted = self.X1s * (-sinangle) + self.X1c * cosangle
-        self.Y1s_untwisted = self.Y1s *   cosangle  + self.Y1c * sinangle
-        self.Y1c_untwisted = self.Y1s * (-sinangle) + self.Y1c * cosangle
+        self.X1s_untwisted = calculate_r1_helpers.calc_X1s_untwisted(self.X1s, cosangle, self.X1c, sinangle)
+        
+        self.X1c_untwisted = calculate_r1_helpers.calc_X1c_untwisted(self.X1s, sinangle, self.X1c, cosangle)
+        
+        self.Y1s_untwisted = calculate_r1_helpers.calc_X1s_untwisted(self.Y1s, cosangle, self.Y1c, sinangle)
+        
+        self.Y1c_untwisted = calculate_r1_helpers.calc_Y1c_untwisted(self.Y1s, sinangle, self.Y1c, cosangle)
 
     # Use (R,Z) for elongation in the (R,Z) plane,
     # or use (X,Y) for elongation in the plane perpendicular to the magnetic axis.
-    p = self.X1s * self.X1s + self.X1c * self.X1c + self.Y1s * self.Y1s + self.Y1c * self.Y1c
-    q = self.X1s * self.Y1c - self.X1c * self.Y1s
-    self.elongation = (p + np.sqrt(p * p - 4 * q * q)) / (2 * np.abs(q))
-    self.mean_elongation = np.sum(self.elongation * self.d_l_d_phi) / np.sum(self.d_l_d_phi)
+    
+    p = calculate_r1_helpers.calc_p(self.X1s, self.X1c, self.Y1s, self.Y1c)
+    q = calculate_r1_helpers.calc_q(self.X1s, self.Y1c, self.X1c, self.Y1s)
+
+    self.elongation = calculate_r1_helpers.calc_elongation(p,q)
+    self.mean_elongation = calculate_r1_helpers.mean_elongation(self.elongation, self.d_l_d_phi)
     index = np.argmax(self.elongation)
     self.max_elongation = -fourier_minimum(-self.elongation)
 

@@ -6,6 +6,7 @@ import logging
 import numpy as np
 from .util import mu0
 import jax.numpy as jnp
+from calculate_r2_helpers import * 
 
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ def calculate_r2(self):
     logger.debug('Calculating O(r^2) terms')
     # First, some shorthand:
     nphi = self.nphi
-    B0_over_abs_G0 = self.B0 / jnp.abs(self.G0)
+    B0_over_abs_G0 = calc_B0_over_abs_G0(B0, G0)
     abs_G0_over_B0 = 1 / B0_over_abs_G0
     X1c = self.X1c
     Y1s = self.Y1s
@@ -43,16 +44,17 @@ def calculate_r2(self):
         logger.warning('|iota_N| is very small so O(r^2) solve will be poorly conditioned. '
                        f'iota_N={iota_N}')
 
-    V1 = X1c * X1c + Y1c * Y1c + Y1s * Y1s
-    V2 = 2 * Y1s * Y1c
-    V3 = X1c * X1c + Y1c * Y1c - Y1s * Y1s
+   
+    V1 = calc_V1(X1c, Y1c, Y1s)
+    V2 = calc_V2(Y1s, Y1c)
+    V3 = calc_V3(X1c, Y1c, Y1s)
 
-    factor = - B0_over_abs_G0 / 8;
+    factor = - B0_over_abs_G0 / 8
     Z20 = factor*jnp.matmul(d_d_varphi,V1)
     Z2s = factor*(jnp.matmul(d_d_varphi,V2) - 2 * iota_N * V3)
     Z2c = factor*(jnp.matmul(d_d_varphi,V3) + 2 * iota_N * V2)
 
-    qs = -iota_N * X1c - Y1s * torsion * abs_G0_over_B0
+    qs = calc_qs(iota_N, X1c, Y1s, torsion, abs_G0_over_B0)
     qc = jnp.matmul(d_d_varphi,X1c) - Y1c * torsion * abs_G0_over_B0
     rs = jnp.matmul(d_d_varphi,Y1s) - iota_N * Y1c
     rc = jnp.matmul(d_d_varphi,Y1c) + iota_N * Y1s + X1c * torsion * abs_G0_over_B0
@@ -62,13 +64,13 @@ def calculate_r2(self):
     X2c = B0_over_abs_G0 * (jnp.matmul(d_d_varphi,Z2c) + 2*iota_N*Z2s - B0_over_abs_G0 * (-abs_G0_over_B0*abs_G0_over_B0*B2c/B0 \
            + abs_G0_over_B0*abs_G0_over_B0*etabar*etabar/2 - (qc * qc - qs * qs + rc * rc - rs * rs)/4)) / curvature
 
-    beta_1s = -4 * spsi * sG * mu0 * p2 * etabar * abs_G0_over_B0 / (iota_N * B0 * B0)
+    beta_1s = calc_beta_1s(spsi, sG, mu0, p2, etabar, abs_G0_over_B0, iota_N, B0)
 
-    Y2s_from_X20 = -sG * spsi * curvature * curvature / (etabar * etabar)
-    Y2s_inhomogeneous = sG * spsi * (-curvature/2 + curvature*curvature/(etabar*etabar)*(-X2c + X2s * sigma))
+    Y2s_from_X20 = calc_Y2s_from_X20(sG, spsi, curvature, etabar)
+    Y2s_inhomogeneous = calc_Y2s_inhomogeneous(sG, spsi, curvature, etabar, X2c, X2s, sigma)
 
-    Y2c_from_X20 = -sG * spsi * curvature * curvature * sigma / (etabar * etabar)
-    Y2c_inhomogeneous = sG * spsi * curvature * curvature / (etabar * etabar) * (X2s + X2c * sigma)
+    Y2c_from_X20 = calc_Y2c_from_X20(sG, spsi, curvature,sigma,  etabar)
+    Y2c_inhomogeneous = calc_Y2c_inhomogeneous(sG, spsi, curvature, etabar, X2s, X2c, sigma)
 
     # Note: in the fX* and fY* quantities below, I've omitted the
     # contributions from X20 and Y20 to the d/dzeta terms. These
@@ -78,11 +80,9 @@ def calculate_r2(self):
     fX0_from_X20 = -4 * sG * spsi * abs_G0_over_B0 * (Y2c_from_X20 * Z2s - Y2s_from_X20 * Z2c)
     fX0_from_Y20 = -torsion * abs_G0_over_B0 - 4 * sG * spsi * abs_G0_over_B0 * (Z2s) \
         - spsi * I2_over_B0 * (-2) * abs_G0_over_B0
-    fX0_inhomogeneous = curvature * abs_G0_over_B0 * Z20 - 4 * sG * spsi * abs_G0_over_B0 * (Y2c_inhomogeneous * Z2s - Y2s_inhomogeneous * Z2c) \
-        - spsi * I2_over_B0 * (0.5 * curvature * sG * spsi) * abs_G0_over_B0 + beta_1s * abs_G0_over_B0 / 2 * Y1c
+    fX0_inhomogeneous = calc_fX0_inhomogeneous(curvature, abs_G0_over_B0, Z20, sG, spsi, Y2c_inhomogeneous, Z2s, Y2s_inhomogeneous, Z2c, I2_over_B0, beta_1s, Y1c)
 
-    fXs_from_X20 = -torsion * abs_G0_over_B0 * Y2s_from_X20 - 4 * spsi * sG * abs_G0_over_B0 * (Y2c_from_X20 * Z20) \
-        - spsi * I2_over_B0 * (- 2 * Y2s_from_X20) * abs_G0_over_B0
+    fXs_from_X20 = calc_fXs_from_X20(torsion, abs_G0_over_B0, Y2s_from_X20, spsi, sG, Y2c_from_X20, Z20, I2_over_B0)
     fXs_from_Y20 = - 4 * spsi * sG * abs_G0_over_B0 * (-Z2c + Z20)
     fXs_inhomogeneous = jnp.matmul(d_d_varphi,X2s) - 2 * iota_N * X2c - torsion * abs_G0_over_B0 * Y2s_inhomogeneous + curvature * abs_G0_over_B0 * Z2s \
         - 4 * spsi * sG * abs_G0_over_B0 * (Y2c_inhomogeneous * Z20) \

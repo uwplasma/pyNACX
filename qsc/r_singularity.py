@@ -282,27 +282,27 @@ def calculate_r_singularity(self, high_order=False):
 
     coefficients =jnp.zeros((nphi,5))
     
-    coefficients[:, 4] = 4*(K4c*K4c + K4s*K4s)
+    coefficients = coefficients.at[:, 4].set(4*(K4c*K4c + K4s*K4s))
 
-    coefficients[:, 3] = 4*(K4s*K2c - K2s*K4c)
+    coefficients = coefficients.at[:, 3].set(4*(K4s*K2c - K2s*K4c))
 
-    coefficients[:, 2] = K2s*K2s + K2c*K2c - 4*K0*K4c - 4*K4c*K4c - 4*K4s*K4s
+    coefficients = coefficients.at[: ,2].set(K2s*K2s + K2c*K2c - 4*K0*K4c - 4*K4c*K4c - 4*K4s*K4s)
 
-    coefficients[:, 1] = 2*K0*K2s + 2*K4c*K2s - 4*K4s*K2c
+    coefficients = coefficients.at[: ,1].set(2*K0*K2s + 2*K4c*K2s - 4*K4s*K2c)
 
-    coefficients[:, 0] = (K0 + K4c)*(K0 + K4c) - K2c*K2c
-
+    coefficients = coefficients.at[: ,0].set((K0 + K4c)*(K0 + K4c) - K2c*K2c)
+    
     for jphi in range(nphi):
         # Solve for the roots of the quartic polynomial:
         try:
-            roots = jnp.polynomial.polynomial.polyroots(coefficients[jphi, :]) # Do I need to reverse the order of the coefficients?
+            roots = jnp.polynomial.polynomial.polyroots(coefficients.at[jphi, :].get()) # Do I need to reverse the order of the coefficients?
         except jnp.linalg.LinAlgError:
-            raise RuntimeError('Problem with polyroots. coefficients={} lp={} B0={} g0={} g1c={}'.format(coefficients[jphi, :], lp, s.B0, g0, g1c))
+            raise RuntimeError('Problem with polyroots. coefficients={} lp={} B0={} g0={} g1c={}'.format(coefficients.at[jphi, :].get(), lp, s.B0, g0, g1c))
 
         real_parts = jnp.real(roots)
         imag_parts = jnp.imag(roots)
 
-        logger.debug('jphi={} g0={} g1c={} g20={} g2s={} g2c={} K0={} K2s={} K2c={} K4s={} K4c={} coefficients={} real={} imag={}'.format(jphi, g0[jphi], g1c[jphi], g20[jphi], g2s[jphi], g2c[jphi], K0[jphi], K2s[jphi], K2c[jphi], K4s[jphi], K4c[jphi], coefficients[jphi,:], real_parts, imag_parts))
+        logger.debug('jphi={} g0={} g1c={} g20={} g2s={} g2c={} K0={} K2s={} K2c={} K4s={} K4c={} coefficients={} real={} imag={}'.format(jphi, g0[jphi], g1c[jphi], g20[jphi], g2s[jphi], g2c[jphi], K0[jphi], K2s[jphi], K2c[jphi], K4s[jphi], K4c[jphi], coefficients.at[jphi, :].get(), real_parts, imag_parts))
 
         # This huge number indicates a true solution has not yet been found.
         rc = 1e+100
@@ -311,11 +311,11 @@ def calculate_r_singularity(self, high_order=False):
             # Loop over the roots of the equation for w.
 
             # If root is not purely real, skip it.
-            if jnp.abs(imag_parts[jr]) > 1e-7:
-                logger.debug("Skipping root with jr={} since imag part is {}".format(jr, imag_parts[jr]))
+            if jnp.abs(imag_parts.at[jr].get()) > 1e-7:
+                logger.debug("Skipping root with jr={} since imag part is {}".format(jr, imag_parts.at[jr].get()))
                 continue
 
-            sin2theta = real_parts[jr]
+            sin2theta = real_parts.at[jr].get()
 
             # Discard any roots that have magnitude larger than 1. (I'm not sure this ever happens, but check to be sure.)
             if jnp.abs(sin2theta) > 1:

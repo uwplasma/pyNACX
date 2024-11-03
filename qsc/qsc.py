@@ -49,10 +49,11 @@ class Qsc():
         self.zs = jnp.zeros(nfourier)
         self.rs = jnp.zeros(nfourier)
         self.zc = jnp.zeros(nfourier)
-        self.rc[:len(rc)] = rc
-        self.zs[:len(zs)] = zs
-        self.rs[:len(rs)] = rs
-        self.zc[:len(zc)] = zc
+
+        self.rc = self.rc.at[:len(rc)].set(rc)
+        self.zs = self.zs.at[:len(zs)].set(zs)
+        self.rs = self.rs.at[:len(rs)].set(rs)
+        self.zc = self.zc.at[:len(zc)].set(zc)
 
         # Force nphi to be odd:
         if jnp.mod(nphi, 2) == 0:
@@ -95,10 +96,12 @@ class Qsc():
         self.rs = jnp.zeros(nfourier_new)
         self.zc = jnp.zeros(nfourier_new)
         self.zs = jnp.zeros(nfourier_new)
-        self.rc[:index] = rc_old[:index]
-        self.rs[:index] = rs_old[:index]
-        self.zc[:index] = zc_old[:index]
-        self.zs[:index] = zs_old[:index]
+        
+        self.rc = self.rc.at[:index].set(rc_old[:index])
+        self.rs = self.rs.at[:index].set(rs_old[:index])
+        self.zc = self.zc.at[:index].set(zc_old[:index])
+        self.zs = self.zs.ad[:index].set(zs_old[:index])
+       
         nfourier_old = self.nfourier
         self.nfourier = nfourier_new
         self._set_names()
@@ -201,10 +204,12 @@ class Qsc():
         freedom from a 1D numpy vector.
         """
         assert len(x) == self.nfourier * 4 + 7
-        self.rc = x[self.nfourier * 0 : self.nfourier * 1]
-        self.zs = x[self.nfourier * 1 : self.nfourier * 2]
-        self.rs = x[self.nfourier * 2 : self.nfourier * 3]
-        self.zc = x[self.nfourier * 3 : self.nfourier * 4]
+        
+        self.rc = jnp.array(x[self.nfourier * 0 : self.nfourier * 1])
+        self.zs = jnp.array(x[self.nfourier * 1 : self.nfourier * 2])
+        self.rs = jnp.array(x[self.nfourier * 2 : self.nfourier * 3])
+        self.zc = jnp.array(x[self.nfourier * 3 : self.nfourier * 4])
+    
         self.etabar = x[self.nfourier * 4 + 0]
         self.sigma0 = x[self.nfourier * 4 + 1]
         self.B2s = x[self.nfourier * 4 + 2]
