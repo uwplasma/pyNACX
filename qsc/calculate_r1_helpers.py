@@ -2,6 +2,7 @@
 This module contains methods for performing mathematical operations in calculate_r1.py
 """
 import jax.nump as jnp
+ 
 
 """
 helpers for solve_sigma_equation
@@ -45,6 +46,11 @@ def calc_q(X1s, Y1c, X1c, Y1s):
 def calc_elongation(p, q): 
   return (p + jnp.sqrt(p * p - 4 * q * q)) / (2 * jnp.abs(q))
 
+def derive_elongation(p=calc_p(),q=calc_q()): 
+  return calc_elongation(p,q)
+
 def calc_mean_elongation(elongation, d_l_d_phi): 
   return jnp.sum(elongation * d_l_d_phi) / jnp.sum(d_l_d_phi)
 
+def derive_mean_elongation(d_l_d_phi, elongation = calc_elongation()): 
+  return calc_mean_elongation(elongation, d_l_d_phi)
