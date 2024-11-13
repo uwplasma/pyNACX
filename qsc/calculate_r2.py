@@ -18,7 +18,7 @@ def calculate_r2(self):
     logger.debug('Calculating O(r^2) terms')
     # First, some shorthand:
     nphi = self.nphi
-    B0_over_abs_G0 = calc_B0_over_abs_G0(B0, G0)
+    B0_over_abs_G0 = calc_B0_over_abs_G0(self.B0, self.G0)
     abs_G0_over_B0 = 1 / B0_over_abs_G0
     X1c = self.X1c
     Y1s = self.Y1s
@@ -90,20 +90,18 @@ def calculate_r2(self):
     fXc_from_Y20 = calc_fXc_from_Y20(torsion, abs_G0_over_B0, spsi, sG, Z2s,  I2_over_B0 )
     fXc_inhomogeneous = calc_fXc_inhomogeneous(d_d_varphi, X2c, iota_N, X2s, torsion, abs_G0_over_B0, Y2c_inhomogeneous, curvature, Z2c, spsi, sG, Y2s_inhomogeneous, Z20, I2_over_B0, beta_1s, Y1c)
 
-    fY0_from_X20 = torsion * abs_G0_over_B0 - spsi * I2_over_B0 * (2) * abs_G0_over_B0
+    fY0_from_X20 = calc_fY0_from_X20(torsion, abs_G0_over_B0, spsi, I2_over_B0)
     fY0_from_Y20 = jnp.zeros(nphi)
     fY0_inhomogeneous = calc_fY0_inhomogeneous(spsi, sG, abs_G0_over_B0, X2s, Z2c, X2c, Z2s, I2_over_B0, curvature, X1c, beta_1s)
 
-    fYs_from_X20 = -2 * iota_N * Y2c_from_X20 - 4 * spsi * sG * abs_G0_over_B0 * (Z2c)
+    fYs_from_X20 = calc_fYs_from_X20(torsion, abs_G0_over_B0, spsi, I2_over_B0)
+    fYs_from_X20 = calc_fYs_from_X20(iota_N, Y2c_from_X20, spsi, sG, abs_G0_over_B0, Z2c)
     fYs_from_Y20 = jnp.full(nphi, -2 * iota_N)
-    fYs_inhomogeneous = jnp.matmul(d_d_varphi,Y2s_inhomogeneous) - 2 * iota_N * Y2c_inhomogeneous + torsion * abs_G0_over_B0 * X2s \
-        - 4 * spsi * sG * abs_G0_over_B0 * (-X2c * Z20) - 2 * spsi * I2_over_B0 * X2s * abs_G0_over_B0
+    fYs_inhomogeneous = cacl_fYs_inhomogeneous(d_d_varphi, Y2s_inhomogeneous, iota_N, Y2c_inhomogeneous, torsion, abs_G0_over_B0, X2s, spsi, sG, X2c, Z20, I2_over_B0)
 
-    fYc_from_X20 = 2 * iota_N * Y2s_from_X20 - 4 * spsi * sG * abs_G0_over_B0 * (-Z2s)
+    fYc_from_X20 = calc_fYc_from_X20(iota_N, Y2s_from_X20, spsi, sG, abs_G0_over_B0, Z2s)
     fYc_from_Y20 = jnp.zeros(nphi)
-    fYc_inhomogeneous = jnp.matmul(d_d_varphi,Y2c_inhomogeneous) + 2 * iota_N * Y2s_inhomogeneous + torsion * abs_G0_over_B0 * X2c \
-        - 4 * spsi * sG * abs_G0_over_B0 * (X2s * Z20) \
-        - spsi * I2_over_B0 * (-0.5 * curvature * X1c * X1c + 2 * X2c) * abs_G0_over_B0 + 0.5 * abs_G0_over_B0 * beta_1s * X1c
+    fYc_inhomogeneous = calc_fYc_inhomogeneous(d_d_varphi, Y2c_inhomogeneous, iota_N, Y2s_inhomogeneous, torsion, abs_G0_over_B0, X2c, spsi, sG, X2s, Z20, I2_over_B0, curvature, X1c, beta_1s)
 
     matrix = jnp.zeros((2 * nphi, 2 * nphi))
     right_hand_side = jnp.zeros(2 * nphi)
@@ -144,11 +142,10 @@ def calculate_r2(self):
     Y20 = solution[nphi:2 * nphi]
 
     # Now that we have X20 and Y20 explicitly, we can reconstruct Y2s, Y2c, and B20:
-    Y2s = Y2s_inhomogeneous + Y2s_from_X20 * X20
-    Y2c = Y2c_inhomogeneous + Y2c_from_X20 * X20 + Y20
+    Y2s = calc_Y2s(Y2s_inhomogeneous, Y2s_from_X20, X20)
+    Y2c = calc_Y2c(Y2c_inhomogeneous, Y2c_from_X20, X20, Y20)
 
-    B20 = B0 * (curvature * X20 - B0_over_abs_G0 * jnp.matmul(d_d_varphi,Z20) + (0.5) * etabar * etabar - mu0 * p2 / (B0 * B0) \
-                - 0.25 * B0_over_abs_G0 * B0_over_abs_G0 * (qc * qc + qs * qs + rc * rc + rs * rs))
+    B20 =calc_B20(B0, curvature, X20, B0_over_abs_G0, d_d_varphi, Z20, etabar, mu0, p2, qc, qs, rc, rs)
 
     d_l_d_phi = self.d_l_d_phi
     normalizer = 1 / jnp.sum(d_l_d_phi)
