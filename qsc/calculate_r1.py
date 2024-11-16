@@ -68,7 +68,7 @@ def solve_sigma_equation(self, nphi, sigma0, helicity, nfp):
     """
     sigma = newton(self._residual, x0, jac=self._jacobian)
     iota = sigma[0]
-    iotaN = calculate_r1_helpers.calc_iotaN(iota, helicity, nfp)
+    iotaN = calc_iotaN(iota, helicity, nfp)
     sigma[0] = sigma0
     return sigma, iota, iotaN
 
