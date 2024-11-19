@@ -3,6 +3,7 @@ This module contains methods for performing mathematical operations in calculate
 """
 import jax.numpy as jnp
 from init_axis_helpers import *
+from calculate_r1 import solve_sigma_equation
 
 """
 helpers for solve_sigma_equation
@@ -15,11 +16,17 @@ def calc_iotaN(iota, helicity, nfp):
 """
 helpers for r1_diagnostics
 """
-def derive_calc_X1s(nphi): 
 
-  jnp.zeros(nphi)
+def derive_calc_X1s(nphi): 
+  """
+  calculate X1s as a function of inputed parameters
+  """
+  return jnp.zeros(nphi)
 
 def derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs): 
+  """
+  calulate the X1c as a function of inputed parameters
+  """
   curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
   return etabar / curvature
 
@@ -37,6 +44,7 @@ def derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma, etabar):
   """
   calulate the Y1c as a function of inputed parameters
   """
+  sigma = solve_sigma_equation()[0]
   curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
   return  sG * spsi * curvature * sigma / etabar 
 
@@ -90,7 +98,7 @@ def derive_mean_elongation(sG, spsi, sigma, etabar, nphi, nfp, rc, rs, zc, zs):
   """
   X1s = derive_calc_X1s(nphi)
   X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
-  Y1s = derive_calc_X1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma, etabar)
+  Y1s = derive_calc_X1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
   Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma, etabar)
   p = calc_p(X1s, X1c, Y1s, Y1c)
   q = calc_q(X1s, X1c, Y1s, Y1c)

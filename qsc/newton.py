@@ -38,7 +38,7 @@ def newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
         j = jac(x)
         x0 = jnp.copy(x)
         logger.info('Newton iteration {}'.format(jnewton))
-        step_direction =- jnp.linalg.solve(j, residual)
+        step_direction = -jnp.linalg.solve(j, residual)
 
         step_scale = 1.0
         for jlinesearch in range(nlinesearch):
@@ -61,3 +61,6 @@ def newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
                        f'Final residual: {last_residual_norm}')
 
     return x_best
+
+
+def new_newton()

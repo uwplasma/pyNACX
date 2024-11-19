@@ -147,7 +147,7 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
     d_varphi_d_phi = B0_over_abs_G0 * d_l_d_phi
 
     # Calculate d_d_varphi
-    d_d_varphi = d_d_phi / d_varphi_d_phi[:, np.newaxis]
+    d_d_varphi = d_d_phi / d_varphi_d_phi[:, jnp.newaxis]
     
     # Compute the Boozer toroidal angle:
     varphi = jnp.zeros(nphi)

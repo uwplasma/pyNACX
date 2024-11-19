@@ -17,8 +17,27 @@ def calc_V2(Y1s, Y1c):
 def calc_V3(X1c, Y1c, Y1s): 
   return X1c * X1c + Y1c * Y1c - Y1s * Y1s
 
+def calc_factor(B0_over_abs_G0): 
+  return - B0_over_abs_G0 / 8
+
 def calc_qs(iota_N, X1c, Y1s, torsion, abs_G0_over_B0): 
   return  -iota_N * X1c - Y1s * torsion * abs_G0_over_B0
+
+def calc_qc(d_d_varphi, X1c, Y1c, torsion, abs_G0_over_B0): 
+  return jnp.matmul(d_d_varphi,X1c) - Y1c * torsion * abs_G0_over_B0
+
+def calc_rs(d_d_varphi, Y1s, iota_N, Y1c): 
+  return jnp.matmul(d_d_varphi,Y1s) - iota_N * Y1c
+
+def calc_rc(d_d_varphi, Y1c, iota_N, Y1s, X1c, torsion, abs_G0_over_B0): 
+  return jnp.matmul(d_d_varphi,Y1c) + iota_N * Y1s + X1c * torsion * abs_G0_over_B0
+
+def calc_X2s(B0_over_abs_G0, d_d_varphi, Z2s, iota_N, Z2c, abs_G0_over_B0, B2s, B0, qc, qs, rc, rs, curvature): 
+  return B0_over_abs_G0 * (jnp.matmul(d_d_varphi,Z2s) - 2*iota_N*Z2c + B0_over_abs_G0 * ( abs_G0_over_B0*abs_G0_over_B0*B2s/B0 + (qc * qs + rc * rs)/2)) / curvature
+
+def calc_X2c(B0_over_abs_G0, d_d_varphi, Z2c, iota_N, Z2s, abs_G0_over_B0, B2c, B0, etabar, qc, qs, rc, rs, curvature): 
+  return B0_over_abs_G0 * (jnp.matmul(d_d_varphi,Z2c) + 2*iota_N*Z2s - B0_over_abs_G0 * (-abs_G0_over_B0*abs_G0_over_B0*B2c/B0 \
+           + abs_G0_over_B0*abs_G0_over_B0*etabar*etabar/2 - (qc * qc - qs * qs + rc * rc - rs * rs)/4)) / curvature
 
 def calc_beta_1s(spsi, sG, mu0, p2, etabar, abs_G0_over_B0, iota_N, B0): 
   return -4 * spsi * sG * mu0 * p2 * etabar * abs_G0_over_B0 / (iota_N * B0 * B0)
