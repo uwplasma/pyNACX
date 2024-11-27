@@ -112,9 +112,7 @@ def r1_diagnostics(self):
     Compute various properties of the O(r^1) solution, once sigma and
     iota are solved for.
     """
-    #self.Y1s = self.sG * self.spsi * self.curvature / self.etabar
     self.Y1s = calc_Y1s(self.sG ,self.spsi,self.curvature, self.etabar)
-    #self.Y1c = self.sG * self.spsi * self.curvature * self.sigma / self.etabar
     self.Y1c = calc_Y1c(self.sG, self.spsi, self.curvature, self.sigma, self.etabar)
 
     # If helicity is nonzero, then the original X1s/X1c/Y1s/Y1c variables are defined with respect to a "poloidal" angle that
