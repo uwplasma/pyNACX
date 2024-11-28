@@ -63,4 +63,4 @@ def newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
     return x_best
 
 
-def new_newton()
+#def new_newton()
