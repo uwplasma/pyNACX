@@ -112,19 +112,21 @@ def perform_line_search(f, x0, step_direction, last_residual_norm, nlinesearch=1
     """
     perform a line search for the best step size
     """
-    step_scale = 1.0
-    x_1 = jnp.copy(x0)
-    for jlinesearch in range(nlinesearch): 
-        x = x0 + step_scale * step_direction
-        residual = f(x)
-        residual_norm = calc_residual_norm(residual)
-        logger.info('  Line search step {} residual {}'.format(jlinesearch, residual_norm))
+    def line_search_body(state, _):
+        step_scale = 1.0
+        x_1 = jnp.copy(x0)
+        for jlinesearch in range(nlinesearch): 
+            x = x0 + step_scale * step_direction
+            residual = f(x)
+            residual_norm = calc_residual_norm(residual)
+            logger.info('  Line search step {} residual {}'.format(jlinesearch, residual_norm))
 
-        if residual_norm < last_residual_norm: 
-            return x, residual, residual_norm
+            if residual_norm < last_residual_norm: 
+                return x, residual, residual_norm
 
-        step_scale /= 2
-
+            step_scale /= 2
+    initial_state = (1.0, x0)
+    
     logger.info('Line search failed to reduce residual')
     return x_1, residual, last_residual_norm
 
