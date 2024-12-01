@@ -75,7 +75,8 @@ def solve_sigma_equation(self, nphi, sigma0, helicity, nfp):
 def _determine_helicity(self):
     """
     Determine the integer N associated with the type of quasisymmetry
-    by counting the number of times the normal vector rotates
+    by counting the number
+    of times the normal vector rotates
     poloidally as you follow the axis around toroidally.
     """
     quadrant = np.zeros(self.nphi + 1)
