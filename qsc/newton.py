@@ -1,11 +1,12 @@
 """
 This module contains a function for Newton's method refactored to JAX.
 """
-
+import jax
 import jax.numpy as jnp
 import numpy as np
 from jax.scipy.linalg import toeplitz
 from jax import jit
+
 
 #logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -76,25 +77,32 @@ def new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
     niter = max number of Newton iterations.
     tol = stop when the residual norm is less than this.
     """
-    x = jnp.copy(x0)
-    residual = f(x0)
-    residual_norm = calc_residual_norm(residual)
-    logger.info('Beginning Newton method. residual {}'.format(residual_norm))
 
-    for iter in range(niter): 
-        if check_convergence(residual_norm,tol): 
-            logger.info(f'Converged in {iter} iteration. Residual norm: {residual_norm}')
-            return x 
-        
+    def newton_body(state): 
+    
+        x = state[0]
+        last_residual = state[1]
+        residual = f(x)
+        residual_norm = calc_residual_norm(residual)
+
+        converged = check_convergence(residual_norm, tol)
+        new_x = jax.lax.cond(converged, lambda _: x, lambda _: x, None) #when converged nothing is updated
+
         jacobian = jac(x)
         step_direction = compute_newton_step_direction(jacobian, residual)
 
-        x, residual, residual_norm = perform_line_search(f, x, step_direction, residual_norm, nlinesearch)
+        x, residual, residual_norm = perform_line_search(f, x, step_direction, last_residual, nlinesearch)
+        return (x, residual_norm) , (x, residual_norm)
+    
+        
+    #initial values
+    initial = f(x0)
+    last_residual = calc_residual_norm(initial)
+    state = (x0, last_residual)
 
-    logger.warning('Newton solve did not get close to desired tolerance. 'f'Final residual: {residual_norm}')
-    
-    return x
-    
+    _, results = jax.lax.scan(newton_body, state, jnp.arange(niter))
+
+    return results[-1][0]    
 
 def calc_residual_norm(residual): 
     """
@@ -112,23 +120,36 @@ def perform_line_search(f, x0, step_direction, last_residual_norm, nlinesearch=1
     """
     perform a line search for the best step size
     """
-    def line_search_body(state, _):
-        step_scale = 1.0
-        x_1 = jnp.copy(x0)
-        for jlinesearch in range(nlinesearch): 
-            x = x0 + step_scale * step_direction
-            residual = f(x)
-            residual_norm = calc_residual_norm(residual)
-            logger.info('  Line search step {} residual {}'.format(jlinesearch, residual_norm))
+    def line_search_body(i, state):
+        step_scale = state[0]
+        x_1 = state[1]
 
-            if residual_norm < last_residual_norm: 
-                return x, residual, residual_norm
+        x_test = x0 + step_scale * step_direction
+        residual = f(x_test)
+        residual_norm = calc_residual_norm(residual)
 
-            step_scale /= 2
-    initial_state = (1.0, x0)
+        #jax conditions 
+        improved = check_improvement(residual_norm, last_residual_norm)
+        
+        step_scale = jax.lax.cond(improved, lambda _: step_scale, lambda _ : step_scale/2, None)
+        x = jax.lax.cond(improved, lambda _: x_test, lambda _: x, None)
+        residual_norm = jax.lax.cond(improved, lambda _: x_test, lambda _: x, None)
+
+        return step_scale, x, residual_norm
+
+    initial_state = (1.0, x0, last_residual_norm)
+
+    #jax iteration 
+    final_state = jax.lax.fori_loop(0, nlinesearch, line_search_body, initial_state)
     
-    logger.info('Line search failed to reduce residual')
-    return x_1, residual, last_residual_norm
+    _, x, residual_norm = final_state
+
+    residual = f(x)
+
+    return x, residual, residual_norm
+
+def check_improvement(trial, last): 
+    return trial < last
 
 def check_convergence(residual_norm, tol): 
     """
