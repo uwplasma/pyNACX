@@ -100,7 +100,7 @@ def new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
     last_residual = calc_residual_norm(initial)
     state = (x0, last_residual)
 
-    _, results = jax.lax.scan(newton_body, state, jnp.arange(niter))
+    _, results = jax.lax.scan(newton_body(), state, jnp.arange(niter))
 
     return results[-1][0]    
 

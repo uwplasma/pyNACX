@@ -99,7 +99,7 @@ def derive_mean_elongation(sG, spsi, sigma, etabar, nphi, nfp, rc, rs, zc, zs):
   X1s = derive_calc_X1s(nphi)
   X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
   Y1s = derive_calc_X1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
-  Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma, etabar)
+  Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   p = calc_p(X1s, X1c, Y1s, Y1c)
   q = calc_q(X1s, X1c, Y1s, Y1c)
   elongation = calc_elongation(p,q) 
