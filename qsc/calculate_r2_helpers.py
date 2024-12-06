@@ -20,6 +20,15 @@ def calc_V3(X1c, Y1c, Y1s):
 def calc_factor(B0_over_abs_G0): 
   return - B0_over_abs_G0 / 8
 
+def calc_Z20(factor, d_d_varphi, V1): 
+  return factor*jnp.matmul(d_d_varphi,V1)
+  
+def calc_Z2s(factor, d_d_varphi, V2, iota_N, V3): 
+  return factor*(jnp.matmul(d_d_varphi,V2) - 2 * iota_N * V3)
+  
+def calc_Z2c(factor, d_d_varphi, V3, iota_N, V2): 
+  return factor*(jnp.matmul(d_d_varphi,V3) + 2 * iota_N * V2)
+
 def calc_qs(iota_N, X1c, Y1s, torsion, abs_G0_over_B0): 
   return  -iota_N * X1c - Y1s * torsion * abs_G0_over_B0
 
@@ -41,7 +50,7 @@ def calc_X2c(B0_over_abs_G0, d_d_varphi, Z2c, iota_N, Z2s, abs_G0_over_B0, B2c, 
 
 def calc_beta_1s(spsi, sG, mu0, p2, etabar, abs_G0_over_B0, iota_N, B0): 
   return -4 * spsi * sG * mu0 * p2 * etabar * abs_G0_over_B0 / (iota_N * B0 * B0)
-
+  
 def calc_Y2s_from_X20(sG, spsi, curvature, etabar): 
   return -sG * spsi * curvature * curvature / (etabar * etabar)
 

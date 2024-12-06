@@ -39,12 +39,13 @@ def derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar):
 def calc_Y1s(sG, spsi, curvature, etabar):
   return sG * spsi * curvature / etabar 
 
-def derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma, etabar):
+def derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar):
   from .calculate_r1 import solve_sigma_equation
   """
   calulate the Y1c as a function of inputed parameters
   """
-  sigma = solve_sigma_equation()[0]
+  sigma = solve_sigma_equation()[0] #not yet derivable because I dont have the newtons method working with is within this 
+  # will also need to create a derivable version of solve sigma equation that first derives helicity and nfp
   curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
   return  sG * spsi * curvature * sigma / etabar 
 

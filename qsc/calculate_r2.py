@@ -49,15 +49,16 @@ def calculate_r2(self):
     V2 = calc_V2(Y1s, Y1c)
     V3 = calc_V3(X1c, Y1c, Y1s)
 
-    factor = - B0_over_abs_G0 / 8
-    Z20 = factor*jnp.matmul(d_d_varphi,V1)
-    Z2s = factor*(jnp.matmul(d_d_varphi,V2) - 2 * iota_N * V3)
-    Z2c = factor*(jnp.matmul(d_d_varphi,V3) + 2 * iota_N * V2)
+    factor = calc_factor(B0_over_abs_G0)
+
+    Z20 = calc_Z20(factor, d_d_varphi, V1)
+    Z2s = calc_Z2s(factor, d_d_varphi, V2, iota_N, V3)
+    Z2c = calc_Z2c(factor, d_d_varphi, V3, iota_N, V2)
 
     qs = calc_qs(iota_N, X1c, Y1s, torsion, abs_G0_over_B0)
     qc = calc_qc(d_d_varphi, X1c, Y1c, torsion, abs_G0_over_B0)
-    rs = calc_rs(d_d_varphi, Y1s, iota_N, Y1c)
-    rc = calc_rc(d_d_varphi, Y1c, iota_N, Y1s, X1c, torsion, abs_G0_over_B0)
+    rs = calc_rs(d_d_varphi, Y1s, iota_N, Y1c) # recalculation 
+    rc = calc_rc(d_d_varphi, Y1c, iota_N, Y1s, X1c, torsion, abs_G0_over_B0) # recalculation 
 
     X2s = calc_X2s(B0_over_abs_G0, d_d_varphi, Z2s, iota_N, Z2c, abs_G0_over_B0, B2s, B0, qc, qs, rc, rs, curvature)
 
