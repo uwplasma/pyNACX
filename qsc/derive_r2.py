@@ -1,7 +1,7 @@
-from calculate_r2_helpers import * 
-from init_axis_helpers import * 
-from calculate_r1 import solve_sigma_equation
-from calculate_r1_helpers import *
+from .calculate_r2_helpers import * 
+from .init_axis_helpers import * 
+from .calculate_r1 import solve_sigma_equation
+from .calculate_r1_helpers import *
 
 import jax.numpy as jnp
 

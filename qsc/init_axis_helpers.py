@@ -1,6 +1,6 @@
 import numpy as jnp 
 
-from spectral_diff_matrix import *
+from .spectral_diff_matrix import *
 
 
 def calc_curvature(nphi, nfp, rc, rs, zc, zs): 

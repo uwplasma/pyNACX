@@ -6,7 +6,7 @@ import jax.numpy as jnp
 import numpy as np
 from jax.scipy.linalg import toeplitz
 from jax import jit
-
+import logging
 
 #logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -45,12 +45,12 @@ def newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
         for jlinesearch in range(nlinesearch):
             x = x0 + step_scale * step_direction
             residual = f(x)
-            residual_norm = jnp.sqrt(jnp.sum(residual * residual))
+            residual_norm = calc_residual_norm(residual)
             logger.info('  Line search step {} residual {}'.format(jlinesearch, residual_norm))
             if residual_norm < last_residual_norm:
                 x_best = jnp.copy(x)
                 break
-
+            
             step_scale /= 2
             
         if residual_norm >= last_residual_norm:
@@ -78,31 +78,31 @@ def new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
     tol = stop when the residual norm is less than this.
     """
 
-    def newton_body(state): 
+    def newton_body(i, state): # i is required by jax
     
-        x = state[0]
-        last_residual = state[1]
+        x ,last_residual = state
         residual = f(x)
         residual_norm = calc_residual_norm(residual)
 
         converged = check_convergence(residual_norm, tol)
-        new_x = jax.lax.cond(converged, lambda _: x, lambda _: x, None) #when converged nothing is updated
+        
+        x = jax.lax.cond(converged, lambda _: x, lambda _: x, None) #when converged nothing is updated
 
         jacobian = jac(x)
         step_direction = compute_newton_step_direction(jacobian, residual)
 
-        x, residual, residual_norm = perform_line_search(f, x, step_direction, last_residual, nlinesearch)
-        return (x, residual_norm) , (x, residual_norm)
+        x, residual_norm = perform_line_search(f, x, step_direction, last_residual, nlinesearch)
+        return (x, residual_norm) 
     
         
     #initial values
-    initial = f(x0)
-    last_residual = calc_residual_norm(initial)
+    initial_res = f(x0)
+    last_residual = calc_residual_norm(initial_res)
     state = (x0, last_residual)
 
-    _, results = jax.lax.scan(newton_body(), state, jnp.arange(niter))
+    _, results = jax.lax.scan(newton_body, state, jnp.arange(niter))
 
-    return results[-1][0]    
+    return results[-1][0] # return the top item in the stack and only the x value
 
 def calc_residual_norm(residual): 
     """
@@ -122,20 +122,19 @@ def perform_line_search(f, x0, step_direction, last_residual_norm, nlinesearch=1
     """
     def line_search_body(i, state):
         step_scale = state[0]
-        x_1 = state[1]
+        x = state[1]
 
         x_test = x0 + step_scale * step_direction
         residual = f(x_test)
-        residual_norm = calc_residual_norm(residual)
 
-        #jax conditions 
-        improved = check_improvement(residual_norm, last_residual_norm)
-        
-        step_scale = jax.lax.cond(improved, lambda _: step_scale, lambda _ : step_scale/2, None)
+        trial_residual_norm = calc_residual_norm(residual)
+
+        improved = check_improvement(trial_residual_norm, residual_norm) # boolean used in jax cond
+        step_scale = jax.lax.cond(improved, lambda _: step_scale, lambda _: step_scale / 2, None)
         x = jax.lax.cond(improved, lambda _: x_test, lambda _: x, None)
-        residual_norm = jax.lax.cond(improved, lambda _: x_test, lambda _: x, None)
+        residual_norm = jax.lax.cond(improved, lambda _: trial_residual_norm, lambda _: residual_norm, None)
 
-        return step_scale, x, residual_norm
+        return (step_scale, x, residual_norm)
 
     initial_state = (1.0, x0, last_residual_norm)
 
@@ -144,9 +143,7 @@ def perform_line_search(f, x0, step_direction, last_residual_norm, nlinesearch=1
     
     _, x, residual_norm = final_state
 
-    residual = f(x)
-
-    return x, residual, residual_norm
+    return x, residual_norm
 
 def check_improvement(trial, last): 
     return trial < last

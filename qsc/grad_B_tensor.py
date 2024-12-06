@@ -6,7 +6,7 @@ Functions for computing the grad B tensor and grad grad B tensor.
 
 import logging
 import numpy as np
-import jax.nump as jnp
+import jax.numpy as jnp
 from .util import Struct, fourier_minimum
 
 #logging.basicConfig(level=logging.INFO)

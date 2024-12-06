@@ -2,7 +2,8 @@
 
 import unittest
 import numpy as np
-from qsc.newton import newton
+from qsc.newton import new_newton
+import qsc
 
 class NewtonTests(unittest.TestCase):
 
@@ -17,7 +18,8 @@ class NewtonTests(unittest.TestCase):
             return np.array([[-np.exp(x[0]), 1],
                              [1, 1]])
         x0 = np.zeros(2)
-        soln = newton(func, x0, jac)
+        
+        soln = new_newton(func, x0, jac)
         np.testing.assert_allclose(soln, [-0.5671432904097838, 0.5671432904097838]) 
            
         

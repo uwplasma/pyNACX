@@ -2,8 +2,7 @@
 This module contains methods for performing mathematical operations in calculate_r1.py
 """
 import jax.numpy as jnp
-from init_axis_helpers import *
-from calculate_r1 import solve_sigma_equation
+from .init_axis_helpers import *
 
 """
 helpers for solve_sigma_equation
@@ -41,6 +40,7 @@ def calc_Y1s(sG, spsi, curvature, etabar):
   return sG * spsi * curvature / etabar 
 
 def derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma, etabar):
+  from .calculate_r1 import solve_sigma_equation
   """
   calulate the Y1c as a function of inputed parameters
   """

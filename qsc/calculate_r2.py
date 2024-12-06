@@ -6,7 +6,7 @@ import logging
 import numpy as np
 from .util import mu0
 import jax.numpy as jnp
-from calculate_r2_helpers import * 
+from .calculate_r2_helpers import * 
 
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

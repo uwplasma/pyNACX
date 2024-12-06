@@ -9,7 +9,7 @@ from .util import fourier_minimum
 from .newton import newton
 import jax.numpy as jnp
 from jax import jacobian
-from calculate_r1_helpers import *
+from .calculate_r1_helpers import *
 
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
