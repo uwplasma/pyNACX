@@ -26,8 +26,10 @@ def calc_solution(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B
   right_hand_side = calc_right_hand_side(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, p2, X1c, Y1c, Y1s)
   return jnp.linalg.solve(matrix, right_hand_side)
 
-# need to recalculate the recaluteablething 
-def calc_matrix(Y1c, rc, zs, rs, zc, nfp, etabar, I2, B0, sG, spsi, nphi): 
+def calc_matrix(Y1c, rc, zs, rs, zc, nfp, etabar, I2, B0, sG, spsi, nphi):
+  """
+  creates the matrix needed in calc_solution()
+  """ 
   matrix = jnp.zeros((2 * nphi, 2 * nphi))
     
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
@@ -69,6 +71,9 @@ def calc_matrix(Y1c, rc, zs, rs, zc, nfp, etabar, I2, B0, sG, spsi, nphi):
   
   
   def matrix_body(j, matrix): 
+    """
+    calculations body needed for jax compatible for loops
+    """
     # Handle the terms involving d X_0 / d zeta and d Y_0 / d zeta:
     # ----------------------------------------------------------------
 
@@ -103,6 +108,9 @@ def calc_matrix(Y1c, rc, zs, rs, zc, nfp, etabar, I2, B0, sG, spsi, nphi):
 
 
 def calc_right_hand_side(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, p2, X1c, Y1c, Y1s): 
+  """
+  calculates the right_had_side needed when calculating solutions
+  """
   mu0 =  4 * jnp.pi * 1e-7
   right_hand_side = jnp.zeros(2 * nphi)
 
@@ -167,17 +175,12 @@ def recalc_rs(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar):
   """ 
   
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
-  Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)()
+  Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
   Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   
   return calc_rs(d_d_varphi, Y1s, iota_N, Y1c)
 
 
-def calc_X20(solution, nphi):
-  return solution[0:nphi]
-
-def calc_Z20(factor, d_d_varphi , V1): 
-  return factor* jnp.matmul(d_d_varphi,V1)
 
 
 def derive_B20(rc, zs, rs=[], zc=[], nfp=1, etabar=1., sigma0=0., B0=1., I2=0., sG=1, spsi=1, nphi=61, B2s=0., B2c=0., p2=0., order="r1"): 
@@ -318,21 +321,67 @@ def derive_d_X2c_d_varphi():
   X2c = calc_X2c() # not derivable 
   return jnp.matmul(d_d_varphi, X2c)
 
-def derive_d_Y20_d_varphi(rc, zs, rs, zc, nfp,  nphi): 
+def derive_d_Y20_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2): 
   """
   calculates d_Y20_d_varphi as a function of inputed parameters
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
-  solution = 
-  Y20 = solution[nphi:2 * nphi]
+  solution = calc_solution(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2)
+  Y20 = solution.at[nphi:2 * nphi].get()
   return jnp.matmul(d_d_varphi, Y20)
 
-def derive_Y2s(): 
+def derive_Y2s(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2): 
+  curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
+  sigma = 
+  X2c = 
+  X2s = 
   Y2s_inhomogeneous = calc_Y2s_inhomogeneous(sG, spsi, curvature, etabar, X2c, X2s, sigma)
   Y2s_from_X20 = calc_Y2s_from_X20(sG, spsi, curvature, etabar)
-  solution = calc_solution() # needs to be done 
+  solution = calc_solution(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2)  
+  
   X20 = solution.at[0:nphi].get() 
   return calc_Y2s(Y2s_inhomogeneous, Y2s_from_X20, X20)
+
+def derive_Y2c(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2):
+  solution = calc_solution(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2)  
+  
+  X20 = solution.at[0:nphi].get()
+  Y2c_from_X20 = calc_Y2c_inhomogeneous(sG, spsi, curvature, etabar, X2s, X2c, sigma)
+  Y2c_inhomogeneous = calc_Y2c_inhomogeneous(sG, spsi, curvature, etabar, X2s, X2c, sigma)
+  Y20 = solution.at[nphi:2 * nphi].get()
+  
+  return Y2c_inhomogeneous + Y2c_from_X20 * X20 + Y20
+  
+def derive_Z20(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
+  factor = 
+  Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
+  Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs) 
+  d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp, nphi)
+  V1 = calc_V1(X1c, Y1c, Y1s)
+  return calc_Z20(factor, d_d_varphi, V1)
+  
+def derive_Z2s(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
+  factor = 
+  Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
+  Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs) 
+  d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp, nphi) 
+  V2 = calc_V2(Y1s, Y1c)
+  iota_N = 
+  V3 = calc_V3(X1c, Y1c, Y1s)
+  return calc_Z2s(factor, d_d_varphi, V2, iota_N, V3)
+
+def derive_Z2c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
+  X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
+  Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
+  factor = 
+  d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp, nphi)
+  V3 = calc_V3(X1c, Y1c, Y1s)
+  iota_N = 
+  V2 = calc_V2(Y1s, Y1c)
+  return calc_Z2c(factor, d_d_varphi, V3, iota_N, V2)
 
 def derive_d_Y2s_d_varphi():
   """
@@ -348,7 +397,7 @@ def derive_d_Y2c_d_varphi():
   calculates d_Y2c_d_varphi as a function of inputed parameters
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
-  Y2c =
+  Y2c = derive_Y2c() 
   return jnp.matmul(d_d_varphi, Y2c)
   
 def derive_d_Z20_d_varphi():
@@ -356,7 +405,7 @@ def derive_d_Z20_d_varphi():
   calculates d_Z20_d_varphi as a function of inputed parameters
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
-  Z20 = 
+  Z20 = derive_Z20()
   return jnp.matmul(d_d_varphi, Z20)
 
 def derive_d_Z2s_d_varphi():
@@ -364,7 +413,7 @@ def derive_d_Z2s_d_varphi():
   calculates d_Z2s_d_varphi as a function of inputed parameters
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
-  Z2s = 
+  Z2s = derive_Z2s()
   return jnp.matmul(d_d_varphi, Z2s)
 
 def derive_d_Z2c_d_varphi():
@@ -372,29 +421,38 @@ def derive_d_Z2c_d_varphi():
   calculates d_Z2c_d_varphi as a function of inputed parameters
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
-  Z2c = 
+  Z2c = derive_Z2c()
   return jnp.matmul(d_d_varphi, Z2c)
 
-def derive_d2_X1c_d_varphi2(): 
+def derive_d2_X1c_d_varphi2(etabar, nphi, nfp, rc, rs, zc, zs): 
   """
   calculates d2_X1c_d_varphi2 as a function of inputed parameters
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
-  d_X1c_d_varphi = # should be in r1 derive 
+  
+  X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
+  
+  d_X1c_d_varphi = jnp.matmul(d_d_varphi, X1c)
   return jnp.matmul(d_d_varphi, d_X1c_d_varphi)
   
-def derive_d2_Y1c_d_varphi2(): 
+def derive_d2_Y1c_d_varphi2(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
   """
   calculates d2_Y1c_d_varphi2 as a function of inputed parameters
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
-  d_Y1c_d_varphi = #should be in r1 derive 
+  
+  Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar) # requires working newtons
+  d_Y1c_d_varphi = jnp.matmul(d_d_varphi, Y1c)
+  
   return jnp.matmul(d_d_varphi, d_Y1c_d_varphi)
 
-def derive_d2_Y1s_d_varphi2(): 
+def derive_d2_Y1s_d_varphi2(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar): 
   """
   calculates d2_Y1s_d_varphi2 as a function of inputed parameters
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
-  d_Y1s_d_varphi = # should be in r1 derive 
+  
+  Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
+  d_Y1s_d_varphi = jnp.matmul(d_d_varphi, Y1s)
+  
   return jnp.matmul(d_d_varphi, d_Y1s_d_varphi)

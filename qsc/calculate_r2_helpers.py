@@ -20,6 +20,9 @@ def calc_V3(X1c, Y1c, Y1s):
 def calc_factor(B0_over_abs_G0): 
   return - B0_over_abs_G0 / 8
 
+def calc_X20(solution, nphi):
+  return solution[0:nphi]
+
 def calc_Z20(factor, d_d_varphi, V1): 
   return factor*jnp.matmul(d_d_varphi,V1)
   
@@ -125,6 +128,9 @@ def calc_fYc_inhomogeneous(d_d_varphi, Y2c_inhomogeneous, iota_N, Y2s_inhomogene
 
 def calc_Y2s(Y2s_inhomogeneous, Y2s_from_X20, X20): 
   return Y2s_inhomogeneous + Y2s_from_X20 * X20
+
+def calc_Y2c_inhomogeneous(sG, spsi, curvature, etabar, X2s, X2c, sigma): 
+  return sG * spsi * curvature * curvature / (etabar * etabar) * (X2s + X2c * sigma)
 
 def calc_Y2c(Y2c_inhomogeneous, Y2c_from_X20, X20, Y20): 
   return Y2c_inhomogeneous + Y2c_from_X20 * X20 + Y20
