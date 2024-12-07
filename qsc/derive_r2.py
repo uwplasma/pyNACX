@@ -3,23 +3,100 @@ from .init_axis_helpers import *
 from .calculate_r1 import solve_sigma_equation
 from .calculate_r1_helpers import *
 
+import jax
 import jax.numpy as jnp
 
 """
 note all calculations computed after line 60 require a recalcuation of rc and rs (basically everything)
 """
 
+# need from solve sigma equation : iota_N, sigma
+# need from init_axis : torsion ,  abs_G0_over_B0
 
-
-def calc_solution():
-  matrix = calc_matrix()
-  right_hand_side = calc_right_hand_side()
+def calc_solution(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2):
+  matrix = calc_matrix(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi)
+  right_hand_side = calc_right_hand_side(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, p2)
   return jnp.linalg.solve(matrix, right_hand_side)
 
-def calc_matrix(): 
+# need to recalculate the recaluteablething 
+def calc_matrix(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi): 
+  matrix = jnp.zeros((2 * nphi, 2 * nphi))
+  
+  Y1c= derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  
+  d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
+  
+  curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
+  
+  I2_over_B0 = I2 / B0
+
+  V1 = calc_V1(X1c, Y1c, Y1s)
+  V2 = calc_V2(Y1s, Y1c)
+  V3 = calc_V3(X1c, Y1c, Y1s)
+  
+  G0 = calc_G0(sG,  nphi,  B0, nfp, rc, rs, zc, zs)
+
+  B0_over_abs_G0 = calc_B0_over_abs_G0(B0, G0)
+
+  
+  factor = - B0_over_abs_G0 / 8
+  
+  Z20 = calc_Z20(factor, d_d_varphi, V1)
+  Z2c = calc_Z2c(factor, d_d_varphi, V3, iota_N, V2)
+  Z2s = calc_Z2c(factor, d_d_varphi, V3, iota_N, V2)
+  
+  Y2s_from_X20 = calc_Y2s_from_X20(sG, spsi, curvature, etabar)
+  Y2c_from_X20 = calc_Y2c_from_X20(sG, spsi, curvature, sigma,  etabar)
+  Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
+  X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
+  fXs_from_X20 = calc_fXs_from_X20(torsion, abs_G0_over_B0, Y2s_from_X20, spsi, sG, Y2c_from_X20, Z20, I2_over_B0)
+  fY0_from_X20 = calc_fY0_from_X20(torsion, abs_G0_over_B0, spsi, I2_over_B0)
+  fYs_from_X20 = calc_fYs_from_X20(iota_N, Y2c_from_X20, spsi, sG, abs_G0_over_B0, Z2c)
+  fXs_from_Y20 = calc_fXs_from_Y20(spsi, sG, abs_G0_over_B0, Z2c, Z20)
+  fX0_from_X20 = calc_fX0_from_X20(sG, spsi, abs_G0_over_B0, Y2c_from_X20, Z2s, Y2s_from_X20, Z2c)
+  fY0_from_Y20 = jnp.zeros(nphi)
+  fYc_from_X20 = calc_fYc_from_X20(iota_N, Y2s_from_X20, spsi, sG, abs_G0_over_B0, Z2s)
+  fYs_from_Y20 = jnp.full(nphi, -2 * iota_N)
+  fYc_from_Y20 = jnp.zeros(nphi)
+  fX0_from_Y20 = calc_fX0_from_Y20(torsion, abs_G0_over_B0, sG, spsi, Z2s, I2_over_B0)
+  fXc_from_X20 = calc_fXc_from_X20(torsion, abs_G0_over_B0, Y2c_from_X20, spsi, sG, Y2s_from_X20, Z20, I2_over_B0)
+  
+  
+  def matrix_body(j, matrix): 
+    # Handle the terms involving d X_0 / d zeta and d Y_0 / d zeta:
+    # ----------------------------------------------------------------
+
+    # Equation 1, terms involving X0:
+    # Contributions arise from Y1c * fYs - Y1s * fYc.
+    matrix = matrix.at[j, 0:nphi].set(Y1c.at[j].get() * d_d_varphi.at[j, :].get() * Y2s_from_X20 - Y1s.at[j].get() * d_d_varphi.at[j, :].get() * Y2c_from_X20)
+
+    # Equation 1, terms involving Y0:
+    # Contributions arise from -Y1s * fY0 - Y1s * fYc, and they happen to be equal.
+    matrix = matrix.at[j, nphi:(2*nphi)].set(-2 * Y1s.at[j].get() * d_d_varphi.at[j, :].get())
+
+    # Equation 2, terms involving X0:
+    # Contributions arise from -X1c * fX0 + Y1s * fYs + Y1c * fYc
+    matrix = matrix.at[j+nphi, 0:nphi].set( -X1c.at[j].get() * d_d_varphi.at[j, :].get() + Y1s.at[j].get() * d_d_varphi.at[j, :].get() * Y2s_from_X20 + Y1c.at[j].get() * d_d_varphi.at[j, :].get() * Y2c_from_X20)
+
+    # Equation 2, terms involving Y0:
+    # Contributions arise from -Y1c * fY0 + Y1c * fYc, but they happen to cancel.
+
+    # Now handle the terms involving X_0 and Y_0 without d/dzeta derivatives:
+    # ----------------------------------------------------------------
+
+    matrix = matrix.at[j, j       ].set(matrix[j, j       ] + X1c.at[j].get() * fXs_from_X20.at[j].get() - Y1s.at[j].get() * fY0_from_X20.at[j].get() + Y1c.at[j].get() * fYs_from_X20.at[j].get() - Y1s.at[j].get() * fYc_from_X20.at[j].get())
+    matrix = matrix.at[j, j + nphi].set( matrix.at[j, j + nphi].get() + X1c.at[j].get() * fXs_from_Y20.at[j].get() - Y1s.at[j].get() * fY0_from_Y20.at[j].get() + Y1c.at[j].get() * fYs_from_Y20.at[j].get() - Y1s.at[j].get() * fYc_from_Y20.at[j].get())
+
+    matrix = matrix.at[j + nphi, j       ].set(matrix.at[j + nphi, j       ].get() - X1c.at[j].get() * fX0_from_X20.at[j].get() + X1c.at[j].get() * fXc_from_X20.at[j].get() - Y1c.at[j].get() * fY0_from_X20.at[j].get() + Y1s.at[j].get() * fYs_from_X20.at[j].get() + Y1c.at[j].get() * fYc_from_X20.at[j].get())
+    matrix = matrix.at[j + nphi, j + nphi].set(matrix.at[j + nphi, j + nphi].get() - X1c.at[j].get() * fX0_from_Y20.at[j].get() + X1c.at[j].get() * fXc_from_Y20.at[j].get() - Y1c.at[j].get() * fY0_from_Y20.at[j].get() + Y1s.at[j].get() * fYs_from_Y20.at[j].get() + Y1c.at[j].get() * fYc_from_Y20.at[j].get())
+
+    
+  result_matrix = jax.lax.fori_loop(0, nphi, matrix_body, matrix)
+  
+  return result_matrix
 
 
-def calc_right_hand_side(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2): 
+def calc_right_hand_side(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, p2): 
   mu0 =  4 * jnp.pi * 1e-7
   right_hand_side = jnp.zeros(2 * nphi)
 
@@ -39,9 +116,11 @@ def calc_right_hand_side(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, 
   qc = calc_qc(d_d_varphi, X1c, Y1c, torsion, abs_G0_over_B0)
   qs = calc_qs(iota_N, X1c, Y1s, torsion, abs_G0_over_B0)
 
-  V1 = 
-  V2 = 
-  V3 = 
+  V1 = calc_V1(X1c, Y1c, Y1s)
+  V2 = calc_V2(Y1s, Y1c)
+  V3 = calc_V3(X1c, Y1c, Y1s)
+  
+  factor = - B0_over_abs_G0 / 8
 
   X2s = calc_X2s(B0_over_abs_G0, d_d_varphi, Z2s, iota_N, Z2c, abs_G0_over_B0, B2s, B0, qc, qs, rc, rs, curvature) 
   iota_N = # calculated in solve sigma equation 
@@ -76,14 +155,23 @@ def recalc_rc(Y1c, Y1s, X1c, rc, zs, rs, zc, nfp,  nphi):
   a different rc is used after curvature is calculated
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
-    
+
+  iota_N = 
+  torsion = 
+  abs_G0_over_B0 = 
+  
   return calc_rc(d_d_varphi, Y1c, iota_N, Y1s, X1c, torsion, abs_G0_over_B0) 
 
-def recalc_rs():
+def recalc_rs(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar):
   """
   a different rs is used after curvature is calculated
   """ 
-  #TODO
+  
+  d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
+  Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)()
+  Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  
+  return calc_rs(d_d_varphi, Y1s, iota_N, Y1c)
 
 
 def calc_X20(solution, nphi):
@@ -91,8 +179,6 @@ def calc_X20(solution, nphi):
 
 def calc_Z20(factor, d_d_varphi , V1): 
   return factor* jnp.matmul(d_d_varphi,V1)
-
-
 
 
 def derive_B20(rc, zs, rs=[], zc=[], nfp=1, etabar=1., sigma0=0., B0=1., I2=0., sG=1, spsi=1, nphi=61, B2s=0., B2c=0., p2=0., order="r1"): 
