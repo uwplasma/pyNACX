@@ -310,7 +310,8 @@ def derive_d_X2s_d_varphi(rc, zs, rs, zc, nfp,  nphi):
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
   # this will be a pain should probably make a derive calc_X2s
-  X2s = calc_X2s(B0_over_abs_G0, d_d_varphi, Z2s, iota_N, Z2c, abs_G0_over_B0, B2s, B0, qc, qs, rc, rs, curvature) 
+  X2s = calc_X2s(B0_over_abs_G0, d_d_varphi, Z2s, iota_N, 
+                 , abs_G0_over_B0, B2s, B0, qc, qs, rc, rs, curvature) 
   return jnp.matmul(d_d_varphi, X2s)
 
 def derive_d_X2c_d_varphi(): 

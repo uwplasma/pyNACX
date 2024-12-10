@@ -63,6 +63,53 @@ def newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
 
     return x_best
 
+def new_new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10): 
+    x = jnp.copy(x0)
+    x_best = jnp.copy(x0)
+    residual = f(x0)
+    initial_residual_norm = calc_residual_norm(residual)
+    residual_norm = initial_residual_norm
+    logger.info('Beginning Newton method. residual {}'.format(residual_norm))
+
+    for jnewton in range(niter):
+        last_residual_norm = residual_norm
+        j = jac(x)
+        x0 = jnp.copy(x)
+        logger.info('Newton iteration {}'.format(jnewton))
+        step_direction = compute_newton_step_direction(j, residual)
+
+        y, residual_norm, residual = new_new_line_search(f, x0, step_direction, last_residual_norm,  nlinesearch=nlinesearch)
+        
+        con = residual_norm < last_residual_norm
+        
+        x = jax.lax.cond(con, lambda _ : y, lambda _ : x, None)
+        
+        x_best = jnp.copy(x)
+        #print(x_best)
+        #print(step_direction)
+        
+        con2 = residual_norm < tol 
+        
+        nlinesearch = jax.lax.cond(con2, lambda _ : 1, lambda _ : nlinesearch, None)
+        
+        
+    return x_best
+    
+
+def new_new_line_search(f, x0, step_direction, last_residual_norm,  nlinesearch=10): 
+    step_scale = 1.0
+    for jlinesearch in range(nlinesearch):
+        x = x0 + step_scale * step_direction
+        residual = f(x)
+        residual_norm = calc_residual_norm(residual)
+        con = residual_norm < last_residual_norm
+        logger.info('  Line search step {} residual {}'.format(jlinesearch, residual_norm))
+        step_scale = jax.lax.cond(con, lambda _ : step_scale,  lambda _ : step_scale/2, None)
+        print(x)
+        #print(step_scale)
+    return x, residual_norm, residual
+        
+        
 
 def new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10): 
     """
@@ -154,3 +201,26 @@ def check_convergence(residual_norm, tol):
     """
     return residual_norm < tol 
 
+def econ_newton(f, x0, niter=20, tol=1e-13, nlinesearch=10):
+    """
+    newton solver taken from https://jax.quantecon.org/newtons_method.html
+    """
+    x = x0
+    f_jac = jax.jacobian(f)
+    @jax.jit
+    def q(x): 
+        return x - jnp.linalg.solve(f_jac(x), f(x))
+    
+    error = tol + 1
+    n = 0 
+    while error > tol : 
+        n += 1
+        if (n > niter): 
+            raise Exception("max iter reached")
+        
+        y = q(x)
+        error = jnp.linalg.norm(x-y)
+        x = y 
+    return x          
+    
+    
