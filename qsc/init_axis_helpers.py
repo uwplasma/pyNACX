@@ -45,7 +45,6 @@ def calc_torsion(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigm
   ) 
   return torsion_numerator / torsion_denominator
 
-def 
 def calc_curvature(nphi, nfp, rc, rs, zc, zs): 
   """
   this function returns curvature as a fucntion of inputed parameters within qsc.py 
