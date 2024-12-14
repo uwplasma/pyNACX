@@ -2,7 +2,50 @@ import numpy as jnp
 
 from .spectral_diff_matrix import *
 
+def calc_torsion(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0, order, B2s): 
+  from derive_r2 import recalc_rc, recalc_rs
+  from calculate_r1_helpers import derive_calc_Y1c, derive_calc_Y1s, derive_calc_X1c
+  
+  Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
+  X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
+  
+  rs = recalc_rs(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  rc = recalc_rc(Y1c, Y1s, X1c, rc, zs, rs, zc, nfp, nphi)
+  
+  phi = jnp.linspace(0, 2 * jnp.pi / nfp, nphi, endpoint=False)
+  n = jnp.arange(0, nfourier) * nfp
+  angles = jnp.outer(n, phi)
+  sinangles = jnp.sin(angles)
+  cosangles = jnp.cos(angles)
 
+  R0 = jnp.dot(rc, cosangles) + jnp.dot(rs, sinangles)
+  Z0p = jnp.dot(zc, -n[:, jnp.newaxis] * sinangles) + jnp.dot(zs, n[:, jnp.newaxis] * cosangles)
+  R0p = jnp.dot(rc, -n[:, jnp.newaxis] * sinangles) + jnp.dot(rs, n[:, jnp.newaxis] * cosangles)
+  Z0p = jnp.dot(zc, -n[:, jnp.newaxis] * sinangles) + jnp.dot(zs, n[:, jnp.newaxis] * cosangles)
+  R0pp = jnp.dot(rc, -n[:, jnp.newaxis]**2 * cosangles) + jnp.dot(rs, -n[:, jnp.newaxis]**2 * sinangles)
+  Z0pp = jnp.dot(zc, -n[:, jnp.newaxis]**2 * cosangles) + jnp.dot(zs, -n[:, jnp.newaxis]**2 * sinangles)
+  R0ppp = jnp.dot(rc, n[:, jnp.newaxis]**3 * sinangles) + jnp.dot(rs, -n[:, jnp.newaxis]**3 * cosangles)
+  Z0ppp = jnp.dot(zc, n[:, jnp.newaxis]**3 * sinangles) + jnp.dot(zs, -n[:, jnp.newaxis]**3 * cosangles)
+
+  d_r_d_phi_cylindrical = d_r_d_phi_cylindrical = jnp.array([R0p, R0, Z0p]).transpose()
+  d2_r_d_phi2_cylindrical = jnp.array([R0pp - R0, 2 * R0p, Z0pp]).transpose()
+  d3_r_d_phi3_cylindrical = jnp.array([R0ppp - 3 * R0p, 3 * R0pp - R0, Z0ppp]).transpose()
+  
+  torsion_numerator = (
+        d_r_d_phi_cylindrical[:,0] * (d2_r_d_phi2_cylindrical[:,1] * d3_r_d_phi3_cylindrical[:,2] - d2_r_d_phi2_cylindrical[:,2] * d3_r_d_phi3_cylindrical[:,1])
+        + d_r_d_phi_cylindrical[:,1] * (d2_r_d_phi2_cylindrical[:,2] * d3_r_d_phi3_cylindrical[:,0] - d2_r_d_phi2_cylindrical[:,0] * d3_r_d_phi3_cylindrical[:,2])
+        + d_r_d_phi_cylindrical[:,2] * (d2_r_d_phi2_cylindrical[:,0] * d3_r_d_phi3_cylindrical[:,1] - d2_r_d_phi2_cylindrical[:,1] * d3_r_d_phi3_cylindrical[:,0])
+  )
+
+  torsion_denominator = (
+        (d_r_d_phi_cylindrical[:,1] * d2_r_d_phi2_cylindrical[:,2] - d_r_d_phi_cylindrical[:,2] * d2_r_d_phi2_cylindrical[:,1]) ** 2
+        + (d_r_d_phi_cylindrical[:,2] * d2_r_d_phi2_cylindrical[:,0] - d_r_d_phi_cylindrical[:,0] * d2_r_d_phi2_cylindrical[:,2]) ** 2
+        + (d_r_d_phi_cylindrical[:,0] * d2_r_d_phi2_cylindrical[:,1] - d_r_d_phi_cylindrical[:,1] * d2_r_d_phi2_cylindrical[:,0]) ** 2
+  ) 
+  return torsion_numerator / torsion_denominator
+
+def 
 def calc_curvature(nphi, nfp, rc, rs, zc, zs): 
   """
   this function returns curvature as a fucntion of inputed parameters within qsc.py 

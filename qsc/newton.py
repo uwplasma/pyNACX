@@ -1,5 +1,6 @@
 """
 This module contains a function for Newton's method refactored to JAX.
+# TODO: implement jax.jacobian and try to implement with for loops 
 """
 import jax
 import jax.numpy as jnp
@@ -64,6 +65,16 @@ def newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
     return x_best
 
 def new_new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10): 
+    """
+    this is  a jax compatable implementatio of newtons method for solving
+    a system of nonlinear equations using Newton's method with a line search.
+
+    f = function providing the residual vector.
+    x0 = initial guess
+    jac = function providing the Jacobian.
+    niter = max number of Newton iterations.
+    tol = stop when the residual norm is less than this.
+    """
     x = jnp.copy(x0)
     x_best = jnp.copy(x0)
     residual = f(x0)
@@ -85,8 +96,6 @@ def new_new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
         x = jax.lax.cond(con, lambda _ : y, lambda _ : x, None)
         
         x_best = jnp.copy(x)
-        #print(x_best)
-        #print(step_direction)
         
         con2 = residual_norm < tol 
         
@@ -97,6 +106,10 @@ def new_new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
     
 
 def new_new_line_search(f, x0, step_direction, last_residual_norm,  nlinesearch=10): 
+    """
+    performs a line search.
+    returns updated x, residual_norm, residual.
+    """
     step_scale = 1.0
     for jlinesearch in range(nlinesearch):
         x = x0 + step_scale * step_direction
@@ -105,51 +118,9 @@ def new_new_line_search(f, x0, step_direction, last_residual_norm,  nlinesearch=
         con = residual_norm < last_residual_norm
         logger.info('  Line search step {} residual {}'.format(jlinesearch, residual_norm))
         step_scale = jax.lax.cond(con, lambda _ : step_scale,  lambda _ : step_scale/2, None)
-        print(x)
-        #print(step_scale)
+       
     return x, residual_norm, residual
         
-        
-
-def new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10): 
-    """
-    Solve a system of nonlinear equations using Newton's method with a
-    line search.
-
-    Broken down to improve refactorability. 
-
-    f = function providing the residual vector.
-    x0 = initial guess
-    jac = function providing the Jacobian.
-    niter = max number of Newton iterations.
-    tol = stop when the residual norm is less than this.
-    """
-
-    def newton_body(i, state): # i is required by jax
-    
-        x ,last_residual = state
-        residual = f(x)
-        residual_norm = calc_residual_norm(residual)
-
-        converged = check_convergence(residual_norm, tol)
-        
-        x = jax.lax.cond(converged, lambda _: x, lambda _: x, None) #when converged nothing is updated
-
-        jacobian = jac(x)
-        step_direction = compute_newton_step_direction(jacobian, residual)
-
-        x, residual_norm = perform_line_search(f, x, step_direction, last_residual, nlinesearch)
-        return (x, residual_norm) 
-    
-        
-    #initial values
-    initial_res = f(x0)
-    last_residual = calc_residual_norm(initial_res)
-    state = (x0, last_residual)
-
-    _, results = jax.lax.scan(newton_body, state, jnp.arange(niter))
-
-    return results[-1][0] # return the top item in the stack and only the x value
 
 def calc_residual_norm(residual): 
     """
@@ -162,35 +133,6 @@ def compute_newton_step_direction(jacobian, residual):
     compute the step direction
     """
     return -jnp.linalg.solve(jacobian, residual)
-
-def perform_line_search(f, x0, step_direction, last_residual_norm, nlinesearch=10): 
-    """
-    perform a line search for the best step size
-    """
-    def line_search_body(i, state):
-        step_scale = state[0]
-        x = state[1]
-
-        x_test = x0 + step_scale * step_direction
-        residual = f(x_test)
-
-        trial_residual_norm = calc_residual_norm(residual)
-
-        improved = check_improvement(trial_residual_norm, residual_norm) # boolean used in jax cond
-        step_scale = jax.lax.cond(improved, lambda _: step_scale, lambda _: step_scale / 2, None)
-        x = jax.lax.cond(improved, lambda _: x_test, lambda _: x, None)
-        residual_norm = jax.lax.cond(improved, lambda _: trial_residual_norm, lambda _: residual_norm, None)
-
-        return (step_scale, x, residual_norm)
-
-    initial_state = (1.0, x0, last_residual_norm)
-
-    #jax iteration 
-    final_state = jax.lax.fori_loop(0, nlinesearch, line_search_body, initial_state)
-    
-    _, x, residual_norm = final_state
-
-    return x, residual_norm
 
 def check_improvement(trial, last): 
     return trial < last

@@ -9,6 +9,7 @@ import jax.numpy as jnp
 """
 note all calculations computed after line 60 require a recalcuation of rc and rs (basically everything)
 """
+# need to make add recalc_rc and recalc_rcs to all methods 
 
 # need from solve sigma equation : iota_N, sigma
 # need from init_axis : torsion ,  abs_G0_over_B0
