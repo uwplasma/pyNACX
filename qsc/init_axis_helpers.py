@@ -126,3 +126,74 @@ def calc_d_d_varphi(rc, zs, rs=[], zc=[], nfp=1,  nphi=61):
   B0_over_abs_G0 = nphi / jnp.sum(d_l_d_phi) 
   d_varphi_d_phi = B0_over_abs_G0 * d_l_d_phi
   return  d_d_phi / d_varphi_d_phi[:, jnp.newaxis]
+
+def derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi): 
+  """
+  calculate helicity as a function of inputed values
+      
+  Determine the integer N associated with the type of quasisymmetry
+  by counting the number
+  of times the normal vector rotates
+  poloidally as you follow the axis around toroidally.
+  """
+
+    
+  nfourier = jnp.max([len(rc), len(zs), len(rs), len(zc)])
+
+  phi = jnp.linspace(0, 2 * jnp.pi / nfp, nphi, endpoint=False)
+  
+  n = jnp.arange(0, nfourier) * nfp
+  angles = jnp.outer(n, phi)
+  sinangles = jnp.sin(angles)
+  cosangles = jnp.cos(angles)
+
+  
+  R0 = jnp.dot(rc, cosangles) + jnp.dot(rs, sinangles)
+  
+  R0p = jnp.dot(rc, -n[:, jnp.newaxis] * sinangles) + jnp.dot(rs, n[:, jnp.newaxis] * cosangles)
+  Z0p = jnp.dot(zc, -n[:, jnp.newaxis] * sinangles) + jnp.dot(zs, n[:, jnp.newaxis] * cosangles)
+  R0pp = jnp.dot(rc, -n[:, jnp.newaxis]**2 * cosangles) + jnp.dot(rs, -n[:, jnp.newaxis]**2 * sinangles)
+  Z0pp = jnp.dot(zc, -n[:, jnp.newaxis]**2 * cosangles) + jnp.dot(zs, -n[:, jnp.newaxis]**2 * sinangles)
+  
+  d_l_d_phi = jnp.sqrt(R0 * R0 + R0p * R0p + Z0p * Z0p)
+  d2_l_d_phi2 = (R0 * R0p + R0p * R0pp + Z0p * Z0pp) / d_l_d_phi
+  
+  d_r_d_phi_cylindrical = jnp.array([R0p, R0, Z0p]).transpose()
+  d2_r_d_phi2_cylindrical = jnp.array([R0pp - R0, 2 * R0p, Z0pp]).transpose()
+  
+  d_tangent_d_l_cylindrical = ((-d_r_d_phi_cylindrical * d2_l_d_phi2[:, jnp.newaxis] / d_l_d_phi[:, jnp.newaxis]) \
+                                + d2_r_d_phi2_cylindrical) / (d_l_d_phi[:, jnp.newaxis] * d_l_d_phi[:, jnp.newaxis])
+  curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
+  normal_cylindrical =   normal_cylindrical = d_tangent_d_l_cylindrical / curvature[:, jnp.newaxis]
+
+  
+  quadrant = jnp.zeros(nphi + 1)
+  
+  for j in range(nphi):
+      if normal_cylindrical[j,0] >= 0:
+          if normal_cylindrical[j,2] >= 0:
+              quadrant[j] = 1
+          else:
+              quadrant[j] = 4
+      else:
+          if normal_cylindrical[j,2] >= 0:
+              quadrant[j] = 2
+          else:
+              quadrant[j] = 3
+  quadrant[nphi] = quadrant[0]
+
+  counter = 0
+  for j in range(nphi):
+      if quadrant[j] == 4 and quadrant[j+1] == 1:
+          counter += 1
+      elif quadrant[j] == 1 and quadrant[j+1] == 4:
+          counter -= 1
+      else:
+          counter += quadrant[j+1] - quadrant[j]
+
+    # It is necessary to flip the sign of axis_helicity in order
+    # to maintain "iota_N = iota + axis_helicity" under the parity
+    # transformations.
+  counter *= spsi * sG
+  return  counter / 4
+  

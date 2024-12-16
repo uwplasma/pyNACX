@@ -3,6 +3,9 @@ from init_axis_helpers import *
 from init_axis import calculate_helicity
 
 def helper_residual(rc, rs, zs, zc, etabar, nphi, nfp, spsi, I2, B0, sigma0, sG, x): 
+  """
+  this helper residual runs without anything from self 
+  """
   sigma = jnp.copy(x)
   sigma[0] = sigma0
   iota = x[0]

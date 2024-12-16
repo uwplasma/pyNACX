@@ -29,7 +29,8 @@ def derive_X2c(rc, zs, rs=[], zc=[], nfp=1, etabar=1., sigma0=0., B0=1., sG=1, s
   B0_over_abs_G0 = calc_B0_over_abs_G0(B0, G0)
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp, nphi)
   Z2c = derive_Z2c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
-  iota_N = 
+  helicity = derive_helicity() # check 
+  iota_N = solve_sigma_equation(self, nphi, sigma0, helicity, nfp)
   Z2s = derive_Z2s(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   abs_G0_over_B0 = calc_abs_G0_over_B0(sG, nphi, B0, nfp, rc, rs, zc, zs)
   
