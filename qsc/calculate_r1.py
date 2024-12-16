@@ -6,7 +6,7 @@ and computing diagnostics of the O(r^1) solution.
 import logging
 import numpy as np
 from .util import fourier_minimum
-from .newton import newton
+from .newton import new_new_newton
 import jax.numpy as jnp
 from jax import jacobian
 from .calculate_r1_helpers import *
@@ -66,7 +66,7 @@ def solve_sigma_equation(self, nphi, sigma0, helicity, nfp):
     self.sigma = np.copy(soln.x)
     self.sigma[0] = self.sigma0
     """
-    sigma = newton(self._residual, x0, jac=self._jacobian)
+    sigma = new_new_newton(self._residual, x0, jac=self._jacobian)
     iota = sigma[0]
     iotaN = calc_iotaN(iota, helicity, nfp)
     sigma[0] = sigma0
