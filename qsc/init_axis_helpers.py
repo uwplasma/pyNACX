@@ -2,9 +2,15 @@ import numpy as jnp
 
 from .spectral_diff_matrix import *
 
-def calc_torsion(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0, order, B2s): 
+def calc_torsion(nphi, nfp, rc, rs, zc, zs, sG, etabar, spsi, sigma0):
+  """
+  calculate torsion as a function of inputed parameters
+  """
   from derive_r2 import recalc_rc, recalc_rs
   from calculate_r1_helpers import derive_calc_Y1c, derive_calc_Y1s, derive_calc_X1c
+  
+  nfourier = jnp.max([len(rc), len(zs), len(rs), len(zc)])
+
   
   Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
