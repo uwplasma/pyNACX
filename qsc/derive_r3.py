@@ -6,7 +6,7 @@ def derive_flux_constraint_coefficient():
 
 def derive_X3c1(): 
   # requires X1c & flux_constraint_coefficient
-  X1c = derive_calc_X1c
+  X1c = derive_calc_X1c()
   flux_constraint_coefficient = 
   return X1c * flux_constraint_coefficient
 
