@@ -65,7 +65,7 @@ def newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
 
     return x_best
 
-def new_new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10): 
+def new_new_newton(f, x0, niter=20, tol=1e-13, nlinesearch=10): 
     """
     this is  a jax compatable implementatio of newtons method for solving
     a system of nonlinear equations using Newton's method with a line search.
@@ -85,7 +85,7 @@ def new_new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
 
     for jnewton in range(niter):
         last_residual_norm = residual_norm
-        j = jac(x)
+        j = jax.jacrev(x) # jaccobian of f using reverse mode because im guesing that we have more inputs than outputs 
         x0 = jnp.copy(x)
         logger.info('Newton iteration {}'.format(jnewton))
         step_direction = compute_newton_step_direction(j, residual)

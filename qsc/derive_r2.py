@@ -30,7 +30,7 @@ def derive_X2c(rc, zs, rs=[], zc=[], nfp=1, etabar=1., sigma0=0., B0=1., sG=1, s
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp, nphi)
   Z2c = derive_Z2c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi) # check 
-  iota_N = solve_sigma_equation(self, nphi, sigma0, helicity, nfp)[2]
+  iota_N = solve_sigma_equation(nphi, sigma0, helicity, nfp)[2]
   Z2s = derive_Z2s(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   abs_G0_over_B0 = calc_abs_G0_over_B0(sG, nphi, B0, nfp, rc, rs, zc, zs)
   
@@ -66,7 +66,7 @@ def derive_X2s(rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2s, B2c
 
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
   helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi) # check 
-  iota_N = solve_sigma_equation(self, nphi, sigma0, helicity, nfp)[2]
+  iota_N = solve_sigma_equation(nphi, sigma0, helicity, nfp)[2]
   torsion = calc_torsion(nphi, nfp, rc, rs, zc, zs, sG, etabar, spsi, sigma0)
   abs_G0_over_B0 = calc_abs_G0_over_B0(sG,  nphi,  B0, nfp, rc, rs, zc, zs)
 
@@ -124,8 +124,8 @@ def calc_matrix(Y1c, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi
   factor = - B0_over_abs_G0 / 8
   
   helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi) # check 
-  iota_N = solve_sigma_equation(self, nphi, sigma0, helicity, nfp)[2] 
-  sigma,_,_ = solve_sigma_equation(self, nphi, sigma0, helicity, nfp)[2] 
+  iota_N = solve_sigma_equation(nphi, sigma0, helicity, nfp)[2] 
+  sigma,_,_ = solve_sigma_equation(nphi, sigma0, helicity, nfp)[2] 
   Z20 = calc_Z20(factor, d_d_varphi, V1)
   Z2c = calc_Z2c(factor, d_d_varphi, V3, iota_N, V2)
   Z2s = calc_Z2c(factor, d_d_varphi, V3, iota_N, V2)
@@ -208,7 +208,7 @@ def calc_right_hand_side(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, 
   curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
   
   helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi) # check 
-  sigma, _, iota_N = solve_sigma_equation(self, nphi, sigma0, helicity, nfp) 
+  sigma, _, iota_N = solve_sigma_equation(nphi, sigma0, helicity, nfp) 
   X2c = derive_X2c(rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2c) 
   torsion = calc_torsion(nphi, nfp, rc, rs, zc, zs, sG, etabar, spsi, sigma0)
   abs_G0_over_B0 = calc_abs_G0_over_B0(sG,  nphi,  B0, nfp, rc, rs, zc, zs)
@@ -244,7 +244,7 @@ def recalc_rc(Y1c, Y1s, X1c, rc, zs, rs, zc, nfp,  nphi, sG, etabar, spsi, sigma
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
 
   helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi) # check 
-  iota_N = solve_sigma_equation(self, nphi, sigma0, helicity, nfp)[2] 
+  iota_N = solve_sigma_equation(nphi, sigma0, helicity, nfp)[2] 
   torsion = calc_torsion(nphi, nfp, rc, rs, zc, zs, sG, etabar, spsi, sigma0)
   abs_G0_over_B0 = calc_abs_G0_over_B0(sG,  nphi,  B0, nfp, rc, rs, zc, zs)
   
@@ -260,7 +260,7 @@ def recalc_rs(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar):
   Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   
   helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi) # check 
-  iota_N = solve_sigma_equation(self, nphi, sigma0, helicity, nfp)[2] 
+  iota_N = solve_sigma_equation(nphi, sigma0, helicity, nfp)[2] 
   
   return calc_rs(d_d_varphi, Y1s, iota_N, Y1c)
 
@@ -273,7 +273,7 @@ def derive_B20(rc, zs, rs=[], zc=[], nfp=1, etabar=1., sigma0=0., B0=1., I2=0., 
   # rc and rs are recalculated after curvature is calculated 
   
   helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi) # check 
-  sigma, _, iota_N = solve_sigma_equation(self, nphi, sigma0, helicity, nfp) 
+  sigma, _, iota_N = solve_sigma_equation(nphi, sigma0, helicity, nfp) 
   
   solution = calc_solution(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
 
@@ -364,7 +364,7 @@ def derive_G2(B0 ,I2, p2 ,sG ,nphi ,nfp, rc, rs, zc, zs, sigma0, spsi):
   mu0 = 4 * jnp.pi * 1e-7
   G0 = calc_G0(sG,  nphi,  B0, nfp, rc, rs, zc, zs)
   helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi)
-  iota = solve_sigma_equation(self, nphi, sigma0, helicity, nfp)[1]
+  iota = solve_sigma_equation(nphi, sigma0, helicity, nfp)[1]
   return -mu0 * p2 * G0 / (B0 * B0) - iota * I2
 
 def derive_d_curvature_d_varphi(rc, zs, rs, zc, nfp, nphi, ): # should work
@@ -420,7 +420,7 @@ def derive_d_Y20_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi,
 def derive_Y2s(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c): 
   curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
   helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi)
-  sigma = solve_sigma_equation(self, nphi, sigma0, helicity, nfp)[0]
+  sigma = solve_sigma_equation(nphi, sigma0, helicity, nfp)[0]
   X2c = derive_X2c(rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2c)
   X2s = derive_X2s(rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2s, B2c)
   Y2s_inhomogeneous = calc_Y2s_inhomogeneous(sG, spsi, curvature, etabar, X2c, X2s, sigma)
@@ -463,7 +463,7 @@ def derive_Z2s(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar, B0):
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp, nphi) 
   V2 = calc_V2(Y1s, Y1c)
   helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi)
-  iota_N = solve_sigma_equation(self, nphi, sigma0, helicity, nfp)[2]
+  iota_N = solve_sigma_equation(nphi, sigma0, helicity, nfp)[2]
   V3 = calc_V3(X1c, Y1c, Y1s)
   return calc_Z2s(factor, d_d_varphi, V2, iota_N, V3)
 
@@ -477,7 +477,7 @@ def derive_Z2c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar, B0, ):
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp, nphi)
   V3 = calc_V3(X1c, Y1c, Y1s)
   helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi)
-  iota_N = solve_sigma_equation(self, nphi, sigma0, helicity, nfp)[2]
+  iota_N = solve_sigma_equation(nphi, sigma0, helicity, nfp)[2]
   V2 = calc_V2(Y1s, Y1c)
   return calc_Z2c(factor, d_d_varphi, V3, iota_N, V2)
 

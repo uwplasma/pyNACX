@@ -20,7 +20,7 @@ def derive_flux_constraint_coefficient(rc, zs, rs, zc, nfp, etabar, sigma0, I2, 
   Y2s = derive_Y2s(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
   Z20 = derive_Z20(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar, B0)
   helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi)
-  iotaN = solve_sigma_equation(self, nphi, sigma0, helicity, nfp)
+  iotaN = solve_sigma_equation(nphi, sigma0, helicity, nfp)
   Z2c = derive_Z2c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar, B0)
   abs_G0_over_B0 = calc_abs_G0_over_B0(sG, nphi, B0, nfp, rc, rs, zc, zs)
   Z2s = derive_Z2s(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar, B0)

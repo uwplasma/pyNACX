@@ -54,7 +54,7 @@ def _jacobian(self, x):
     #logger.debug("_jacobian called with x={}, jac={}".format(x, jac))
     return jac
 
-def solve_sigma_equation(self, nphi, sigma0, helicity, nfp):
+def solve_sigma_equation(nphi, sigma0, helicity, nfp):
     from solve_sigma_helpers import helper_residual
     """
     Solve the sigma equation.
@@ -67,7 +67,7 @@ def solve_sigma_equation(self, nphi, sigma0, helicity, nfp):
     self.sigma = np.copy(soln.x)
     self.sigma[0] = self.sigma0
     """
-    sigma = new_new_newton(helper_residual, x0, jac=self._jacobian) # currently using the self jacobian but this can be removed when i use the jax jacobian 
+    sigma = new_new_newton(helper_residual, x0) # helper residual is a functon that runs without self but still returns r  
     iota = sigma[0]
     iotaN = calc_iotaN(iota, helicity, nfp)
     sigma[0] = sigma0

@@ -44,7 +44,8 @@ def derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar):
   """
   calulate the Y1c as a function of inputed parameters
   """
-  sigma = solve_sigma_equation()[0] #not yet derivable because I dont have the newtons method working with is within this 
+  helicity = derive_helicity(nphi, nfp, rc, rs, zc, zs)
+  sigma = solve_sigma_equation(nphi, sigma0, helicity, nfp)[0] #not yet derivable because I dont have the newtons method working with is within this 
   # will also need to create a derivable version of solve sigma equation that first derives helicity and nfp
   curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
   return  sG * spsi * curvature * sigma / etabar 
