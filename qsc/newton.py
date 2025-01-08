@@ -4,6 +4,7 @@ This module contains a function for Newton's method refactored to JAX.
 """
 import jax
 import jax.numpy as jnp
+from jax import jacobian 
 import numpy as np
 from jax.scipy.linalg import toeplitz
 from jax import jit
