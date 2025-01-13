@@ -94,7 +94,7 @@ def derive_elongation(X1s, X1c, Y1s, Y1c):
 def calc_mean_elongation(elongation, d_l_d_phi): 
   return jnp.sum(elongation * d_l_d_phi) / jnp.sum(d_l_d_phi)
 
-def derive_mean_elongation(sG, spsi, sigma, etabar, nphi, nfp, rc, rs, zc, zs):
+def derive_mean_elongation(sG, spsi, sigma0, etabar, nphi, nfp, rc, rs, zc, zs):
   """
   calulate the mean_elongation as a function of inputed parameters
   """
