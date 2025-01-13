@@ -172,15 +172,15 @@ def derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi):
   for j in range(nphi):
       if normal_cylindrical[j,0] >= 0:
           if normal_cylindrical[j,2] >= 0:
-              quadrant[j] = 1
+              quadrant = quadrant.at[j].set(1)
           else:
-              quadrant[j] = 4
+              quadrant = quadrant.at[j].set(4)
       else:
           if normal_cylindrical[j,2] >= 0:
-              quadrant[j] = 2
+              quadrant = quadrant.at[j].set(2)
           else:
-              quadrant[j] = 3
-  quadrant[nphi] = quadrant[0]
+              quadrant = quadrant.at[j].set(3)
+  quadrant = quadrant.at[nphi].set(quadrant[0])
 
   counter = 0
   for j in range(nphi):
