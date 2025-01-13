@@ -197,3 +197,22 @@ def derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi):
   counter *= spsi * sG
   return  counter / 4
   
+def derive_varphi(nphi, nfp, rc, rs, zc, zs): 
+  nfourier = jnp.max([len(rc), len(zs), len(rs), len(zc)])
+  n = jnp.arange(0, nfourier) * nfp
+  angles = jnp.outer(n, phi)
+  sinangles = jnp.sin(angles)
+  cosangles = jnp.cos(angles)
+  R0 = jnp.dot(rc, cosangles) + jnp.dot(rs, sinangles)
+  R0p = jnp.dot(rc, -n[:, jnp.newaxis] * sinangles) + jnp.dot(rs, n[:, jnp.newaxis] * cosangles)
+  Z0p = jnp.dot(zc, -n[:, jnp.newaxis] * sinangles) + jnp.dot(zs, n[:, jnp.newaxis] * cosangles)
+  phi = jnp.linspace(0, 2 * jnp.pi / nfp, nphi, endpoint=False)
+  d_l_d_phi = jnp.sqrt(R0 * R0 + R0p * R0p + Z0p * Z0p)
+  d_phi = phi[1] - phi[0]
+  axis_length = jnp.sum(d_l_d_phi) * d_phi * nfp
+  varphi = jnp.zeros(nphi)
+  for j in range(1, nphi):
+      # To get toroidal angle on the full mesh, we need d_l_d_phi on the half mesh.
+      varphi[j] = varphi[j-1] + (d_l_d_phi[j-1] + d_l_d_phi[j])
+  varphi = varphi * (0.5 * d_phi * 2 * jnp.pi / axis_length)
+  return varphi

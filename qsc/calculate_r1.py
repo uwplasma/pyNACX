@@ -109,38 +109,50 @@ def _determine_helicity(self):
     counter *= self.spsi * self.sG
     self.helicity = counter / 4
 
-def r1_diagnostics(self):
+def r1_diagnostics(self, rc, zs, rs, zc, nfp, etabar, sigma0, B0,
+                 I2, sG, spsi, nphi=61, B2s, B2c, p2):
     """
     Compute various properties of the O(r^1) solution, once sigma and
     iota are solved for.
     """
-    self.Y1s = calc_Y1s(self.sG ,self.spsi,self.curvature, self.etabar)
-    self.Y1c = calc_Y1c(self.sG, self.spsi, self.curvature, self.sigma, self.etabar)
-
+    self.Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
+    self.Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+    
     # If helicity is nonzero, then the original X1s/X1c/Y1s/Y1c variables are defined with respect to a "poloidal" angle that
     # is actually helical, with the theta=0 curve wrapping around the magnetic axis as you follow phi around toroidally. Therefore
     # here we convert to an untwisted poloidal angle, such that the theta=0 curve does not wrap around the axis.
    
-    angle = calc_angle(self.helicity, self.nfp, self.varphi)
+    helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+    varphi = derive_varphi(nphi, nfp, rc, rs, zc, zs)
+    
+    angle = calc_angle(helicity, nfp, varphi)
     sinangle = calc_sinangle(angle)
     cosangle = calc_cosangle(angle)
-    self.X1s_untwisted = calc_X1s_untwisted(self.X1s, cosangle, self.X1c, sinangle)
+    
+    X1s = derive_calc_X1s(nphi)
+    X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
+    Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
+    Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+    
+    self.X1s_untwisted = calc_X1s_untwisted(X1s, cosangle, X1c, sinangle)
         
-    self.X1c_untwisted = calc_X1c_untwisted(self.X1s, sinangle, self.X1c, cosangle)
+    self.X1c_untwisted = calc_X1c_untwisted(X1s, sinangle, X1c, cosangle)
         
-    self.Y1s_untwisted = calc_X1s_untwisted(self.Y1s, cosangle, self.Y1c, sinangle)
+    self.Y1s_untwisted = calc_X1s_untwisted(Y1s, cosangle, Y1c, sinangle)
         
-    self.Y1c_untwisted = calc_Y1c_untwisted(self.Y1s, sinangle, self.Y1c, cosangle)
+    self.Y1c_untwisted = calc_Y1c_untwisted(Y1s, sinangle, Y1c, cosangle)
 
     # Use (R,Z) for elongation in the (R,Z) plane,
     # or use (X,Y) for elongation in the plane perpendicular to the magnetic axis.
     
-    p = calc_p(self.X1s, self.X1c, self.Y1s, self.Y1c)
-    q = calc_q(self.X1s, self.Y1c, self.X1c, self.Y1s)
+    p = calc_p(X1s, X1c, Y1s, Y1c)
+    q = calc_q(X1s, Y1c, X1c, Y1s)
 
     self.elongation = calc_elongation(p,q)
     self.mean_elongation = calc_mean_elongation(self.elongation, self.d_l_d_phi)
+    
     index = np.argmax(self.elongation)
+    
     self.max_elongation = -fourier_minimum(-self.elongation)
 
     self.d_X1c_d_varphi = np.matmul(self.d_d_varphi, self.X1c)

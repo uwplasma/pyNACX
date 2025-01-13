@@ -103,7 +103,7 @@ class Qsc():
         self.zs = self.zs.ad[:index].set(zs_old[:index])
        
         nfourier_old = self.nfourier
-        self.nfourier = nfourier_new
+        self.nfourier = nfourier_new 
         self._set_names()
         # No need to recalculate if we increased the Fourier
         # resolution, only if we decreased it.
