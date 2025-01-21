@@ -110,7 +110,7 @@ def _determine_helicity(self):
     self.helicity = counter / 4
 
 def r1_diagnostics(self, rc, zs, rs, zc, nfp, etabar, sigma0, B0,
-                 I2, sG, spsi, nphi=61, B2s, B2c, p2):
+                 I2, sG, spsi, nphi, B2s, B2c, p2):
     """
     Compute various properties of the O(r^1) solution, once sigma and
     iota are solved for.

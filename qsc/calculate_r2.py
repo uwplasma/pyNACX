@@ -6,39 +6,43 @@ import logging
 import numpy as np
 from .util import mu0
 import jax.numpy as jnp
+from .calculate_r1_helpers import *
 from .calculate_r2_helpers import * 
+from .derive_r2 import *
 
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-def calculate_r2(self):
+def calculate_r2(self, rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2):
     """
     Compute the O(r^2) quantities.
     """
     logger.debug('Calculating O(r^2) terms')
     # First, some shorthand:
-    nphi = self.nphi
-    B0_over_abs_G0 = calc_B0_over_abs_G0(self.B0, self.G0)
+    nphi = nphi
+    G0 = calc_G0(sG,  nphi,  B0, nfp, rc, rs, zc, zs)
+    B0_over_abs_G0 = calc_B0_over_abs_G0(B0, G0) 
     abs_G0_over_B0 = 1 / B0_over_abs_G0
-    X1c = self.X1c
-    Y1s = self.Y1s
-    Y1c = self.Y1c
-    sigma = self.sigma
-    d_d_varphi = self.d_d_varphi
-    iota_N = self.iotaN
-    iota = self.iota
-    curvature = self.curvature
-    torsion = self.torsion
-    etabar = self.etabar
-    B0 = self.B0
-    G0 = self.G0
-    I2 = self.I2
-    B2s = self.B2s
-    B2c = self.B2c
-    p2 = self.p2
-    sG = self.sG
-    spsi = self.spsi
-    I2_over_B0 = self.I2 / self.B0
+    X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
+    Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
+    Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+    helicity = derive_helicity(nphi, nfp, rc, rs, zc, zs)
+    sigma = solve_sigma_equation(nphi, sigma0, helicity, nfp)[0]
+    d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp, nphi)
+    
+    iota_N = calc_iotaN(iota, helicity, nfp)
+    iota = solve_sigma_equation(nphi, sigma0, helicity, nfp)[1]
+    curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
+    torsion = calc_torsion(nphi, nfp, rc, rs, zc, zs, sG, etabar, spsi, sigma0)
+    etabar = etabar
+    B0 = B0
+    I2 = I2
+    B2s = B2s
+    B2c = B2c
+    p2 = p2
+    sG = sG
+    spsi = spsi
+    I2_over_B0 = I2 / B0
 
     if jnp.abs(iota_N) < 1e-8:
         logger.warning('|iota_N| is very small so O(r^2) solve will be poorly conditioned. '
@@ -145,27 +149,27 @@ def calculate_r2(self):
     Y2s = calc_Y2s(Y2s_inhomogeneous, Y2s_from_X20, X20)
     Y2c = calc_Y2c(Y2c_inhomogeneous, Y2c_from_X20, X20, Y20)
 
-    B20 =calc_B20(B0, curvature, X20, B0_over_abs_G0, d_d_varphi, Z20, etabar, mu0, p2, qc, qs, rc, rs)
+    B20 = derive_B20(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2)
 
     d_l_d_phi = self.d_l_d_phi
     normalizer = 1 / jnp.sum(d_l_d_phi)
-    self.B20_mean = jnp.sum(B20 * d_l_d_phi) * normalizer
-    self.B20_anomaly = B20 - self.B20_mean
-    self.B20_residual = jnp.sqrt(jnp.sum((B20 - self.B20_mean) * (B20 - self.B20_mean) * d_l_d_phi) * normalizer) / B0
-    self.B20_variation = jnp.max(B20) - jnp.min(B20)
+    self.B20_mean = derive_B20_mean(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2)
+    self.B20_anomaly = derive_B20_anomaly(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2)
+    self.B20_residual = derive_B20_residual(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2)
+    self.B20_variation = derive_B20_variation(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2)
 
-    self.N_helicity = - self.helicity * self.nfp
-    self.G2 = -mu0 * p2 * G0 / (B0 * B0) - iota * I2
+    self.N_helicity = derive_N_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+    self.G2 = derive_G2(B0 ,I2, p2 ,sG ,nphi ,nfp, rc, rs, zc, zs, sigma0, spsi)
 
-    self.d_curvature_d_varphi = jnp.matmul(d_d_varphi, curvature)
-    self.d_torsion_d_varphi = jnp.matmul(d_d_varphi, torsion)
-    self.d_X20_d_varphi = jnp.matmul(d_d_varphi, X20)
-    self.d_X2s_d_varphi = jnp.matmul(d_d_varphi, X2s)
-    self.d_X2c_d_varphi = jnp.matmul(d_d_varphi, X2c)
-    self.d_Y20_d_varphi = jnp.matmul(d_d_varphi, Y20)
-    self.d_Y2s_d_varphi = jnp.matmul(d_d_varphi, Y2s)
-    self.d_Y2c_d_varphi = jnp.matmul(d_d_varphi, Y2c)
-    self.d_Z20_d_varphi = jnp.matmul(d_d_varphi, Z20)
+    self.d_curvature_d_varphi = derive_d_curvature_d_varphi(rc, zs, rs, zc, nfp, nphi)
+    self.d_torsion_d_varphi = derive_d_torsion_d_varphi(rc, zs, rs, zc, nfp,  nphi, sG, etabar, spsi, sigma0)
+    self.d_X20_d_varphi = derive_d_X20_d_varphi(rc, zs, rs, zc, nfp, nphi)
+    self.d_X2s_d_varphi = derive_d_X2s_d_varphi(rc, zs, rs, zc, nfp, nphi, sG, B0, etabar, B2s, sigma0, spsi, B2c)
+    self.d_X2c_d_varphi = derive_d_X2c_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2c)
+    self.d_Y20_d_varphi = derive_d_Y20_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2)
+    self.d_Y2s_d_varphi = derive_d_Y2s_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.d_Y2c_d_varphi = derive_d_Y2c_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.d_Z20_d_varphi = derive_d_Z20_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
     self.d_Z2s_d_varphi = jnp.matmul(d_d_varphi, Z2s)
     self.d_Z2c_d_varphi = jnp.matmul(d_d_varphi, Z2c)
     self.d2_X1c_d_varphi2 = jnp.matmul(d_d_varphi, self.d_X1c_d_varphi)
