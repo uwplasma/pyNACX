@@ -170,11 +170,11 @@ def calculate_r2(self, rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, np
     self.d_Y2s_d_varphi = derive_d_Y2s_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
     self.d_Y2c_d_varphi = derive_d_Y2c_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
     self.d_Z20_d_varphi = derive_d_Z20_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
-    self.d_Z2s_d_varphi = jnp.matmul(d_d_varphi, Z2s)
-    self.d_Z2c_d_varphi = jnp.matmul(d_d_varphi, Z2c)
-    self.d2_X1c_d_varphi2 = jnp.matmul(d_d_varphi, self.d_X1c_d_varphi)
-    self.d2_Y1c_d_varphi2 = jnp.matmul(d_d_varphi, self.d_Y1c_d_varphi)
-    self.d2_Y1s_d_varphi2 = jnp.matmul(d_d_varphi, self.d_Y1s_d_varphi)
+    self.d_Z2s_d_varphi = derive_d_Z2s_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+    self.d_Z2c_d_varphi = derive_d_Z2c_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+    self.d2_X1c_d_varphi2 = derive_d2_X1c_d_varphi2(etabar, nphi, nfp, rc, rs, zc, zs)
+    self.d2_Y1c_d_varphi2 = derive_d2_Y1c_d_varphi2(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+    self.d2_Y1s_d_varphi2 = derive_d2_Y1s_d_varphi2(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
 
     # Store all important results in self:
     self.V1 = V1

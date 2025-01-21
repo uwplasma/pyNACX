@@ -7,6 +7,7 @@ import numpy as np
 from scipy import integrate as integ
 from .util import mu0
 import jax.numpy as jnp
+from .derive_r3 import * 
 
 
 #logging.basicConfig(level=logging.DEBUG)
@@ -72,7 +73,7 @@ def calculate_r3(self):
         B0**2*abs_G0_over_B0*I2*X1c*Y1s**3*torsion - B0**2*I2*X1c*Y1c*Y1s*d_X1c_d_varphi + \
         B0**2*I2*X1c**2*Y1s*d_Y1c_d_varphi)/(16*B0**2*G0*X1c**2*Y1s**2)
 
-    self.X3c1 = self.X1c * flux_constraint_coefficient
+    self.X3c1 = derive_X3c1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
     self.Y3c1 = self.Y1c * flux_constraint_coefficient
     self.Y3s1 = self.Y1s * flux_constraint_coefficient
     self.X3s1 = self.X1s * flux_constraint_coefficient

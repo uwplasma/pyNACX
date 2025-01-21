@@ -103,7 +103,7 @@ def derive_Q(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p
   solutions = calc_solution(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
   X20 = calc_X20(solutions, nphi)
   curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
-  d_Z20_d_varphi 
+  d_Z20_d_varphi = derive_d_Z20_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   torsion = calc_torsion(nphi, nfp, rc, rs, zc, zs, sG, etabar, spsi, sigma0)
   X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
   Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
@@ -113,8 +113,8 @@ def derive_Q(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p
   d_X1c_d_varphi = jnp.matmul(d_d_varphi, X1c)  
   Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar) # requires working newtons
   d_Y1c_d_varphi = jnp.matmul(d_d_varphi, Y1c)
-  
-  Q = -sign_psi * B0 * abs_G0_over_B0 / (2*G0*G0) * (self.iotaN * I2 + mu0 * self.p2 * G0 / (B0 * B0)) + 2 * (X2c * Y2s - X2s * Y2c) \
+  iotaN = solve_sigma_equation(nphi, sigma0, derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi), nfp)[2]
+  Q = -sign_psi * B0 * abs_G0_over_B0 / (2*G0*G0) * (iotaN * I2 + mu0 * p2 * G0 / (B0 * B0)) + 2 * (X2c * Y2s - X2s * Y2c) \
             + sign_psi * B0 / (2*G0) * (abs_G0_over_B0 * X20 * curvature - d_Z20_d_varphi) \
             + I2 / (4 * G0) * (-abs_G0_over_B0 * torsion * (X1c*X1c + Y1s*Y1s + Y1c*Y1c) + Y1c * d_X1c_d_varphi - X1c * d_Y1c_d_varphi)
   return Q
@@ -146,6 +146,7 @@ def derive_B0_order_a_squared_to_cancel(rc, zs, rs, zc, nfp, etabar, sigma0, I2,
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
   d_X1c_d_varphi = jnp.matmul(d_d_varphi, X1c)
   d_Y1c_d_varphi = jnp.matmul(d_d_varphi, Y1c)
+  d_Z20_d_varphi = derive_d_Z20_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   B0_order_a_squared_to_cancel = -sign_G * B0 * B0 * (G2 + I2 * N_helicity) * abs_G0_over_B0 / (2*G0*G0) \
         -sign_G * sign_psi * B0 * 2 * (X2c * Y2s - X2s * Y2c) \
         -sign_G * B0 * B0 / (2*G0) * (abs_G0_over_B0 * X20 * curvature - d_Z20_d_varphi) \
