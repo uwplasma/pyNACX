@@ -13,7 +13,7 @@ from .derive_r3 import *
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-def calculate_r3(self):
+def calculate_r3(self, rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2):
     """
     Compute the O(r**3) contributions to X and Y needed for full
     consistency of B through O(r**2), as detailed in section 3 of
@@ -74,9 +74,9 @@ def calculate_r3(self):
         B0**2*I2*X1c**2*Y1s*d_Y1c_d_varphi)/(16*B0**2*G0*X1c**2*Y1s**2)
 
     self.X3c1 = derive_X3c1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
-    self.Y3c1 = self.Y1c * flux_constraint_coefficient
-    self.Y3s1 = self.Y1s * flux_constraint_coefficient
-    self.X3s1 = self.X1s * flux_constraint_coefficient
+    self.Y3c1 = derive_Y3c1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.Y3s1 = derive_Y3s1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.X3s1 = derive_X3s1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
     self.Z3c1 = 0
     self.Z3s1 = 0
 
@@ -87,9 +87,9 @@ def calculate_r3(self):
     self.Z3c3 = 0
     self.Z3s3 = 0
 
-    self.d_X3c1_d_varphi = self.d_d_varphi @ self.X3c1
-    self.d_Y3c1_d_varphi = self.d_d_varphi @ self.Y3c1
-    self.d_Y3s1_d_varphi = self.d_d_varphi @ self.Y3s1
+    self.d_X3c1_d_varphi = derive_d_X3c1_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.d_Y3c1_d_varphi = derive_d_Y3c1_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.d_Y3s1_d_varphi = derive_d_Y3s1_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
 
     # The expression below is derived in the O(r**2) paper, and in "20190318-01 Wrick's streamlined Garren-Boozer method, MHD.nb" in the section "Not assuming quasisymmetry".
     # Note Q = (1/2) * (XYEquation0 without X3 and Y3 terms) where XYEquation0 is the quantity in the above notebook.
@@ -112,8 +112,8 @@ def calculate_r3(self):
     or jnp.max(abs(flux_constraint_coefficient - B0_order_a_squared_to_cancel/(2*B0))) > 1e-7:
         logger.warning("Methods of computing lambda disagree!! Higher nphi resolution might be needed.")
 
-    self.flux_constraint_coefficient = flux_constraint_coefficient
-    self.B0_order_a_squared_to_cancel = B0_order_a_squared_to_cancel
+    self.flux_constraint_coefficient = derive_predicted_flux_constraint_coefficient(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.B0_order_a_squared_to_cancel = derive_B0_order_a_squared_to_cancel(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
 
     if self.helicity == 0:
         self.X3c1_untwisted = self.X3c1

@@ -3,6 +3,7 @@ This module contains methods for performing mathematical operations in calculate
 """
 import jax.numpy as jnp
 from .init_axis_helpers import *
+from .util import fourier_minimum
 
 """
 helpers for solve_sigma_equation
@@ -83,10 +84,14 @@ def calc_q(X1s, Y1c, X1c, Y1s):
 def calc_elongation(p, q): 
   return (p + jnp.sqrt(p * p - 4 * q * q)) / (2 * jnp.abs(q))
 
-def derive_elongation(X1s, X1c, Y1s, Y1c): 
+def derive_elongation(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
   """
   calculate elongation as a function of inputed parameters
   """
+  X1s = derive_calc_X1s(nphi)
+  X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
+  Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
+  Y1c =  derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   p = calc_p(X1s, X1c, Y1s, Y1c)
   q = calc_q(X1s, X1c, Y1s, Y1c)
   return calc_elongation(p,q)
@@ -107,3 +112,29 @@ def derive_mean_elongation(sG, spsi, sigma0, etabar, nphi, nfp, rc, rs, zc, zs):
   elongation = calc_elongation(p,q) 
   d_l_d_phi = calc_d_l_d_phi(nphi, nfp, rc, rs, zc, zs)
   return calc_mean_elongation(elongation, d_l_d_phi)
+
+def derive_max_elongation(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
+  elongation = derive_elongation(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  return -fourier_minimum(-elongation) # not sure if derivable
+
+def derive_d_X1c_d_varphi(etabar, nphi, nfp, rc, rs, zc, zs): 
+  d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
+  X1c =  derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
+  jnp.matmul(d_d_varphi, X1c)
+  
+def derive_d_X1s_d_varphi(rc, zs, rs, zc, nfp,  nphi): 
+  d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
+  X1s = derive_calc_X1s(nphi)
+  return jnp.matmul(d_d_varphi, X1s)
+  pass
+
+def derive_d_Y1s_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar): 
+  d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
+  Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
+  return jnp.matmul(d_d_varphi, Y1s)
+
+def derive_d_Y1c_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
+  d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
+  Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  return jnp.matmul(d_d_varphi, Y1c)
+  

@@ -117,7 +117,7 @@ def calc_G0(sG,  nphi,  B0, nfp, rc, rs, zc, zs):
   abs_G0_over_B0 = 1 / B0_over_abs_G0
   return sG * abs_G0_over_B0 * B0
 
-def calc_d_d_varphi(rc, zs, rs=[], zc=[], nfp=1,  nphi=61): 
+def calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi): 
   """
   Calculates d_d_varphi as a function of inputs. 
   """

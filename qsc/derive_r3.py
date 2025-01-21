@@ -2,6 +2,7 @@ from .calculate_r3 import *
 from .calculate_r1_helpers import derive_calc_X1c, derive_calc_X1s, derive_calc_Y1c, derive_calc_Y1s
 from .init_axis_helpers import * 
 from .derive_r2 import * 
+from .util import mu0
 
 def derive_flux_constraint_coefficient(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c): 
   G0 = calc_G0(sG,  nphi,  B0, nfp, rc, rs, zc, zs)
@@ -77,6 +78,7 @@ def derive_X3s1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s
   X1s = derive_calc_X1s(nphi)
   flux_constraint_coefficient = derive_flux_constraint_coefficient(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
   return X1s * flux_constraint_coefficient
+
 def derive_d_X3c1_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c):
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp, nphi)
   X3c1 = derive_X3c1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)

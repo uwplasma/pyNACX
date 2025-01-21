@@ -148,17 +148,17 @@ def r1_diagnostics(self, rc, zs, rs, zc, nfp, etabar, sigma0, B0,
     p = calc_p(X1s, X1c, Y1s, Y1c)
     q = calc_q(X1s, Y1c, X1c, Y1s)
 
-    self.elongation = calc_elongation(p,q)
-    self.mean_elongation = calc_mean_elongation(self.elongation, self.d_l_d_phi)
+    self.elongation = derive_elongation(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+    self.mean_elongation = derive_mean_elongation(sG, spsi, sigma0, etabar, nphi, nfp, rc, rs, zc, zs)
     
     index = np.argmax(self.elongation)
     
-    self.max_elongation = -fourier_minimum(-self.elongation)
+    self.max_elongation = derive_max_elongation(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
 
-    self.d_X1c_d_varphi = np.matmul(self.d_d_varphi, self.X1c)
-    self.d_X1s_d_varphi = np.matmul(self.d_d_varphi, self.X1s)
-    self.d_Y1s_d_varphi = np.matmul(self.d_d_varphi, self.Y1s)
-    self.d_Y1c_d_varphi = np.matmul(self.d_d_varphi, self.Y1c)
+    self.d_X1c_d_varphi = derive_d_X1c_d_varphi(etabar, nphi, nfp, rc, rs, zc, zs)
+    self.d_X1s_d_varphi = derive_d_X1s_d_varphi(rc, zs, rs, zc, nfp,  nphi)
+    self.d_Y1s_d_varphi = derive_d_Y1s_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
+    self.d_Y1c_d_varphi = derive_d_Y1c_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
 
     self.calculate_grad_B_tensor()
 
