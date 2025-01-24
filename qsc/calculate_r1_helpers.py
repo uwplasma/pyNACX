@@ -126,7 +126,7 @@ def derive_d_X1s_d_varphi(rc, zs, rs, zc, nfp,  nphi):
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
   X1s = derive_calc_X1s(nphi)
   return jnp.matmul(d_d_varphi, X1s)
-  pass
+  
 
 def derive_d_Y1s_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar): 
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
