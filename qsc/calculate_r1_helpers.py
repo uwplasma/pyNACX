@@ -84,6 +84,35 @@ def calc_q(X1s, Y1c, X1c, Y1s):
 def calc_elongation(p, q): 
   return (p + jnp.sqrt(p * p - 4 * q * q)) / (2 * jnp.abs(q))
 
+def derive_X1s_untwisted(etabar, nphi, nfp, rc, rs, zc, zs): 
+  X1s = derive_calc_X1s(nphi)
+  X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
+  helicity = derive_helicity(nphi, nfp, rc, rs, zc, zs)
+  varphi = derive_varphi(nphi, nfp, rc, rs, zc, zs)
+  angle = calc_angle(helicity, nfp, varphi)
+  cosangle = calc_cosangle(angle)
+  sinangle = calc_sinangle(angle)
+  
+  return calc_X1s_untwisted(X1s, cosangle, X1c, sinangle)
+
+def derive_X1c_untwisted(etabar, nphi, nfp, rc, rs, zc, zs): 
+  X1s = derive_calc_X1s(nphi)
+  X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
+  helicity = derive_helicity(nphi, nfp, rc, rs, zc, zs)
+  varphi = derive_varphi(nphi, nfp, rc, rs, zc, zs)
+  
+  angle = calc_angle(helicity, nfp, varphi)
+  cosangle = calc_cosangle(angle)
+  sinangle = calc_sinangle(angle)
+
+  return calc_X1c_untwisted(X1s, sinangle, X1c, cosangle)
+
+def derive_Y1s_untwisted():
+  pass
+
+def derive_Y1c_untwisted():
+  pass
+
 def derive_elongation(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
   """
   calculate elongation as a function of inputed parameters
