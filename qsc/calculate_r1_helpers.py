@@ -107,11 +107,25 @@ def derive_X1c_untwisted(etabar, nphi, nfp, rc, rs, zc, zs):
 
   return calc_X1c_untwisted(X1s, sinangle, X1c, cosangle)
 
-def derive_Y1s_untwisted():
-  pass
+def derive_Y1s_untwisted(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar, sigma0):
+  helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+  varphi = derive_varphi(nphi, nfp, rc, rs, zc, zs)
+  angle = calc_angle(helicity, nfp, varphi)
+  cosangle = calc_cosangle(angle)
+  sinangle = calc_sinangle(angle)
+  Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
+  return calc_Y1s_untwisted(Y1s, cosangle, Y1c, sinangle)
 
-def derive_Y1c_untwisted():
-  pass
+def derive_Y1c_untwisted(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar, sigma0):
+  helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+  varphi = derive_varphi(nphi, nfp, rc, rs, zc, zs)
+  angle = calc_angle(helicity, nfp, varphi)
+  cosangle = calc_cosangle(angle)
+  sinangle = calc_sinangle(angle)
+  Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar) 
+  return calc_Y1c_untwisted(Y1s, sinangle, Y1c, cosangle)
 
 def derive_elongation(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
   """
