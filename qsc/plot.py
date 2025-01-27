@@ -404,6 +404,7 @@ def plot_boundary(self, r=0.1, ntheta=80, nphi=150, ntheta_fourier=20, nsections
     phi2D, theta2D = jnp.meshgrid(phi1D, theta1D)
     # Create a color map similar to viridis 
     Bmag = self.B_mag(r, theta2D, phi2D)
+    print(type(Bmag))
     norm = clr.Normalize(vmin=Bmag.min(), vmax=Bmag.max())
     if fieldlines==False:
         if colormap==None:
