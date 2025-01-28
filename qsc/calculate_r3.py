@@ -132,20 +132,20 @@ def calculate_r3(self, rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, np
         angle = -self.helicity * self.nfp * self.varphi
         sinangle = jnp.sin(angle)
         cosangle = jnp.cos(angle)
-        self.X3s1_untwisted = self.X3s1 *   cosangle  + self.X3c1 * sinangle
-        self.X3c1_untwisted = self.X3s1 * (-sinangle) + self.X3c1 * cosangle
-        self.Y3s1_untwisted = self.Y3s1 *   cosangle  + self.Y3c1 * sinangle
-        self.Y3c1_untwisted = self.Y3s1 * (-sinangle) + self.Y3c1 * cosangle
-        self.Z3s1_untwisted = self.Z3s1 *   cosangle  + self.Z3c1 * sinangle
-        self.Z3c1_untwisted = self.Z3s1 * (-sinangle) + self.Z3c1 * cosangle
+        self.X3s1_untwisted = derive_X3s1_untwisted(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+        self.X3c1_untwisted = derive_X3c1_untwisted (rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+        self.Y3s1_untwisted = derive_Y3s1_untwisted(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+        self.Y3c1_untwisted = derive_Y3c1_untwisted(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+        self.Z3s1_untwisted = derive_Z3s1_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+        self.Z3c1_untwisted = derive_Z3c1_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
         sinangle = jnp.sin(3*angle)
         cosangle = jnp.cos(3*angle)
-        self.X3s3_untwisted = self.X3s3 *   cosangle  + self.X3c3 * sinangle
-        self.X3c3_untwisted = self.X3s3 * (-sinangle) + self.X3c3 * cosangle
-        self.Y3s3_untwisted = self.Y3s3 *   cosangle  + self.Y3c3 * sinangle
-        self.Y3c3_untwisted = self.Y3s3 * (-sinangle) + self.Y3c3 * cosangle
-        self.Z3s3_untwisted = self.Z3s3 *   cosangle  + self.Z3c3 * sinangle
-        self.Z3c3_untwisted = self.Z3s3 * (-sinangle) + self.Z3c3 * cosangle
+        self.X3s3_untwisted = derive_X3s3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+        self.X3c3_untwisted = derive_X3c3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+        self.Y3s3_untwisted = derive_Y3s3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+        self.Y3c3_untwisted = derive_Y3c3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+        self.Z3s3_untwisted = derive_Z3s3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+        self.Z3c3_untwisted = derive_Z3c3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
 
 def calculate_shear(self,B31c = 0):
     """

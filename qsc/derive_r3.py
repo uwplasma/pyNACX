@@ -155,3 +155,86 @@ def derive_B0_order_a_squared_to_cancel(rc, zs, rs, zc, nfp, etabar, sigma0, I2,
         -sign_G * sign_psi * B0 * I2 / (4*G0) * (-abs_G0_over_B0 * torsion * (X1c*X1c + Y1c*Y1c + Y1s*Y1s) + Y1c * d_X1c_d_varphi - X1c * d_Y1c_d_varphi)
   return B0_order_a_squared_to_cancel
 
+def derive_angles(rc, nfp, zs, rs, zc, nphi, sG, spsi): 
+  helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+  varphi = derive_varphi(nphi, nfp, rc, rs, zc, zs)
+  angle = calc_angle(helicity, nfp, varphi) 
+  return angle, jnp.sin(angle), jnp.cos(angle)
+
+def derive_X3s1_untwisted(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c): 
+  _, sinangle, cosangle = derive_angles(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+  X3s1 = derive_X3s1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+  X3c1 = derive_X3c1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+  return X3s1 * cosangle  + X3c1 * sinangle 
+
+def derive_X3c1_untwisted (rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c): 
+  _, sinangle, cosangle = derive_angles(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+  X3s1 = derive_X3s1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+  X3c1 = derive_X3c1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+  return X3s1 * (-sinangle) + X3c1 * cosangle
+
+def derive_Y3s1_untwisted(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c): 
+  _, sinangle, cosangle = derive_angles(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+  Y3s1 = derive_Y3s1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+  Y3c1 = derive_Y3c1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+  return Y3s1 *  cosangle  + Y3c1 * sinangle
+
+def derive_Y3c1_untwisted(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c):
+  _, sinangle, cosangle = derive_angles(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+  Y3s1 = derive_Y3s1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+  Y3c1 = derive_Y3c1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+  return Y3s1 * (-sinangle) + Y3c1 * cosangle
+
+def derive_Z3s1_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi): 
+  _, sinangle, cosangle = derive_angles(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+  Z3s1 = 0
+  Z3c1 = 0
+  return Z3s1 *   cosangle  + Z3c1 * sinangle
+
+def derive_Z3c1_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi):
+  _, sinangle, cosangle = derive_angles(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+  Z3s1 = 0
+  Z3c1 = 0
+  return Z3s1 * (-sinangle) + Z3c1 * cosangle
+
+def derive_angles_v2(rc, nfp, zs, rs, zc, nphi, sG, spsi): 
+  helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+  varphi = derive_varphi(nphi, nfp, rc, rs, zc, zs) 
+  angle = calc_angle(helicity, nfp, varphi) 
+  return jnp.sin(3*angle), jnp.cos(3*angle)
+
+def derive_X3s3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi): 
+  sinangle, cosangle = derive_angles_v2(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+  X3s3 = 0
+  X3c3 = 0
+  return X3s3 *   cosangle  + X3c3 * sinangle
+
+def derive_X3c3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi): 
+  sinangle, cosangle = derive_angles_v2(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+  X3s3 = 0
+  X3c3 = 0
+  return X3s3 * (-sinangle) + X3c3 * cosangle
+
+def derive_Y3s3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi): 
+  sinangle, cosangle = derive_angles_v2(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+  Y3s3 = 0
+  Y3c3 = 0
+  return Y3s3 *   cosangle  + Y3c3 * sinangle
+
+def derive_Y3c3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi): 
+  sinangle, cosangle = derive_angles_v2(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+  Y3s3 = 0
+  Y3c3 = 0
+  return Y3s3 * (-sinangle) + Y3c3 * cosangle
+
+def derive_Z3s3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi): 
+  sinangle, cosangle = derive_angles_v2(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+  Z3s3 = 0
+  Z3c3 = 0
+  return Z3s3 *   cosangle  +Z3c3 * sinangle
+
+def derive_Z3c3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi): 
+  sinangle, cosangle = derive_angles_v2(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+  Z3s3 = 0 
+  Z3c3 = 0
+  return Z3s3 * (-sinangle) + Z3c3 * cosangle

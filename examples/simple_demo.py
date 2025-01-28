@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
+import sys
+sys.path.append('/Users/z/Documents/GitHub/pyNACX')
+
 
 import numpy as np
 from qsc import Qsc
 
-stel = Qsc(rc=[1, 0.09], zs=[0, -0.09], nfp=2, etabar=0.95, I2=0.9, order='r2', B2c=-0.7, p2=-600000.)
+print("running pyNACX...")
+stel = Qsc(rc=[1, 0.09], zs=[0, -0.09], nfp=2, etabar=0.95, I2=0.9, order='r1', B2c=-0.7, p2=-600000.)
 
+print("pyNACX finished")
 print(stel.iota) # Rotational transform on-axis for this configuration
 print(stel.d2_volume_d_psi2) # Magnetic well V''(psi) Semo: this is calculated in "mercier.py" in pyqsc which does not exist in pyNACX
 print(stel.DMerc_times_r2) # Mercier criterion parameter DMerc multiplied by r^2 Semo: this is calculated in "mercier.py" in pyqsc which does not exist in pyNACX

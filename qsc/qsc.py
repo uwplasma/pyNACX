@@ -43,7 +43,10 @@ class Qsc():
         """
         # First, force {rc, zs, rs, zc} to have the same length, for
         # simplicity.
-        nfourier = jnp.max([len(rc), len(zs), len(rs), len(zc)])
+        
+        
+        find_max = jnp.array([len(rc), len(zs), len(rs), len(zc)])
+        nfourier = jnp.max(find_max)
         self.nfourier = nfourier
         self.rc = jnp.zeros(nfourier)
         self.zs = jnp.zeros(nfourier)
@@ -79,7 +82,7 @@ class Qsc():
         self.order = order
         self.min_R0_threshold = 0.3
         self._set_names()
-
+      
         self.calculate()
 
     def change_nfourier(self, nfourier_new):
