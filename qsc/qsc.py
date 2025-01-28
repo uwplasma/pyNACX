@@ -114,6 +114,7 @@ class Qsc():
             self.calculate()
 
     def calculate(self):
+        from .calculate_r1 import solve_sigma_equation
         """
         Driver for the main calculations.
         """
@@ -149,6 +150,7 @@ class Qsc():
         Bbar, \
         abs_G0_over_B0 = self.init_axis(self.nphi, self.nfp, self.rc, self.rs, self.zc, self.zs, self.nfourier, self.sG, self.B0, self.etabar,
                         self.spsi, self.sigma0, self.order, self.B2s)
+        print("\nInit axis completed...")
         self.helicity = helicity
         self.normal_cylindrical = normal_cylindrical
         self.etabar_squared_over_curvature_squared = etabar_squared_over_curvature_squared
@@ -180,15 +182,16 @@ class Qsc():
         self.binormal_cylindrical = binormal_cylindrical
         self.Bbar = Bbar
         self.d_l_d_varphi = abs_G0_over_B0
-        sigma, iota, iotaN = self.solve_sigma_equation(nphi=self.nphi,
-                                                        sigma0=self.sigma0,
-                                                        helicity=self.helicity,
-                                                        nfp=self.nfp)
+        sigma, iota, iotaN = solve_sigma_equation(self._residual, self._jacobian, self.nphi, self.sigma0, self.helicity, self.nfp)
+        print("\nSigma equation solved...")
         self.sigma = sigma
         self.iota = iota
         self.iotaN = iotaN
-        self.r1_diagnostics()
+        print("\nCalculating R1...")
+        self.r1_diagnostics(self._residual, self._jacobian, self.rc, self.zs, self.rs, self.zc, self.nfp, self.etabar, self.sigma0, self.B0,
+                 self.I2, self.sG, self.spsi, self.nphi, self.B2s, self.B2c, self.p2)
         if self.order != 'r1':
+            print("\nCalculating r2")
             self.calculate_r2()
             if self.order == 'r3':
                 self.calculate_r3()

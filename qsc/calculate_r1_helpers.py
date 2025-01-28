@@ -40,14 +40,13 @@ def derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar):
 def calc_Y1s(sG, spsi, curvature, etabar):
   return sG * spsi * curvature / etabar 
 
-def derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar):
+def derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar):
   from .calculate_r1 import solve_sigma_equation
   """
   calulate the Y1c as a function of inputed parameters
   """
-  helicity = derive_helicity(nphi, nfp, rc, rs, zc, zs)
-  sigma = solve_sigma_equation(nphi, sigma0, helicity, nfp)[0] #not yet derivable because I dont have the newtons method working with is within this 
-  # will also need to create a derivable version of solve sigma equation that first derives helicity and nfp
+  helicity = derive_helicity(rc, nfp, zs, rs,zc, nphi, sG, spsi)
+  sigma = solve_sigma_equation(_residual, _jacobian, nphi, sigma0, helicity, nfp)[0] 
   curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
   return  sG * spsi * curvature * sigma / etabar 
 
@@ -127,14 +126,14 @@ def derive_Y1c_untwisted(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar, sigma0):
   Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar) 
   return calc_Y1c_untwisted(Y1s, sinangle, Y1c, cosangle)
 
-def derive_elongation(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
+def derive_elongation(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
   """
   calculate elongation as a function of inputed parameters
   """
   X1s = derive_calc_X1s(nphi)
   X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
   Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
-  Y1c =  derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  Y1c =  derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   p = calc_p(X1s, X1c, Y1s, Y1c)
   q = calc_q(X1s, X1c, Y1s, Y1c)
   return calc_elongation(p,q)
@@ -142,22 +141,22 @@ def derive_elongation(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar):
 def calc_mean_elongation(elongation, d_l_d_phi): 
   return jnp.sum(elongation * d_l_d_phi) / jnp.sum(d_l_d_phi)
 
-def derive_mean_elongation(sG, spsi, sigma0, etabar, nphi, nfp, rc, rs, zc, zs):
+def derive_mean_elongation(_residaul, _jacobian, sG, spsi, sigma0, etabar, nphi, nfp, rc, rs, zc, zs):
   """
   calulate the mean_elongation as a function of inputed parameters
   """
   X1s = derive_calc_X1s(nphi)
   X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
-  Y1s = derive_calc_X1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
-  Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  Y1s = derive_calc_X1s(nphi)
+  Y1c = derive_calc_Y1c(_residaul, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   p = calc_p(X1s, X1c, Y1s, Y1c)
   q = calc_q(X1s, X1c, Y1s, Y1c)
   elongation = calc_elongation(p,q) 
   d_l_d_phi = calc_d_l_d_phi(nphi, nfp, rc, rs, zc, zs)
   return calc_mean_elongation(elongation, d_l_d_phi)
 
-def derive_max_elongation(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
-  elongation = derive_elongation(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+def derive_max_elongation(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
+  elongation = derive_elongation(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   return -fourier_minimum(-elongation) # not sure if derivable
 
 def derive_d_X1c_d_varphi(etabar, nphi, nfp, rc, rs, zc, zs): 

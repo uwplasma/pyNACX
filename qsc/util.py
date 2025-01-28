@@ -31,7 +31,8 @@ def fourier_minimum(y):
     minimum of the spectral interpolant.
     """
     # Handle the case of a constant:
-    if (jnp.max(y) - jnp.min(y)) / jnp.max([1e-14, jnp.abs(jnp.mean(y))]) < 1e-14:
+    y = jnp.array(y) # ensure correct argument
+    if (jnp.max(y) - jnp.min(y)) / jnp.max(jnp.array([1e-14, jnp.abs(jnp.mean(y))])) < 1e-14:
         return y[0]
     
     n = len(y)

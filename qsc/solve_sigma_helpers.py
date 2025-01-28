@@ -1,6 +1,6 @@
 import jax.numpy as jnp
-from init_axis_helpers import *
-from init_axis import calculate_helicity
+from .init_axis_helpers import *
+from .init_axis import calculate_helicity
 
 def helper_residual(rc, rs, zs, zc, etabar, nphi, nfp, spsi, I2, B0, sigma0, sG, x): 
   """

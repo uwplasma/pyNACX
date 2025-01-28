@@ -54,10 +54,10 @@ def _jacobian(self, x):
     #logger.debug("_jacobian called with x={}, jac={}".format(x, jac))
     return jac
 
-def solve_sigma_equation(nphi, sigma0, helicity, nfp):
-    from solve_sigma_helpers import helper_residual
+def new_solve_sigma_equation(nphi, sigma0, helicity, nfp):
+    from .solve_sigma_helpers import helper_residual
     """
-    Solve the sigma equation.
+    in progress solve sigma to equation that is unreliant on self
     """
     x0 = jnp.full(nphi, sigma0)
     x0.at[0].set(0) # Initial guess for iota
@@ -71,6 +71,24 @@ def solve_sigma_equation(nphi, sigma0, helicity, nfp):
     iota = sigma[0]
     iotaN = calc_iotaN(iota, helicity, nfp)
     sigma[0] = sigma0
+    return sigma, iota, iotaN
+
+def solve_sigma_equation(_residual, _jacobian, nphi, sigma0, helicity, nfp):
+    """
+    Solve the sigma equation.
+    """
+    x0 = np.full(nphi, sigma0)
+    x0[0] = 0 # Initial guess for iota
+    """
+    soln = scipy.optimize.root(self._residual, x0, jac=self._jacobian, method='lm')
+    self.iota = soln.x[0]
+    self.sigma = np.copy(soln.x)
+    self.sigma[0] = self.sigma0
+    """
+    sigma = new_new_newton(_residual, x0, jac= _jacobian)
+    iota = sigma[0]
+    iotaN = iota + helicity * nfp
+    sigma = sigma.at[0].set(sigma0)
     return sigma, iota, iotaN
 
 def _determine_helicity(self):
@@ -109,14 +127,14 @@ def _determine_helicity(self):
     counter *= self.spsi * self.sG
     self.helicity = counter / 4
 
-def r1_diagnostics(self, rc, zs, rs, zc, nfp, etabar, sigma0, B0,
+def r1_diagnostics(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0,
                  I2, sG, spsi, nphi, B2s, B2c, p2):
     """
     Compute various properties of the O(r^1) solution, once sigma and
     iota are solved for.
     """
     self.Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
-    self.Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+    self.Y1c = derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
     
     # If helicity is nonzero, then the original X1s/X1c/Y1s/Y1c variables are defined with respect to a "poloidal" angle that
     # is actually helical, with the theta=0 curve wrapping around the magnetic axis as you follow phi around toroidally. Therefore
@@ -132,7 +150,7 @@ def r1_diagnostics(self, rc, zs, rs, zc, nfp, etabar, sigma0, B0,
     X1s = derive_calc_X1s(nphi)
     X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
     Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
-    Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+    Y1c = derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
     
     self.X1s_untwisted = calc_X1s_untwisted(X1s, cosangle, X1c, sinangle)
         
@@ -148,12 +166,12 @@ def r1_diagnostics(self, rc, zs, rs, zc, nfp, etabar, sigma0, B0,
     p = calc_p(X1s, X1c, Y1s, Y1c)
     q = calc_q(X1s, Y1c, X1c, Y1s)
 
-    self.elongation = derive_elongation(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
-    self.mean_elongation = derive_mean_elongation(sG, spsi, sigma0, etabar, nphi, nfp, rc, rs, zc, zs)
+    self.elongation = derive_elongation(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+    self.mean_elongation = derive_mean_elongation(_residual, _jacobian, sG, spsi, sigma0, etabar, nphi, nfp, rc, rs, zc, zs)
     
     index = np.argmax(self.elongation)
     
-    self.max_elongation = derive_max_elongation(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+    self.max_elongation = derive_max_elongation(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
 
     self.d_X1c_d_varphi = derive_d_X1c_d_varphi(etabar, nphi, nfp, rc, rs, zc, zs)
     self.d_X1s_d_varphi = derive_d_X1s_d_varphi(rc, zs, rs, zc, nfp,  nphi)

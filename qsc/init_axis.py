@@ -38,7 +38,7 @@ def calculate_helicity(nphi, normal_cylindrical, spsi, sG):
                 quadrant = quadrant.at[j].set(3)
     quadrant = quadrant.at[nphi].set(quadrant[0])
 
-    counter = 0
+    counter = 0         
     for j in range(nphi):
         if quadrant[j] == 4 and quadrant[j+1] == 1:
             counter += 1
@@ -65,13 +65,10 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
     """
 
     # Generate phi
-    print(f'nphi : {nphi}')
+    
     phi = jnp.linspace(0, 2 * jnp.pi / nfp, nphi, endpoint=False)
     d_phi = phi[1] - phi[0]
-    print("shape phi" , phi.shape)
-    print("type phi" , type(d_phi))
-    print("print d_phi" , d_phi)
-    print("Shape of d_phi:", d_phi.shape)
+    
 
     # Compute n and the angles
     n = jnp.arange(0, nfourier) * nfp
@@ -158,7 +155,7 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
     varphi = jnp.zeros(nphi)
     for j in range(1, nphi):
         # To get toroidal angle on the full mesh, we need d_l_d_phi on the half mesh.
-        varphi[j] = varphi[j-1] + (d_l_d_phi[j-1] + d_l_d_phi[j])
+        varphi = varphi.at[j].set(varphi[j-1] + (d_l_d_phi[j-1] + d_l_d_phi[j]))
     varphi = varphi * (0.5 * d_phi * 2 * np.pi / axis_length)
 
 
