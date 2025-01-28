@@ -11,6 +11,7 @@ import matplotlib.colors as clr
 from matplotlib.colors import LightSource
 import matplotlib.ticker as tck
 from .util import to_Fourier
+import logging 
 
 def plot(self, newfigure=True, show=True):
     """
@@ -404,7 +405,13 @@ def plot_boundary(self, r=0.1, ntheta=80, nphi=150, ntheta_fourier=20, nsections
     phi2D, theta2D = jnp.meshgrid(phi1D, theta1D)
     # Create a color map similar to viridis 
     Bmag = self.B_mag(r, theta2D, phi2D)
-    print(type(Bmag))
+    logging.basicConfig(level=logging.DEBUG)
+    
+    logging.debug(f"Type of Bmag before conversion: {type(Bmag)}")
+
+    Bmag = np.array(Bmag , dtype=float)
+    print("Type of Bmag after conversion:", type(Bmag))
+
     norm = clr.Normalize(vmin=Bmag.min(), vmax=Bmag.max())
     if fieldlines==False:
         if colormap==None:
