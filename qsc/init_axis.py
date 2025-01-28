@@ -28,15 +28,15 @@ def calculate_helicity(nphi, normal_cylindrical, spsi, sG):
     for j in range(nphi):
         if normal_cylindrical[j,0] >= 0:
             if normal_cylindrical[j,2] >= 0:
-                quadrant[j] = 1
+                quadrant = quadrant.at[j].set(1)
             else:
-                quadrant[j] = 4
+                quadrant = quadrant.at[j].set(4)
         else:
             if normal_cylindrical[j,2] >= 0:
-                quadrant[j] = 2
+                quadrant = quadrant.at[j].set(2)
             else:
-                quadrant[j] = 3
-    quadrant[nphi] = quadrant[0]
+                quadrant = quadrant.at[j].set(3)
+    quadrant = quadrant.at[nphi].set(quadrant[0])
 
     counter = 0
     for j in range(nphi):
@@ -102,7 +102,7 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
     d3_r_d_phi3_cylindrical = jnp.array([R0ppp - 3 * R0p, 3 * R0pp - R0, Z0ppp]).transpose()
 
     # Calculate tangent_cylindrical and d_tangent_d_l_cylindrical
-    tangent_cylindrical = d_r_d_phi_cylindrical / d_phi[:, jnp.newaxis]
+    tangent_cylindrical = d_r_d_phi_cylindrical / d_l_d_phi[:, jnp.newaxis]
     d_tangent_d_l_cylindrical = ((-d_r_d_phi_cylindrical * d2_l_d_phi2[:, jnp.newaxis] / d_l_d_phi[:, jnp.newaxis]) \
                                 + d2_r_d_phi2_cylindrical) / (d_l_d_phi[:, jnp.newaxis] * d_l_d_phi[:, jnp.newaxis])
 
