@@ -6,7 +6,7 @@ sys.path.append('/Users/z/Documents/GitHub/pyNACX')
 import numpy as np
 from qsc import Qsc
 
-print("running pyNACX...")
+print("Running pyNACX...")
 stel = Qsc(rc=[1, 0.09], zs=[0, -0.09], nfp=2, etabar=0.95, I2=0.9, order='r2', B2c=-0.7, p2=-600000.)
 
 print("pyNACX finished")

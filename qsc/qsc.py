@@ -47,6 +47,7 @@ class Qsc():
         
         find_max = jnp.array([len(rc), len(zs), len(rs), len(zc)])
         nfourier = jnp.max(find_max)
+        print(f"nfourier: {nfourier}")
         self.nfourier = nfourier
         self.rc = jnp.zeros(nfourier)
         self.zs = jnp.zeros(nfourier)

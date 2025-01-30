@@ -32,6 +32,7 @@ def fourier_minimum(y):
     """
     # Handle the case of a constant:
     y = jnp.array(y) # ensure correct argument
+    print(y)
     if (jnp.max(y) - jnp.min(y)) / jnp.max(jnp.array([1e-14, jnp.abs(jnp.mean(y))])) < 1e-14:
         return y[0]
     
@@ -40,7 +41,7 @@ def fourier_minimum(y):
     # Compute a rough guess for the minimum, given by the minimum of
     # the discrete data:
     index = jnp.argmin(y)
-
+    print(f"index: {index}")
     def func(x):
         interp = fourier_interpolation(y, jnp.array([x]))
         logger.debug('fourier_minimum.func called at x={}, y={}'.format(x, interp[0]))
@@ -52,10 +53,16 @@ def fourier_minimum(y):
     found_bracket = False
     for j in range(1, 4):
         bracket = jnp.array([index - j, index, index + j]) * dx
+        print(f"bracket: {bracket}")
         fm = func(bracket[0])
         fp = func(bracket[2])
+        print("f0 :", f0)
+        print(f"fm : {fm}")
+        print(f"fp : {fp}")
+        
         if f0 < fm and f0 < fp:
             found_bracket = True
+            print(f"bracket: {bracket}")
             break
     if not found_bracket:
         # We could throw an exception, though scipy will do that anyway

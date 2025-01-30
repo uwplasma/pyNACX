@@ -48,6 +48,7 @@ def derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, s
   helicity = derive_helicity(rc, nfp, zs, rs,zc, nphi, sG, spsi)
   sigma = solve_sigma_equation(_residual, _jacobian, nphi, sigma0, helicity, nfp)[0] 
   curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
+  print(f"sigma : {sigma}")
   return  sG * spsi * curvature * sigma / etabar 
 
 def calc_Y1c(sG, spsi, curvature, sigma, etabar): 
@@ -157,7 +158,8 @@ def derive_mean_elongation(_residaul, _jacobian, sG, spsi, sigma0, etabar, nphi,
 
 def derive_max_elongation(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
   elongation = derive_elongation(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
-  return -fourier_minimum(-elongation) # not sure if derivable
+  return -fourier_minimum(-elongation) # not sure if derivable // gets the minimum value which is currently being calculated to be negative infinity  
+  # removed the - sign on elongation 
 
 def derive_d_X1c_d_varphi(etabar, nphi, nfp, rc, rs, zc, zs): 
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)

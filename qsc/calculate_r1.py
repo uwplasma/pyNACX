@@ -6,7 +6,7 @@ and computing diagnostics of the O(r^1) solution.
 import logging
 import numpy as np
 from .util import fourier_minimum
-from .newton import new_new_newton
+from .newton import new_new_newton, newton
 import jax.numpy as jnp
 from jax import jacobian
 from .calculate_r1_helpers import *
@@ -21,8 +21,9 @@ def _residual(self, x):
     except that the first element of x is actually iota.
     """
     sigma = jnp.copy(x)
-    sigma.at[0].set(self.sigma0)
+    sigma.at[0].set(self.sigma0) # somthing is not right here
 
+    #sigma[0] = self.sigma0
     iota = x[0]
     r = jnp.matmul(self.d_d_varphi, sigma) \
         + (iota + self.helicity * self.nfp) * \
@@ -77,6 +78,8 @@ def solve_sigma_equation(_residual, _jacobian, nphi, sigma0, helicity, nfp):
     """
     Solve the sigma equation.
     """
+    print(f"nphi {nphi}")
+    print(f"sigma0 {sigma0}")
     x0 = np.full(nphi, sigma0)
     x0[0] = 0 # Initial guess for iota
     """
@@ -85,7 +88,7 @@ def solve_sigma_equation(_residual, _jacobian, nphi, sigma0, helicity, nfp):
     self.sigma = np.copy(soln.x)
     self.sigma[0] = self.sigma0
     """
-    sigma = new_new_newton(_residual, x0, jac= _jacobian)
+    sigma = newton(_residual, x0, jac= _jacobian)
     iota = sigma[0]
     iotaN = iota + helicity * nfp
     sigma = sigma.at[0].set(sigma0)
@@ -152,6 +155,11 @@ def r1_diagnostics(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigm
     Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
     Y1c = derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
     
+    print(f"X1s: {X1s}")
+    print(f"X1c: {X1c}")
+    print(f"Y1s: {Y1s}")
+    print(f"Y1c: {Y1c}")
+    
     self.X1s_untwisted = calc_X1s_untwisted(X1s, cosangle, X1c, sinangle)
         
     self.X1c_untwisted = calc_X1c_untwisted(X1s, sinangle, X1c, cosangle)
@@ -166,6 +174,7 @@ def r1_diagnostics(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigm
     p = calc_p(X1s, X1c, Y1s, Y1c)
     q = calc_q(X1s, Y1c, X1c, Y1s)
 
+    print(calc_elongation(p,q))
     self.elongation = derive_elongation(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
     self.mean_elongation = derive_mean_elongation(_residual, _jacobian, sG, spsi, sigma0, etabar, nphi, nfp, rc, rs, zc, zs)
     
