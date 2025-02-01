@@ -13,7 +13,7 @@ from .derive_r2 import *
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-def calculate_r2(self, rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2):
+def calculate_r2(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2):
     """
     Compute the O(r^2) quantities.
     """
@@ -25,15 +25,15 @@ def calculate_r2(self, rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, np
     abs_G0_over_B0 = 1 / B0_over_abs_G0
     X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
     Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
-    Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
-    helicity = derive_helicity(nphi, nfp, rc, rs, zc, zs)
-    sigma = solve_sigma_equation(nphi, sigma0, helicity, nfp)[0]
+    Y1c = derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+    helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+    sigma = solve_sigma_equation(_residual, _jacobian, nphi, sigma0, helicity, nfp)[0]
     d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp, nphi)
+    iota = solve_sigma_equation(_residual, _jacobian, nphi, sigma0, helicity, nfp)[1]
     
     iota_N = calc_iotaN(iota, helicity, nfp)
-    iota = solve_sigma_equation(nphi, sigma0, helicity, nfp)[1]
     curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
-    torsion = calc_torsion(nphi, nfp, rc, rs, zc, zs, sG, etabar, spsi, sigma0)
+    torsion = calc_torsion(_residual, _jacobian, nphi, nfp, rc, rs, zc, zs, sG, etabar, spsi, sigma0, B0)
     etabar = etabar
     B0 = B0
     I2 = I2

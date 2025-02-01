@@ -193,7 +193,7 @@ class Qsc():
                  self.I2, self.sG, self.spsi, self.nphi, self.B2s, self.B2c, self.p2)
         if self.order != 'r1':
             print("\nCalculating r2")
-            self.calculate_r2()
+            self.calculate_r2(self._residual, self._jacobian, self.rc, self.zs, self.rs, self.zc, self.nfp, self.etabar, self.sigma0, self.B0, self.I2, self.sG, self.spsi, self.nphi, self.B2s, self.B2c, self.p2)
             if self.order == 'r3':
                 self.calculate_r3()
     

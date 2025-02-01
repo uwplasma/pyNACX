@@ -20,12 +20,12 @@ def _residual(self, x):
     the state vector, corresponding to sigma on the phi grid,
     except that the first element of x is actually iota.
     """
-    sigma = jnp.copy(x)
-    sigma.at[0].set(self.sigma0) # somthing is not right here
+    sigma = np.copy(x)
+    sigma[0] = (self.sigma0) # somthing is not right here
 
     #sigma[0] = self.sigma0
     iota = x[0]
-    r = jnp.matmul(self.d_d_varphi, sigma) \
+    r = np.matmul(self.d_d_varphi, sigma) \
         + (iota + self.helicity * self.nfp) * \
         (self.etabar_squared_over_curvature_squared * self.etabar_squared_over_curvature_squared + 1 + sigma * sigma) \
         - 2 * self.etabar_squared_over_curvature_squared * (-self.spsi * self.torsion + self.I2 / self.B0) * self.G0 / self.B0
@@ -78,8 +78,6 @@ def solve_sigma_equation(_residual, _jacobian, nphi, sigma0, helicity, nfp):
     """
     Solve the sigma equation.
     """
-    print(f"nphi {nphi}")
-    print(f"sigma0 {sigma0}")
     x0 = np.full(nphi, sigma0)
     x0[0] = 0 # Initial guess for iota
     """
@@ -155,11 +153,6 @@ def r1_diagnostics(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigm
     Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
     Y1c = derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
     
-    print(f"X1s: {X1s}")
-    print(f"X1c: {X1c}")
-    print(f"Y1s: {Y1s}")
-    print(f"Y1c: {Y1c}")
-    
     self.X1s_untwisted = calc_X1s_untwisted(X1s, cosangle, X1c, sinangle)
         
     self.X1c_untwisted = calc_X1c_untwisted(X1s, sinangle, X1c, cosangle)
@@ -174,7 +167,6 @@ def r1_diagnostics(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigm
     p = calc_p(X1s, X1c, Y1s, Y1c)
     q = calc_q(X1s, Y1c, X1c, Y1s)
 
-    print(calc_elongation(p,q))
     self.elongation = derive_elongation(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
     self.mean_elongation = derive_mean_elongation(_residual, _jacobian, sG, spsi, sigma0, etabar, nphi, nfp, rc, rs, zc, zs)
     
@@ -183,9 +175,10 @@ def r1_diagnostics(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigm
     self.max_elongation = derive_max_elongation(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
 
     self.d_X1c_d_varphi = derive_d_X1c_d_varphi(etabar, nphi, nfp, rc, rs, zc, zs)
+    print(f"d_X1c_d_varphi: {self.d_X1c_d_varphi}")
     self.d_X1s_d_varphi = derive_d_X1s_d_varphi(rc, zs, rs, zc, nfp,  nphi)
     self.d_Y1s_d_varphi = derive_d_Y1s_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
-    self.d_Y1c_d_varphi = derive_d_Y1c_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+    self.d_Y1c_d_varphi = derive_d_Y1c_d_varphi(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
 
     self.calculate_grad_B_tensor()
 

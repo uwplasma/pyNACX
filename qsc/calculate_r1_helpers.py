@@ -48,7 +48,6 @@ def derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, s
   helicity = derive_helicity(rc, nfp, zs, rs,zc, nphi, sG, spsi)
   sigma = solve_sigma_equation(_residual, _jacobian, nphi, sigma0, helicity, nfp)[0] 
   curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
-  print(f"sigma : {sigma}")
   return  sG * spsi * curvature * sigma / etabar 
 
 def calc_Y1c(sG, spsi, curvature, sigma, etabar): 
@@ -79,7 +78,7 @@ def calc_p(X1s, X1c, Y1s, Y1c):
   return X1s * X1s + X1c * X1c + Y1s * Y1s + Y1c * Y1c
 
 def calc_q(X1s, Y1c, X1c, Y1s): 
-  return X1s * Y1c - X1c * Y1s
+  return (X1s * Y1c) - (X1c * Y1s)
 
 def calc_elongation(p, q): 
   return (p + jnp.sqrt(p * p - 4 * q * q)) / (2 * jnp.abs(q))
@@ -136,7 +135,8 @@ def derive_elongation(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs,
   Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
   Y1c =  derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   p = calc_p(X1s, X1c, Y1s, Y1c)
-  q = calc_q(X1s, X1c, Y1s, Y1c)
+  q = calc_q(X1s, Y1c, X1c, Y1s)
+  
   return calc_elongation(p,q)
 
 def calc_mean_elongation(elongation, d_l_d_phi): 
@@ -159,26 +159,24 @@ def derive_mean_elongation(_residaul, _jacobian, sG, spsi, sigma0, etabar, nphi,
 def derive_max_elongation(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
   elongation = derive_elongation(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   return -fourier_minimum(-elongation) # not sure if derivable // gets the minimum value which is currently being calculated to be negative infinity  
-  # removed the - sign on elongation 
 
 def derive_d_X1c_d_varphi(etabar, nphi, nfp, rc, rs, zc, zs): 
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
   X1c =  derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
-  jnp.matmul(d_d_varphi, X1c)
+  return jnp.matmul(d_d_varphi, X1c)
   
 def derive_d_X1s_d_varphi(rc, zs, rs, zc, nfp,  nphi): 
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
   X1s = derive_calc_X1s(nphi)
   return jnp.matmul(d_d_varphi, X1s)
   
-
 def derive_d_Y1s_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar): 
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
   Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
   return jnp.matmul(d_d_varphi, Y1s)
 
-def derive_d_Y1c_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
+def derive_d_Y1c_d_varphi(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
-  Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  Y1c = derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   return jnp.matmul(d_d_varphi, Y1c)
   

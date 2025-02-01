@@ -250,17 +250,17 @@ def recalc_rc(Y1c, Y1s, X1c, rc, zs, rs, zc, nfp,  nphi, sG, etabar, spsi, sigma
   
   return calc_rc(d_d_varphi, Y1c, iota_N, Y1s, X1c, torsion, abs_G0_over_B0) 
 
-def recalc_rs(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar):
+def recalc_rs(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar):
   """
   a different rs is used after curvature is calculated
   """ 
   
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
   Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
-  Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  Y1c = derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   
   helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi) # check 
-  iota_N = solve_sigma_equation(nphi, sigma0, helicity, nfp)[2] 
+  iota_N = solve_sigma_equation(_residual, _jacobian, nphi, sigma0, helicity, nfp)[2] 
   
   return calc_rs(d_d_varphi, Y1s, iota_N, Y1c)
 

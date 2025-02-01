@@ -2,22 +2,23 @@ import numpy as jnp
 
 from .spectral_diff_matrix import *
 
-def calc_torsion(nphi, nfp, rc, rs, zc, zs, sG, etabar, spsi, sigma0):
+def calc_torsion(_residual, _jacobian, nphi, nfp, rc, rs, zc, zs, sG, etabar, spsi, sigma0, B0 ):
   """
   calculate torsion as a function of inputed parameters
   """
-  from derive_r2 import recalc_rc, recalc_rs
-  from calculate_r1_helpers import derive_calc_Y1c, derive_calc_Y1s, derive_calc_X1c
+  from .derive_r2 import recalc_rc, recalc_rs
+  from .calculate_r1_helpers import derive_calc_Y1c, derive_calc_Y1s, derive_calc_X1c
   
-  nfourier = jnp.max([len(rc), len(zs), len(rs), len(zc)])
+  nfourier = jnp.max(jnp.array([len(rc), len(zs), len(rs), len(zc)]))
 
   
-  Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  Y1c = derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
   X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
   
-  rs = recalc_rs(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
-  rc = recalc_rc(Y1c, Y1s, X1c, rc, zs, rs, zc, nfp, nphi)
+  rs = recalc_rs(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+
+  rc = recalc_rc( Y1c, Y1s, X1c, rc, zs, rs, zc, nfp, nphi, sG, etabar, spsi, sigma0, B0)
   
   phi = jnp.linspace(0, 2 * jnp.pi / nfp, nphi, endpoint=False)
   n = jnp.arange(0, nfourier) * nfp
@@ -95,12 +96,18 @@ def calc_d_l_d_phi(nphi, nfp, rc, rs, zc, zs):
 
   nfourier = jnp.max(jnp.array([len(rc), len(zs), len(rs), len(zc)]))
 
+  # semo : adding padding 
+  rc = jnp.pad(rc, (0, nfourier - len(rc)), constant_values=0)
+  rs = jnp.pad(rs, (0, nfourier - len(rs)), constant_values=0)
+  zc = jnp.pad(zc, (0, nfourier - len(zc)), constant_values=0)
+  zs = jnp.pad(zs, (0, nfourier - len(zs)), constant_values=0)
+
   # Compute n and the angles
   n = jnp.arange(0, nfourier) * nfp
   angles = jnp.outer(n, phi)
   sinangles = jnp.sin(angles)
-  cosangles = jnp.cos(angles)
-
+  cosangles = jnp.cos(angles)      
+  
   R0 = jnp.dot(rc, cosangles) + jnp.dot(rs, sinangles)
   R0p = jnp.dot(rc, -n[:, jnp.newaxis] * sinangles) + jnp.dot(rs, n[:, jnp.newaxis] * cosangles)
   Z0p = jnp.dot(zc, -n[:, jnp.newaxis] * sinangles) + jnp.dot(zs, n[:, jnp.newaxis] * cosangles)
