@@ -96,12 +96,14 @@ def calc_d_l_d_phi(nphi, nfp, rc, rs, zc, zs):
 
   nfourier = jnp.max(jnp.array([len(rc), len(zs), len(rs), len(zc)]))
 
+  """
   # semo : adding padding 
   rc = jnp.pad(rc, (0, nfourier - len(rc)), constant_values=0)
   rs = jnp.pad(rs, (0, nfourier - len(rs)), constant_values=0)
   zc = jnp.pad(zc, (0, nfourier - len(zc)), constant_values=0)
   zs = jnp.pad(zs, (0, nfourier - len(zs)), constant_values=0)
-
+  """
+  
   # Compute n and the angles
   n = jnp.arange(0, nfourier) * nfp
   angles = jnp.outer(n, phi)
