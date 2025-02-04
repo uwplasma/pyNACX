@@ -75,13 +75,9 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
     angles = jnp.outer(n, phi)
     sinangles = jnp.sin(angles)
     cosangles = jnp.cos(angles)
-    print(f"angles from init_axis : {angles}")
-    print(f"sinangles from init_axis : {sinangles}")
-    print(f"cosangles from init_axis : {cosangles}")
 
     # Compute R0, Z0, R0p, Z0p, R0pp, Z0pp, R0ppp, Z0ppp
     R0 = jnp.dot(rc, cosangles) + jnp.dot(rs, sinangles)
-    print(f"R0 from init_axis: {R0}")
     Z0 = jnp.dot(zc, cosangles) + jnp.dot(zs, sinangles)
     R0p = jnp.dot(rc, -n[:, jnp.newaxis] * sinangles) + jnp.dot(rs, n[:, jnp.newaxis] * cosangles)
     Z0p = jnp.dot(zc, -n[:, jnp.newaxis] * sinangles) + jnp.dot(zs, n[:, jnp.newaxis] * cosangles)

@@ -31,7 +31,11 @@ def calculate_r2(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0
     d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp, nphi)
     iota = solve_sigma_equation(_residual, _jacobian, nphi, sigma0, helicity, nfp)[1]
     
+    original_rc = rc 
+    original_rs = rs
+    
     iota_N = calc_iotaN(iota, helicity, nfp)
+    
     curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
     torsion = calc_torsion(_residual, _jacobian, nphi, nfp, rc, rs, zc, zs, sG, etabar, spsi, sigma0, B0)
     etabar = etabar
@@ -54,6 +58,8 @@ def calculate_r2(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0
     V3 = calc_V3(X1c, Y1c, Y1s)
 
     factor = calc_factor(B0_over_abs_G0)
+    
+   
 
     Z20 = calc_Z20(factor, d_d_varphi, V1)
     Z2s = calc_Z2s(factor, d_d_varphi, V2, iota_N, V3)
@@ -149,7 +155,7 @@ def calculate_r2(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0
     Y2s = calc_Y2s(Y2s_inhomogeneous, Y2s_from_X20, X20)
     Y2c = calc_Y2c(Y2c_inhomogeneous, Y2c_from_X20, X20, Y20)
 
-    B20 = derive_B20(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2)
+    B20 = derive_B20(_residual, _jacobian, original_rc, zs, original_rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2)
 
     d_l_d_phi = self.d_l_d_phi
     normalizer = 1 / jnp.sum(d_l_d_phi)
