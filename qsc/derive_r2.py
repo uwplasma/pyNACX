@@ -269,6 +269,7 @@ def derive_B20(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s,
   """
   calculate B20 as a fucntion of inputed parameters
   """
+  from .util import mu0
   curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
   # rc and rs are recalculated after curvature is calculated 
   
@@ -299,8 +300,6 @@ def derive_B20(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s,
 
   Z20 = calc_Z20(factor, d_d_varphi , V1) # in ret  // done
 
-  mu0 =  4 * jnp.pi * 1e-7
-  
   abs_G0_over_B0 = calc_abs_G0_over_B0(sG,  nphi,  B0, nfp, rc, rs, zc, zs)
 
   qc = calc_qc(iota_N, X1c, Y1s, torsion, abs_G0_over_B0) #

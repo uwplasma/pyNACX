@@ -98,7 +98,7 @@ def calculate_r2(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0
     fY0_from_Y20 = jnp.zeros(nphi)
     fY0_inhomogeneous = calc_fY0_inhomogeneous(spsi, sG, abs_G0_over_B0, X2s, Z2c, X2c, Z2s, I2_over_B0, curvature, X1c, beta_1s)
 
-    fYs_from_X20 = calc_fYs_from_X20(torsion, abs_G0_over_B0, spsi, I2_over_B0)
+    fYs_from_X20 = calc_fYs_from_X20(iota_N, Y2c_from_X20, spsi, sG, abs_G0_over_B0, Z2c)
     fYs_from_X20 = calc_fYs_from_X20(iota_N, Y2c_from_X20, spsi, sG, abs_G0_over_B0, Z2c)
     fYs_from_Y20 = jnp.full(nphi, -2 * iota_N)
     fYs_inhomogeneous = cacl_fYs_inhomogeneous(d_d_varphi, Y2s_inhomogeneous, iota_N, Y2c_inhomogeneous, torsion, abs_G0_over_B0, X2s, spsi, sG, X2c, Z20, I2_over_B0)
@@ -115,15 +115,15 @@ def calculate_r2(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0
 
         # Equation 1, terms involving X0:
         # Contributions arise from Y1c * fYs - Y1s * fYc.
-        matrix[j, 0:nphi] = Y1c[j] * d_d_varphi[j, :] * Y2s_from_X20 - Y1s[j] * d_d_varphi[j, :] * Y2c_from_X20
+        matrix =  matrix.at[j, 0:nphi].set(Y1c[j] * d_d_varphi[j, :] * Y2s_from_X20 - Y1s[j] * d_d_varphi[j, :] * Y2c_from_X20)
 
         # Equation 1, terms involving Y0:
         # Contributions arise from -Y1s * fY0 - Y1s * fYc, and they happen to be equal.
-        matrix[j, nphi:(2*nphi)] = -2 * Y1s[j] * d_d_varphi[j, :]
+        matrix = matrix.at[j, nphi:(2*nphi)].set(-2 * Y1s[j] * d_d_varphi[j, :])
 
         # Equation 2, terms involving X0:
         # Contributions arise from -X1c * fX0 + Y1s * fYs + Y1c * fYc
-        matrix[j+nphi, 0:nphi] = -X1c[j] * d_d_varphi[j, :] + Y1s[j] * d_d_varphi[j, :] * Y2s_from_X20 + Y1c[j] * d_d_varphi[j, :] * Y2c_from_X20
+        matrix = matrix.at[j+nphi, 0:nphi].set(-X1c[j] * d_d_varphi[j, :] + Y1s[j] * d_d_varphi[j, :] * Y2s_from_X20 + Y1c[j] * d_d_varphi[j, :] * Y2c_from_X20)
 
         # Equation 2, terms involving Y0:
         # Contributions arise from -Y1c * fY0 + Y1c * fYc, but they happen to cancel.
@@ -131,15 +131,15 @@ def calculate_r2(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0
         # Now handle the terms involving X_0 and Y_0 without d/dzeta derivatives:
         # ----------------------------------------------------------------
 
-        matrix[j, j       ] = matrix[j, j       ] + X1c[j] * fXs_from_X20[j] - Y1s[j] * fY0_from_X20[j] + Y1c[j] * fYs_from_X20[j] - Y1s[j] * fYc_from_X20[j]
-        matrix[j, j + nphi] = matrix[j, j + nphi] + X1c[j] * fXs_from_Y20[j] - Y1s[j] * fY0_from_Y20[j] + Y1c[j] * fYs_from_Y20[j] - Y1s[j] * fYc_from_Y20[j]
+        matrix = matrix.at[j, j       ].set(matrix[j, j       ] + X1c[j] * fXs_from_X20[j] - Y1s[j] * fY0_from_X20[j] + Y1c[j] * fYs_from_X20[j] - Y1s[j] * fYc_from_X20[j])
+        matrix = matrix.at[j, j + nphi].set(matrix[j, j + nphi] + X1c[j] * fXs_from_Y20[j] - Y1s[j] * fY0_from_Y20[j] + Y1c[j] * fYs_from_Y20[j] - Y1s[j] * fYc_from_Y20[j])
 
-        matrix[j + nphi, j       ] = matrix[j + nphi, j       ] - X1c[j] * fX0_from_X20[j] + X1c[j] * fXc_from_X20[j] - Y1c[j] * fY0_from_X20[j] + Y1s[j] * fYs_from_X20[j] + Y1c[j] * fYc_from_X20[j]
-        matrix[j + nphi, j + nphi] = matrix[j + nphi, j + nphi] - X1c[j] * fX0_from_Y20[j] + X1c[j] * fXc_from_Y20[j] - Y1c[j] * fY0_from_Y20[j] + Y1s[j] * fYs_from_Y20[j] + Y1c[j] * fYc_from_Y20[j]
+        matrix = matrix.at[j + nphi, j       ].set(matrix[j + nphi, j       ] - X1c[j] * fX0_from_X20[j] + X1c[j] * fXc_from_X20[j] - Y1c[j] * fY0_from_X20[j] + Y1s[j] * fYs_from_X20[j] + Y1c[j] * fYc_from_X20[j])
+        matrix = matrix.at[j + nphi, j + nphi].set(matrix[j + nphi, j + nphi] - X1c[j] * fX0_from_Y20[j] + X1c[j] * fXc_from_Y20[j] - Y1c[j] * fY0_from_Y20[j] + Y1s[j] * fYs_from_Y20[j] + Y1c[j] * fYc_from_Y20[j])
 
 
-    right_hand_side[0:nphi] = -(X1c * fXs_inhomogeneous - Y1s * fY0_inhomogeneous + Y1c * fYs_inhomogeneous - Y1s * fYc_inhomogeneous)
-    right_hand_side[nphi:2 * nphi] = -(- X1c * fX0_inhomogeneous + X1c * fXc_inhomogeneous - Y1c * fY0_inhomogeneous + Y1s * fYs_inhomogeneous + Y1c * fYc_inhomogeneous)
+    right_hand_side = right_hand_side.at[0:nphi].set(-(X1c * fXs_inhomogeneous - Y1s * fY0_inhomogeneous + Y1c * fYs_inhomogeneous - Y1s * fYc_inhomogeneous))
+    right_hand_side = right_hand_side.at[nphi:2 * nphi].set(-(- X1c * fX0_inhomogeneous + X1c * fXc_inhomogeneous - Y1c * fY0_inhomogeneous + Y1s * fYs_inhomogeneous + Y1c * fYc_inhomogeneous))
 
     solution = jnp.linalg.solve(matrix, right_hand_side)
     X20 = solution[0:nphi]

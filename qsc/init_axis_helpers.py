@@ -16,9 +16,8 @@ def calc_torsion(_residual, _jacobian, nphi, nfp, rc, rs, zc, zs, sG, etabar, sp
   Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
   X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
   
-  rs = recalc_rs(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
-
-  rc = recalc_rc( Y1c, Y1s, X1c, rc, zs, rs, zc, nfp, nphi, sG, etabar, spsi, sigma0, B0)
+  #rs = recalc_rs(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  #rc = recalc_rc( Y1c, Y1s, X1c, rc, zs, rs, zc, nfp, nphi, sG, etabar, spsi, sigma0, B0)
   
   phi = jnp.linspace(0, 2 * jnp.pi / nfp, nphi, endpoint=False)
   n = jnp.arange(0, nfourier) * nfp
@@ -107,10 +106,15 @@ def calc_d_l_d_phi(nphi, nfp, rc, rs, zc, zs):
   # Compute n and the angles
   n = jnp.arange(0, nfourier) * nfp
   angles = jnp.outer(n, phi)
+  print(f"angles from helper : {angles}" )
+  
   sinangles = jnp.sin(angles)
   cosangles = jnp.cos(angles)      
+  print(f"sinangles from helper : {sinangles}")
+  print(f"cosangles from helper : {cosangles}")
   
   R0 = jnp.dot(rc, cosangles) + jnp.dot(rs, sinangles)
+  print(f"R0 from helper {R0}")
   R0p = jnp.dot(rc, -n[:, jnp.newaxis] * sinangles) + jnp.dot(rs, n[:, jnp.newaxis] * cosangles)
   Z0p = jnp.dot(zc, -n[:, jnp.newaxis] * sinangles) + jnp.dot(zs, n[:, jnp.newaxis] * cosangles)
 
