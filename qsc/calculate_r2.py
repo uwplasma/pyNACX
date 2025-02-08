@@ -37,7 +37,7 @@ def calculate_r2(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0
     iota_N = calc_iotaN(iota, helicity, nfp)
     
     curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
-    torsion = calc_torsion(_residual, _jacobian, nphi, nfp, rc, rs, zc, zs, sG, etabar, spsi, sigma0, B0)
+    torsion = calc_torsion(nphi, nfp, rc, rs, zc, zs)
     etabar = etabar
     B0 = B0
     I2 = I2
@@ -159,28 +159,28 @@ def calculate_r2(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0
 
     d_l_d_phi = self.d_l_d_phi
     normalizer = 1 / jnp.sum(d_l_d_phi)
-    self.B20_mean = derive_B20_mean(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2)
-    self.B20_anomaly = derive_B20_anomaly(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2)
-    self.B20_residual = derive_B20_residual(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2)
-    self.B20_variation = derive_B20_variation(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2)
+    self.B20_mean = derive_B20_mean(_residual, _jacobian, original_rc, zs, original_rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2)
+    self.B20_anomaly = derive_B20_anomaly(_residual, _jacobian, original_rc, zs, original_rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2)
+    self.B20_residual = derive_B20_residual(_residual, _jacobian, original_rc, zs, original_rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2)
+    self.B20_variation = derive_B20_variation(_residual, _jacobian, original_rc, zs, original_rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2)
 
-    self.N_helicity = derive_N_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi)
-    self.G2 = derive_G2(B0 ,I2, p2 ,sG ,nphi ,nfp, rc, rs, zc, zs, sigma0, spsi)
+    self.N_helicity = derive_N_helicity(original_rc, nfp, zs, original_rs, zc, nphi, sG, spsi)
+    self.G2 = derive_G2(_residual, _jacobian, B0 ,I2, p2 ,sG ,nphi ,nfp, original_rc, original_rs, zc, zs, sigma0, spsi)
 
-    self.d_curvature_d_varphi = derive_d_curvature_d_varphi(rc, zs, rs, zc, nfp, nphi)
-    self.d_torsion_d_varphi = derive_d_torsion_d_varphi(rc, zs, rs, zc, nfp,  nphi, sG, etabar, spsi, sigma0)
-    self.d_X20_d_varphi = derive_d_X20_d_varphi(rc, zs, rs, zc, nfp, nphi)
-    self.d_X2s_d_varphi = derive_d_X2s_d_varphi(rc, zs, rs, zc, nfp, nphi, sG, B0, etabar, B2s, sigma0, spsi, B2c)
-    self.d_X2c_d_varphi = derive_d_X2c_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2c)
-    self.d_Y20_d_varphi = derive_d_Y20_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2)
-    self.d_Y2s_d_varphi = derive_d_Y2s_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
-    self.d_Y2c_d_varphi = derive_d_Y2c_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
-    self.d_Z20_d_varphi = derive_d_Z20_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
-    self.d_Z2s_d_varphi = derive_d_Z2s_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
-    self.d_Z2c_d_varphi = derive_d_Z2c_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
-    self.d2_X1c_d_varphi2 = derive_d2_X1c_d_varphi2(etabar, nphi, nfp, rc, rs, zc, zs)
-    self.d2_Y1c_d_varphi2 = derive_d2_Y1c_d_varphi2(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
-    self.d2_Y1s_d_varphi2 = derive_d2_Y1s_d_varphi2(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
+    self.d_curvature_d_varphi = derive_d_curvature_d_varphi(original_rc, zs, original_rs, zc, nfp, nphi)
+    self.d_torsion_d_varphi = derive_d_torsion_d_varphi(original_rc, zs, original_rs, zc, nfp,  nphi)
+    self.d_X20_d_varphi = derive_d_X20_d_varphi(_residual, _jacobian, original_rc, zs, original_rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.d_X2s_d_varphi = derive_d_X2s_d_varphi(_residual, _jacobian, original_rc, zs, original_rs, zc, nfp, nphi, sG, B0, etabar, B2s, sigma0, spsi, B2c)
+    self.d_X2c_d_varphi = derive_d_X2c_d_varphi(original_rc, zs, original_rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2c)
+    self.d_Y20_d_varphi = derive_d_Y20_d_varphi(original_rc, zs, original_rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2)
+    self.d_Y2s_d_varphi = derive_d_Y2s_d_varphi(original_rc, zs, original_rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.d_Y2c_d_varphi = derive_d_Y2c_d_varphi(original_rc, zs, original_rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.d_Z20_d_varphi = derive_d_Z20_d_varphi(sG, spsi, nphi, nfp, original_rc, original_rs, zc, zs, sigma0, etabar)
+    self.d_Z2s_d_varphi = derive_d_Z2s_d_varphi(sG, spsi, nphi, nfp, original_rc, original_rs, zc, zs, sigma0, etabar)
+    self.d_Z2c_d_varphi = derive_d_Z2c_d_varphi(sG, spsi, nphi, nfp, original_rc, original_rs, zc, zs, sigma0, etabar)
+    self.d2_X1c_d_varphi2 = derive_d2_X1c_d_varphi2(etabar, nphi, nfp, original_rc, original_rs, zc, zs)
+    self.d2_Y1c_d_varphi2 = derive_d2_Y1c_d_varphi2(sG, spsi, nphi, nfp, original_rc, original_rs, zc, zs, sigma0, etabar)
+    self.d2_Y1s_d_varphi2 = derive_d2_Y1s_d_varphi2(sG, spsi, nphi, nfp, original_rc, original_rs, zc, zs, etabar)
 
     # Store all important results in self:
     self.V1 = V1
