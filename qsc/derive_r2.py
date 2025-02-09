@@ -58,9 +58,6 @@ def derive_X2s(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG
   Y1s = derive_calc_X1s(nphi)
   Y1c = derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar) #needs updating 
   
-  rc = recalc_rc(Y1c, Y1s, X1c, rc, zs, rs, zc, nfp, nphi, sG, etabar, spsi, sigma0)
-  rs = recalc_rs(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
-  
   curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
 
   G0 = calc_G0(sG,  nphi,  B0, nfp, rc, rs, zc, zs)
@@ -69,8 +66,8 @@ def derive_X2s(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG
 
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
   helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi) # check 
-  iota_N = solve_sigma_equation(nphi, sigma0, helicity, nfp)[2]
-  torsion = calc_torsion(nphi, nfp, rc, rs, zc, zs, sG, etabar, spsi, sigma0)
+  iota_N = solve_sigma_equation(_residual, _jacobian, nphi, sigma0, helicity, nfp)[2]
+  torsion = calc_torsion(nphi, nfp, rc, rs, zc, zs)
   abs_G0_over_B0 = calc_abs_G0_over_B0(sG,  nphi,  B0, nfp, rc, rs, zc, zs)
 
   qc = calc_qc(d_d_varphi, X1c, Y1c, torsion, abs_G0_over_B0)
@@ -84,22 +81,14 @@ def derive_X2s(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG
   Z2s = calc_Z2c(factor, d_d_varphi, V3, iota_N, V2)
   Z2c = calc_Z2c(factor, d_d_varphi, V3, iota_N, V2)
 
+  rc, rs = recalc_rc(_residual, _jacobian, rc, zs, rs, zc, nfp,  nphi, sG, etabar, spsi, sigma0, B0), recalc_rs(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+
   return calc_X2s(B0_over_abs_G0, d_d_varphi, Z2s, iota_N, Z2c, abs_G0_over_B0, B2s, B0, qc, qs, rc, rs, curvature) 
   
 def calc_solution(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c):
  
   X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
   Y1s = derive_calc_X1s(nphi)
-  print(f"sG working {sG}")
-  print(f"spsi working {spsi}")
-  print(f"nphi working {nphi}")
-  print(f"nfp working {nfp}")
-  print(f"rc not working {rc}")
-  print(f"rs not working {rs}")
-  print(f"zc not working {zc}")
-  print(f"zs not working {zs}")
-#  print(f"sigma not working {sigma}")
-  print(f"etabar not working {etabar}")
   Y1c = derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar) #needs updating 
   
   matrix = calc_matrix(_residual, _jacobian, Y1c, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi)
@@ -411,7 +400,7 @@ def derive_d_curvature_d_varphi(rc, zs, rs, zc, nfp, nphi, ): # should work
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
   curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
-  jnp.matmul(d_d_varphi, curvature)
+  return jnp.matmul(d_d_varphi, curvature)
 
 def derive_d_torsion_d_varphi(rc, zs, rs, zc, nfp,  nphi): 
   """
@@ -438,41 +427,43 @@ def derive_d_X2s_d_varphi(_residual, _jacobian, rc, zs, rs, zc, nfp, nphi, sG, B
   X2s = derive_X2s(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2s)
   return jnp.matmul(d_d_varphi, X2s)
 
-def derive_d_X2c_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2c): 
+def derive_d_X2c_d_varphi(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2c): 
   """
   calculates d_X2c_d_varphi as a function of inputed parameters
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
-  X2c = derive_X2c(rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2c)  
+  X2c = derive_X2c(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2c)  
   return jnp.matmul(d_d_varphi, X2c)
 
-def derive_d_Y20_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2): 
+def derive_d_Y20_d_varphi(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c): 
   """
   calculates d_Y20_d_varphi as a function of inputed parameters
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
-  solution = calc_solution(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2)
+  solution = calc_solution(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
   Y20 = solution.at[nphi:2 * nphi].get()
   return jnp.matmul(d_d_varphi, Y20)
 
-def derive_Y2s(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c): 
+def derive_Y2s(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c): 
   curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
   helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi)
-  sigma = solve_sigma_equation(nphi, sigma0, helicity, nfp)[0]
-  X2c = derive_X2c(rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2c)
-  X2s = derive_X2s(rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2s, B2c)
+  sigma = solve_sigma_equation(_residual, _jacobian, nphi, sigma0, helicity, nfp)[0]
+  X2c = derive_X2c(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2c)
+  X2s = derive_X2s(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2s)
   Y2s_inhomogeneous = calc_Y2s_inhomogeneous(sG, spsi, curvature, etabar, X2c, X2s, sigma)
   Y2s_from_X20 = calc_Y2s_from_X20(sG, spsi, curvature, etabar)
-  solution = calc_solution(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2)  
+  solution = calc_solution(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)  
   
   X20 = solution.at[0:nphi].get() 
   return calc_Y2s(Y2s_inhomogeneous, Y2s_from_X20, X20)
 
-def derive_Y2c(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c):
-  solution = calc_solution(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2)  
+def derive_Y2c(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c):
+  solution = calc_solution(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)  
   curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
-  X2s = derive_X2s(rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2s, B2c)
-  X2c = derive_X2c(rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2c)
+  helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi) 
+  sigma = solve_sigma_equation(_residual, _jacobian, nphi, sigma0, helicity, nfp)[0]
+  X2s = derive_X2s(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2s)
+  X2c = derive_X2c(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2c)
   X20 = solution.at[0:nphi].get()
   Y2c_from_X20 = calc_Y2c_inhomogeneous(sG, spsi, curvature, etabar, X2s, X2c, sigma)
   Y2c_inhomogeneous = calc_Y2c_inhomogeneous(sG, spsi, curvature, etabar, X2s, X2c, sigma)
@@ -480,12 +471,12 @@ def derive_Y2c(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s,
   
   return Y2c_inhomogeneous + Y2c_from_X20 * X20 + Y20
   
-def derive_Z20(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar, B0): 
+def derive_Z20(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar, B0): 
   G0 = calc_G0(sG, nphi, B0, nfp, rc, rs, zc, zs)
   B0_over_abs_G0 = calc_B0_over_abs_G0(B0, G0)  
   factor = calc_factor(B0_over_abs_G0)
   Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
-  Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  Y1c = derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs) 
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp, nphi)
   V1 = calc_V1(X1c, Y1c, Y1s)
@@ -519,45 +510,45 @@ def derive_Z2c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0
   V2 = calc_V2(Y1s, Y1c)
   return calc_Z2c(factor, d_d_varphi, V3, iota_N, V2)
 
-def derive_d_Y2s_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c):
+def derive_d_Y2s_d_varphi(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c):
   """
   calculates d_Y2s_d_varphi as a function of inputed parameters
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
 
-  Y2s = derive_Y2s(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+  Y2s = derive_Y2s(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
   return jnp.matmul(d_d_varphi, Y2s)
 
-def derive_d_Y2c_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c):
+def derive_d_Y2c_d_varphi(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c):
   """
   calculates d_Y2c_d_varphi as a function of inputed parameters
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
-  Y2c = derive_Y2c(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c) 
+  Y2c = derive_Y2c(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c) 
   return jnp.matmul(d_d_varphi, Y2c)
   
-def derive_d_Z20_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar):
+def derive_d_Z20_d_varphi(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar, B0):
   """
   calculates d_Z20_d_varphi as a function of inputed parameters
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
-  Z20 = derive_Z20(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  Z20 = derive_Z20(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar, B0)
   return jnp.matmul(d_d_varphi, Z20)
 
-def derive_d_Z2s_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar):
+def derive_d_Z2s_d_varphi(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar, B0):
   """
   calculates d_Z2s_d_varphi as a function of inputed parameters
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
-  Z2s = derive_Z2s(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  Z2s = derive_Z2s(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar, B0)
   return jnp.matmul(d_d_varphi, Z2s)
 
-def derive_d_Z2c_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar):
+def derive_d_Z2c_d_varphi(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar, B0):
   """
   calculates d_Z2c_d_varphi as a function of inputed parameters
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
-  Z2c = derive_Z2c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  Z2c = derive_Z2c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar, B0)
   return jnp.matmul(d_d_varphi, Z2c)
 
 def derive_d2_X1c_d_varphi2(etabar, nphi, nfp, rc, rs, zc, zs): 
@@ -571,13 +562,13 @@ def derive_d2_X1c_d_varphi2(etabar, nphi, nfp, rc, rs, zc, zs):
   d_X1c_d_varphi = jnp.matmul(d_d_varphi, X1c)
   return jnp.matmul(d_d_varphi, d_X1c_d_varphi)
   
-def derive_d2_Y1c_d_varphi2(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
+def derive_d2_Y1c_d_varphi2(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar): 
   """
   calculates d2_Y1c_d_varphi2 as a function of inputed parameters
   """
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
   
-  Y1c = derive_calc_Y1c(sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar) # requires working newtons
+  Y1c = derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar) # requires working newtons
   d_Y1c_d_varphi = jnp.matmul(d_d_varphi, Y1c)
   
   return jnp.matmul(d_d_varphi, d_Y1c_d_varphi)

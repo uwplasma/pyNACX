@@ -294,10 +294,11 @@ def calculate_r_singularity(self, high_order=False):
     
     for jphi in range(nphi):
         # Solve for the roots of the quartic polynomial:
-        try:
-            roots = jnp.polynomial.polynomial.polyroots(coefficients.at[jphi, :].get()) # Do I need to reverse the order of the coefficients?
-        except jnp.linalg.LinAlgError:
-            raise RuntimeError('Problem with polyroots. coefficients={} lp={} B0={} g0={} g1c={}'.format(coefficients.at[jphi, :].get(), lp, s.B0, g0, g1c))
+        #try:
+            #roots = jnp.polynomial.polynomial.polyroots(coefficients.at[jphi, :].get()) # Do I need to reverse the order of the coefficients?
+        roots = jnp.roots(coefficients.at[jphi, :].get())
+        #except jnp.linalg.LinAlgError:
+         #   raise RuntimeError('Problem with polyroots. coefficients={} lp={} B0={} g0={} g1c={}'.format(coefficients.at[jphi, :].get(), lp, s.B0, g0, g1c))
 
         real_parts = jnp.real(roots)
         imag_parts = jnp.imag(roots)
@@ -468,11 +469,11 @@ def calculate_r_singularity(self, high_order=False):
                     costheta_at_rc = costheta
                     logger.debug("      New minimum: rc={}".format(rc))
                     
-        r_singularity_basic_vs_varphi[jphi] = rc
+        r_singularity_basic_vs_varphi = r_singularity_basic_vs_varphi.at[jphi].set(rc)
         #r_singularity_Newton_solve()
-        r_singularity_vs_varphi[jphi] = rc
-        r_singularity_residual_sqnorm[jphi] = 0 # Newton_residual_sqnorm
-        r_singularity_theta_vs_varphi[jphi] = 0 # theta FIX ME!!
+        r_singularity_vs_varphi = r_singularity_vs_varphi.at[jphi].set(rc)
+        r_singularity_residual_sqnorm = r_singularity_residual_sqnorm.at[jphi].set(0) # Newton_residual_sqnorm
+        r_singularity_theta_vs_varphi = r_singularity_theta_vs_varphi.at[jphi].set(0) # theta FIX ME!!
 
     self.r_singularity_vs_varphi = r_singularity_vs_varphi
     self.inv_r_singularity_vs_varphi = 1 / r_singularity_vs_varphi

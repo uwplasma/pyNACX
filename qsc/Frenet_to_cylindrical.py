@@ -168,9 +168,9 @@ def Frenet_to_cylindrical(self, r, ntheta=20):
                               args=(phi_target, self), bracket=[phi0_rootSolve_min, phi0_rootSolve_max], x0=phi_target)
             phi0_solution = res.root
             final_R, final_z, _ = Frenet_to_cylindrical_1_point(phi0_solution, self)
-            R_2D[j_theta,j_phi] = final_R
-            Z_2D[j_theta,j_phi] = final_z
-            phi0_2D[j_theta,j_phi] = phi0_solution
+            R_2D = R_2D.at[j_theta,j_phi].set(final_R)
+            Z_2D = Z_2D.at[j_theta,j_phi].set(final_z)
+            phi0_2D = phi0_2D.at[j_theta,j_phi].set(phi0_solution)
             
     return R_2D, Z_2D, phi0_2D
 

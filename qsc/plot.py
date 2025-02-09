@@ -123,11 +123,11 @@ def set_axes_equal(ax):
     z_limits = ax.get_zlim3d()
 
     x_range = abs(x_limits[1] - x_limits[0])
-    x_middle = jnp.mean(x_limits)
+    x_middle = jnp.mean(jnp.array(x_limits))
     y_range = abs(y_limits[1] - y_limits[0])
-    y_middle = jnp.mean(y_limits)
+    y_middle = jnp.mean(jnp.array(y_limits))
     z_range = abs(z_limits[1] - z_limits[0])
-    z_middle = jnp.mean(z_limits)
+    z_middle = jnp.mean(jnp.array(z_limits))
 
     # The plot bounding box is a sphere in the sense of the infinity
     # norm, hence call half the max range the plot radius.

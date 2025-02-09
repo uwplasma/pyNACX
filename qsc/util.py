@@ -108,12 +108,12 @@ def to_Fourier(R_2D, Z_2D, nfp, mpol, ntor, lasym):
             # The next 2 lines ensure inverse Fourier transform(Fourier transform) = identity
             if jnp.mod(ntheta,2) == 0 and m  == (ntheta/2): factor2 = factor2 / 2
             if jnp.mod(nphi_conversion,2) == 0 and abs(n) == (nphi_conversion/2): factor2 = factor2 / 2
-            RBC[n + ntor, m] = jnp.sum(R_2D * cosangle * factor2)
-            RBS[n + ntor, m] = jnp.sum(R_2D * sinangle * factor2)
-            ZBC[n + ntor, m] = jnp.sum(Z_2D * cosangle * factor2)
-            ZBS[n + ntor, m] = jnp.sum(Z_2D * sinangle * factor2)
-    RBC[ntor,0] = jnp.sum(R_2D) / (ntheta * nphi_conversion)
-    ZBC[ntor,0] = jnp.sum(Z_2D) / (ntheta * nphi_conversion)
+            RBC = RBC.at[n + ntor, m].set(jnp.sum(R_2D * cosangle * factor2))
+            RBS = RBS.at[n + ntor, m].set(jnp.sum(R_2D * sinangle * factor2))
+            ZBC = ZBC.at[n + ntor, m].set(jnp.sum(Z_2D * cosangle * factor2))
+            ZBS = ZBS.at[n + ntor, m].set(jnp.sum(Z_2D * sinangle * factor2))
+    RBC = RBC.at[ntor,0].set(jnp.sum(R_2D) / (ntheta * nphi_conversion))
+    ZBC = ZBC.at[ntor,0].set(jnp.sum(Z_2D) / (ntheta * nphi_conversion))
 
     if not lasym:
         RBS = 0

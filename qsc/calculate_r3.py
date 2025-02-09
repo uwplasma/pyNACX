@@ -13,7 +13,7 @@ from .derive_r3 import *
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-def calculate_r3(self, rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2):
+def calculate_r3(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2):
     """
     Compute the O(r**3) contributions to X and Y needed for full
     consistency of B through O(r**2), as detailed in section 3 of
@@ -73,10 +73,10 @@ def calculate_r3(self, rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, np
         B0**2*abs_G0_over_B0*I2*X1c*Y1s**3*torsion - B0**2*I2*X1c*Y1c*Y1s*d_X1c_d_varphi + \
         B0**2*I2*X1c**2*Y1s*d_Y1c_d_varphi)/(16*B0**2*G0*X1c**2*Y1s**2)
 
-    self.X3c1 = derive_X3c1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
-    self.Y3c1 = derive_Y3c1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
-    self.Y3s1 = derive_Y3s1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
-    self.X3s1 = derive_X3s1(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.X3c1 = derive_X3c1(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.Y3c1 = derive_Y3c1(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.Y3s1 = derive_Y3s1(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.X3s1 = derive_X3s1(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
     self.Z3c1 = 0
     self.Z3s1 = 0
 
@@ -87,9 +87,9 @@ def calculate_r3(self, rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, np
     self.Z3c3 = 0
     self.Z3s3 = 0
 
-    self.d_X3c1_d_varphi = derive_d_X3c1_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
-    self.d_Y3c1_d_varphi = derive_d_Y3c1_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
-    self.d_Y3s1_d_varphi = derive_d_Y3s1_d_varphi(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.d_X3c1_d_varphi = derive_d_X3c1_d_varphi(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.d_Y3c1_d_varphi = derive_d_Y3c1_d_varphi(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.d_Y3s1_d_varphi = derive_d_Y3s1_d_varphi(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
 
     # The expression below is derived in the O(r**2) paper, and in "20190318-01 Wrick's streamlined Garren-Boozer method, MHD.nb" in the section "Not assuming quasisymmetry".
     # Note Q = (1/2) * (XYEquation0 without X3 and Y3 terms) where XYEquation0 is the quantity in the above notebook.
@@ -132,12 +132,12 @@ def calculate_r3(self, rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, np
         angle = -self.helicity * self.nfp * self.varphi
         sinangle = jnp.sin(angle)
         cosangle = jnp.cos(angle)
-        self.X3s1_untwisted = derive_X3s1_untwisted(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
-        self.X3c1_untwisted = derive_X3c1_untwisted (rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
-        self.Y3s1_untwisted = derive_Y3s1_untwisted(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
-        self.Y3c1_untwisted = derive_Y3c1_untwisted(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
-        self.Z3s1_untwisted = derive_Z3s1_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
-        self.Z3c1_untwisted = derive_Z3c1_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+        self.X3s1_untwisted = derive_X3s1_untwisted(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+        self.X3c1_untwisted = derive_X3c1_untwisted (_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+        self.Y3s1_untwisted = derive_Y3s1_untwisted(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+        self.Y3c1_untwisted = derive_Y3c1_untwisted(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+        self.Z3s1_untwisted = derive_Z3s1_untwisted(_residual, _jacobian, rc, nfp, zs, rs, zc, nphi, sG, spsi)
+        self.Z3c1_untwisted = derive_Z3c1_untwisted(_residual, _jacobian, rc, nfp, zs, rs, zc, nphi, sG, spsi)
         sinangle = jnp.sin(3*angle)
         cosangle = jnp.cos(3*angle)
         self.X3s3_untwisted = derive_X3s3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
