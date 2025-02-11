@@ -8,7 +8,7 @@ import jax.numpy as jnp
 from qsc import Qsc
 from qsc import derive_r3 , calculate_r1
 
-
+"""
 rc = []
 zs = []
 rs=[]
@@ -52,6 +52,7 @@ _residual = calculate_r1._new_residual
 _jacobian = calculate_r1._jacobian
 
 print(f" {derive_r3.derive_X3s1(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)}")
+"""
 
 print("Running pyNACX...")
 stel = Qsc(rc=[1, 0.09], zs=[0, -0.09], nfp=2, etabar=0.95, I2=0.9, order='r1', B2c=-0.7, p2=-600000.)
