@@ -21,7 +21,7 @@ def derive_flux_constraint_coefficient(_residual, _jacobian, rc, zs, rs, zc, nfp
   Y2s = derive_Y2s(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
   Z20 = derive_Z20(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar, B0)
   helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi)
-  iotaN = solve_sigma_equation(_residual, _jacobian, nphi, sigma0, helicity, nfp)
+  iotaN = solve_sigma_equation(_residual, _jacobian, nphi, sigma0, helicity, nfp)[2]
   Z2c = derive_Z2c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar, B0)
   abs_G0_over_B0 = calc_abs_G0_over_B0(sG, nphi, B0, nfp, rc, rs, zc, zs)
   Z2s = derive_Z2s(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar, B0)
@@ -31,11 +31,18 @@ def derive_flux_constraint_coefficient(_residual, _jacobian, rc, zs, rs, zc, nfp
   X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
   
   d_X1c_d_varphi = jnp.matmul(d_d_varphi, X1c)
-  
-  d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
+
   
   Y1c = derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar) # requires working newtons
   d_Y1c_d_varphi = jnp.matmul(d_d_varphi, Y1c)
+  
+  x = ['B0', 'B1c', 'B20', 'G0', 'I2', 'X1c', 'X20', 'X2c', 'X2s', 'Y1c', 'Y1s', 'Y20', 'Y2c', 'Y2s', 'Z20', 'Z2c', 'Z2s', 'abs_G0_over_B0', 'd_X1c_d_varphi', 'd_Y1c_d_varphi', 'iotaN', 'torsion']
+  f = B0, B1c, B20, G0, I2, X1c, X20, X2c, X2s, Y1c, Y1s, Y20, Y2c, Y2s, Z20, Z2c, Z2s, abs_G0_over_B0, d_X1c_d_varphi, d_Y1c_d_varphi, iotaN, torsion
+  for i in range(len(x)): 
+    print("\n")
+    print(f'{x[i]} : {f[i]}') 
+    print(type(f[i]))
+  
   
   flux =  (-4*B0**2*G0*X20**2*Y1c**2 + 8*B0**2*G0*X20*X2c*Y1c**2 - 4*B0**2*G0*X2c**2*Y1c**2 - \
         4*B0**2*G0*X2s**2*Y1c**2 + 8*B0*G0*B1c*X1c*X2s*Y1c*Y1s + 16*B0**2*G0*X20*X2s*Y1c*Y1s + \
@@ -75,6 +82,7 @@ def derive_Y3s1(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B
   return Y1s * flux_constraint_coefficient
 
 def derive_X3s1(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c): 
+#  rc, rs = recalc_rc(_residual, _jacobian, rc, zs, rs, zc, nfp, nphi, sG, etabar, spsi, sigma0, B0) , recalc_rs(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   X1s = derive_calc_X1s(nphi)
   flux_constraint_coefficient = derive_flux_constraint_coefficient(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
   return X1s * flux_constraint_coefficient
@@ -100,13 +108,13 @@ def derive_Q(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, 
   G0 = calc_G0(sG, nphi, B0, nfp, rc, rs, zc, zs)
   X2c = derive_X2c(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2c)
   Y2s = derive_Y2s(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
-  X2s = derive_X2s(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2s, B2c)
+  X2s = derive_X2s(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2s)
   Y2c = derive_Y2c(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
   solutions = calc_solution(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
   X20 = calc_X20(solutions, nphi)
   curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
-  d_Z20_d_varphi = derive_d_Z20_d_varphi(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
-  torsion = calc_torsion(nphi, nfp, rc, rs, zc, zs, sG, etabar, spsi, sigma0)
+  d_Z20_d_varphi = derive_d_Z20_d_varphi(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar, B0)
+  torsion = calc_torsion(nphi, nfp, rc, rs, zc, zs)
   X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
   Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
   Y1c = derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
@@ -136,19 +144,19 @@ def derive_B0_order_a_squared_to_cancel(_residual, _jacobian, rc, zs, rs, zc, nf
   sign_psi = spsi
   X2c = derive_X2c(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2c)
   Y2s = derive_Y2s(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
-  X2s = derive_X2s(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2s, B2c) 
+  X2s = derive_X2s(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, sG, spsi, nphi, B2s) 
   Y2c = derive_Y2c(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c) 
   solution = calc_solution(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
   X20 = calc_X20(solution, nphi)  
   curvature = calc_curvature(nphi, nfp, rc, rs, zc, zs)
-  torsion = calc_torsion(nphi, nfp, rc, rs, zc, zs, sG, etabar, spsi, sigma0)
+  torsion = calc_torsion(nphi, nfp, rc, rs, zc, zs)
   X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
   Y1c = derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
   Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
   d_d_varphi = calc_d_d_varphi(rc, zs, rs, zc, nfp,  nphi)
   d_X1c_d_varphi = jnp.matmul(d_d_varphi, X1c)
   d_Y1c_d_varphi = jnp.matmul(d_d_varphi, Y1c)
-  d_Z20_d_varphi = derive_d_Z20_d_varphi(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+  d_Z20_d_varphi = derive_d_Z20_d_varphi(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar, B0)
   B0_order_a_squared_to_cancel = -sign_G * B0 * B0 * (G2 + I2 * N_helicity) * abs_G0_over_B0 / (2*G0*G0) \
         -sign_G * sign_psi * B0 * 2 * (X2c * Y2s - X2s * Y2c) \
         -sign_G * B0 * B0 / (2*G0) * (abs_G0_over_B0 * X20 * curvature - d_Z20_d_varphi) \

@@ -85,13 +85,11 @@ def calc_d_l_d_phi(nphi, nfp, rc, rs, zc, zs):
   """
   this function returns d_l_d_phi as a fucntion of inputed parameters within qsc.py 
   """
-  print("hello")
   phi = jnp.linspace(0, 2 * jnp.pi / nfp, nphi, endpoint=False)
 
   nfourier = jnp.max(jnp.array([len(rc), len(zs), len(rs), len(zc)]))
 
-  print(f"nfourier {nfourier}")
-  print(f"nfp {nfp}")
+  
   """
   # semo : adding padding 
   rc = jnp.pad(rc, (0, nfourier - len(rc)), constant_values=0)
@@ -108,9 +106,10 @@ def calc_d_l_d_phi(nphi, nfp, rc, rs, zc, zs):
   sinangles = jnp.sin(angles)
   cosangles = jnp.cos(angles)      
   
-  print(f"rc shape {rc.shape}")
-  print(f"cosangles {cosangles.shape}")
-  print(f"rs shape {rs.shape}")
+  print(f"rc : {rc}")
+  print(f'angles : {angles}')
+  print(f'cosangles : {cosangles}')
+  print(f'sinangles : {sinangles}')
   R0 = jnp.dot(rc, cosangles) + jnp.dot(rs, sinangles)
   R0p = jnp.dot(rc, -n[:, jnp.newaxis] * sinangles) + jnp.dot(rs, n[:, jnp.newaxis] * cosangles)
   Z0p = jnp.dot(zc, -n[:, jnp.newaxis] * sinangles) + jnp.dot(zs, n[:, jnp.newaxis] * cosangles)

@@ -311,17 +311,6 @@ def derive_B20(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2
   
   X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
   
-  print(f"sG not working {sG}")
-  print(f"spsi not working {spsi}")
-  print(f"nphi not working {nphi}")
-  print(f"nfp not working {nfp}")
-  print(f"rc not working {rc}")
-  print(f"rs not working {rs}")
-  print(f"zc not working {zc}")
-  print(f"zs not working {zs}")
-  print(f"sigma not working {sigma0}")
-  print(f"etabar not working {etabar}")
-  
   Y1c = derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar) # relies on newtons 
 
   Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)

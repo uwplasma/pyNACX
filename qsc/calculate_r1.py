@@ -33,6 +33,21 @@ def _residual(self, x):
     
     return r
 
+def _new_residual(x, sigma0, d_d_varphi, helicity, nfp, etabar_squared_over_curvature_squared, spsi, torsion, I2, B0, G0):
+    sigma = np.copy(x)
+    sigma[0] = (sigma0) # somthing is not right here
+
+    #sigma[0] = self.sigma0
+    iota = x[0]
+    r = np.matmul(d_d_varphi, sigma) \
+        + (iota + helicity * nfp) * \
+        (etabar_squared_over_curvature_squared * etabar_squared_over_curvature_squared + 1 + sigma * sigma) \
+        - 2 * etabar_squared_over_curvature_squared * (-spsi * torsion + I2 / B0) * G0 / B0
+    #logger.debug("_residual called with x={}, r={}".format(x, r))
+    
+    return r
+    
+
 def _jacobian(self, x):
     """
     Compute the Jacobian matrix for solving the sigma equation. x is

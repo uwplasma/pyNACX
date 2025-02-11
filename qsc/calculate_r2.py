@@ -168,9 +168,6 @@ def calculate_r2(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0
     self.G2 = derive_G2(_residual, _jacobian, B0 ,I2, p2 ,sG ,nphi ,nfp, original_rc, original_rs, zc, zs, sigma0, spsi)
 
     self.d_curvature_d_varphi = derive_d_curvature_d_varphi(original_rc, zs, original_rs, zc, nfp, nphi)
-    print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
-    print(self.d_curvature_d_varphi)
-    print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
     self.d_torsion_d_varphi = derive_d_torsion_d_varphi(original_rc, zs, original_rs, zc, nfp,  nphi)
     self.d_X20_d_varphi = derive_d_X20_d_varphi(_residual, _jacobian, original_rc, zs, original_rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
     self.d_X2s_d_varphi = derive_d_X2s_d_varphi(_residual, _jacobian, original_rc, zs, original_rs, zc, nfp, nphi, sG, B0, etabar, B2s, sigma0, spsi, B2c)

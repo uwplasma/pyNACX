@@ -112,8 +112,8 @@ def calculate_r3(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0
     or jnp.max(abs(flux_constraint_coefficient - B0_order_a_squared_to_cancel/(2*B0))) > 1e-7:
         logger.warning("Methods of computing lambda disagree!! Higher nphi resolution might be needed.")
 
-    self.flux_constraint_coefficient = derive_predicted_flux_constraint_coefficient(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
-    self.B0_order_a_squared_to_cancel = derive_B0_order_a_squared_to_cancel(rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.flux_constraint_coefficient = derive_predicted_flux_constraint_coefficient(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.B0_order_a_squared_to_cancel = derive_B0_order_a_squared_to_cancel(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
 
     if self.helicity == 0:
         self.X3c1_untwisted = self.X3c1
