@@ -6,13 +6,14 @@ Functions for computing the grad B tensor and grad grad B tensor.
 
 import logging
 import numpy as np
+import jax
 import jax.numpy as jnp
 from .util import Struct, fourier_minimum
 
 #logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def calculate_grad_B_tensor():
+def calculate_grad_B_tensor(spsi, B0, d_l_d_varphi, sG, curvature, X1c, d_Y1s_d_varphi, iotaN, Y1c, d_X1c_d_varphi, Y1s, torsion, d_Y1c_d_varphi, d_d_varphi, tangent_cylindrical, normal_cylindrical, binormal_cylindrical):
     """
     Compute the components of the grad B tensor, and the scale
     length L grad B associated with the Frobenius norm of this
@@ -23,29 +24,38 @@ def calculate_grad_B_tensor():
     self should be an instance of Qsc with X1c, Y1s etc populated.
     """
 
-    s = self # Shorthand
+    #s = self # Shorthand
     tensor = Struct()
     
-    factor = s.spsi * s.B0 / s.d_l_d_varphi
-    tensor.tn = s.sG * s.B0 * s.curvature
+    factor = spsi * B0 / d_l_d_varphi
+    tensor.tn = sG * B0 * curvature
     tensor.nt = tensor.tn
-    tensor.bb = factor * (s.X1c * s.d_Y1s_d_varphi - s.iotaN * s.X1c * s.Y1c)
-    tensor.nn = factor * (s.d_X1c_d_varphi * s.Y1s + s.iotaN * s.X1c * s.Y1c)
-    tensor.bn = factor * (-s.sG * s.spsi * s.d_l_d_varphi * s.torsion \
-                          - s.iotaN * s.X1c * s.X1c)
-    tensor.nb = factor * (s.d_Y1c_d_varphi * s.Y1s - s.d_Y1s_d_varphi * s.Y1c \
-                          + s.sG * s.spsi * s.d_l_d_varphi * s.torsion \
-                          + s.iotaN * (s.Y1s * s.Y1s + s.Y1c * s.Y1c))
+    tensor.bb = factor * (X1c * d_Y1s_d_varphi - iotaN * X1c * Y1c)
+    tensor.nn = factor * (d_X1c_d_varphi * Y1s + iotaN * X1c * Y1c)
+    tensor.bn = factor * (-sG * spsi * d_l_d_varphi * torsion \
+                          - iotaN * X1c * X1c)
+    tensor.nb = factor * (d_Y1c_d_varphi * Y1s - d_Y1s_d_varphi * Y1c \
+                          + sG * spsi * d_l_d_varphi * torsion \
+                          + iotaN * (Y1s * Y1s + Y1c * Y1c))
+    
+    #need to figure this out
+    """ 
     if hasattr(s.B0, "__len__"): # if B0 is an array (in quasisymmetry B0 is a scalar)
-        tensor.tt = s.sG * jnp.matmul(s.d_d_varphi, s.B0) / s.d_l_d_varphi
+        tensor.tt = sG * jnp.matmul(d_d_varphi, B0) / d_l_d_varphi
     else:
         tensor.tt = 0
-
-    self.grad_B_tensor = tensor
+     """
+     
+    tensor.tt = jax.lax.cond(hasattr(B0, "__len__"), 
+                             lambda _: sG * jnp.matmul(d_d_varphi, B0) / d_l_d_varphi, 
+                             lambda _: 0,
+                             None)
     
-    t = s.tangent_cylindrical.transpose()
-    n = s.normal_cylindrical.transpose()
-    b = s.binormal_cylindrical.transpose()
+    grad_B_tensor = tensor
+    
+    t = tangent_cylindrical.transpose()
+    n = normal_cylindrical.transpose()
+    b = binormal_cylindrical.transpose()
     
     grad_B_tensor_cylindrical = jnp.array([[
                               tensor.nn * n[i] * n[j] \
@@ -60,15 +70,15 @@ def calculate_grad_B_tensor():
         + tensor.nb * tensor.nb + tensor.bn * tensor.bn \
         + tensor.tt * tensor.tt
 
-    L_grad_B = s.B0 * jnp.sqrt(2 / self.grad_B_colon_grad_B)
-    inv_L_grad_B = 1.0 / self.L_grad_B
-    min_L_grad_B = fourier_minimum(self.L_grad_B)
+    L_grad_B = B0 * jnp.sqrt(2 / grad_B_colon_grad_B)
+    inv_L_grad_B = 1.0 / L_grad_B
+    min_L_grad_B = fourier_minimum(L_grad_B)
     
-    return grad_B_tensor_cylindrical, grad_B_colon_grad_B, L_grad_B, inv_L_grad_B, min_L_grad_B
+    return grad_B_tensor, grad_B_tensor_cylindrical, grad_B_colon_grad_B, L_grad_B, inv_L_grad_B, min_L_grad_B
     
     
     
-def calculate_grad_grad_B_tensor(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2s, Z2c, iotaN, iota, curvature, torsion,   ):
+def calculate_grad_grad_B_tensor(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2s, Z2c, iotaN, iota, curvature, torsion, G0, B0, sG, spsi, I2, G2, p2, B20, B2s, B2c, d_X1c_d_varphi, d_Y1s_d_varphi, d_Y1c_d_varphi, d_X20_d_varphi, d_X2s_d_varphi, d_X2c_d_varphi, d_Y20_d_varphi, d_Y2s_d_varphi, d_Y2c_d_varphi, d_Z20_d_varphi, d_Z2s_d_varphi, d_Z2c_d_varphi, d2_X1c_d_varphi2, d2_Y1s_d_varphi2, d2_Y1c_d_varphi2, d_curvature_d_varphi, d_torsion_d_varphi):
     """
     Compute the components of the grad grad B tensor, and the scale
     length L grad grad B associated with the Frobenius norm of this

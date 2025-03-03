@@ -98,7 +98,7 @@ class Qsc():
       
         self.pre_calculations() #run initial calculations that rely on self 
         
-        Qsc.calculate(self.nfp, self.etabar, self.curvature, self.sigma, self.helicity, self.varphi, self.X1s, self.X1c, self.d_l_d_phi, self.d_d_varphi, self.sG, self.spsi, self.B0, self.G0, self.iotaN, self.torsion, self.abs_G0_over_B0, self.B2s, self.B2c, self.p2, self.I2, nphi, order, self.iota)
+        Qsc.calculate(self.nfp, self.etabar, self.curvature, self.sigma, self.helicity, self.varphi, self.X1s, self.X1c, self.d_l_d_phi, self.d_d_varphi, self.sG, self.spsi, self.B0, self.G0, self.iotaN, self.torsion, self.abs_G0_over_B0, self.B2s, self.B2c, self.p2, self.I2, self.nphi, self.order, self.iota, self.d_l_d_varphi, self.tangent_cylindrical, self.normal_cylindrical, self.binormal_cylindrical, self.d_phi, self.axis_length)
 
     def change_nfourier(self, nfourier_new):
         """
@@ -191,7 +191,8 @@ class Qsc():
         self.normal_cylindrical = normal_cylindrical
         self.binormal_cylindrical = binormal_cylindrical
         self.Bbar = Bbar
-        self.abs_G0_over_B0 = abs_G0_over_B0
+        self.d_l_d_varphi = abs_G0_over_B0
+        
         
         print("\nInit axis completed...")
         
@@ -202,13 +203,13 @@ class Qsc():
         print("\nSigma equation solved...")
         
 
-    def calculate(nfp, etabar, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_phi, d_d_varphi, sG, spsi, B0, G0, iotaN, torsion, abs_G0_over_B0, B2s, B2c, p2, I2, nphi, order, iota):
+    def calculate(nfp, etabar, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_phi, d_d_varphi, sG, spsi, B0, G0, iotaN, torsion, abs_G0_over_B0, B2s, B2c, p2, I2, nphi, order, iota, d_l_d_varphi, tangent_cylindrical, normal_cylindrical, binormal_cylindrical, d_phi, axis_length):
         from .calculate_r1 import solve_sigma_equation
         """
         A jax compatible driver of main calculations.
         """
         print("\nCalculating R1...")
-        r1_results = r1_diagnostics(nfp, etabar, sG, spsi, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_phi, d_d_varphi)
+        r1_results = r1_diagnostics(nfp, etabar, sG, spsi, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_phi, d_d_varphi, B0, d_l_d_varphi, tangent_cylindrical, normal_cylindrical, binormal_cylindrical, iotaN, torsion)
 #        grad_b_results = calculate_grad_B_tensor()
 
         Y1s = r1_results[0]
@@ -217,7 +218,7 @@ class Qsc():
         d_Y1s_d_varphi = r1_results[-2]
         d_Y1c_d_varphi = r1_results[-1]
         r2_results = jax.lax.cond(order != 'r1',
-                          lambda _:  calc_r2_new(X1c, Y1c, Y1s, B0/jnp.abs(G0), d_d_varphi, iotaN, torsion, abs_G0_over_B0, B2s, B0, curvature, etabar, B2c, spsi, sG, p2, sigma, I2/B0, nphi, d_l_d_phi, helicity, nfp, G0, iota, I2, varphi, d_X1c_d_varphi, d_Y1c_d_varphi, d_Y1s_d_varphi),
+                          lambda _:  calc_r2_new(X1c, Y1c, Y1s, B0 / jnp.abs(G0), d_d_varphi, iotaN, torsion, abs_G0_over_B0, B2s, B0, curvature, etabar, B2c, spsi, sG, p2, sigma, I2/B0, nphi, d_l_d_phi, helicity, nfp, G0, iota, I2, varphi, d_X1c_d_varphi, d_Y1c_d_varphi, d_Y1s_d_varphi, d_phi, axis_length),
                           lambda _:  tuple(jnp.zeros_like(r) for r in calc_r2_new(X1c, Y1c, Y1s, B0/jnp.abs(G0), d_d_varphi, iotaN, torsion, abs_G0_over_B0, B2s, B0, curvature, etabar, B2c, spsi, sG, p2, sigma, I2/B0, nphi, d_l_d_phi, helicity, nfp, G0, iota, I2, varphi, d_X1c_d_varphi, d_Y1c_d_varphi, d_Y1s_d_varphi)),
                           operand=None)
         

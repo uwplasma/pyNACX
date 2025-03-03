@@ -125,7 +125,8 @@ def calculate_r_singularity(self, high_order=False):
         Y1c*Z2c*d_X1c_d_varphi - Y1s*Z2s*d_X1c_d_varphi - \
         X1c*Z20*d_Y1c_d_varphi + X1c*Z2c*d_Y1c_d_varphi - \
         X1c*Z2s*d_Y1s_d_varphi + X1c*Y1s*d_Z2s_d_varphi
-    
+    # highorder is default False and not called with true 
+    """  
     if high_order:
         g3s1 = lp*(2*X20*X20*Y1c*curvature + X2c*X2c*Y1c*curvature + X2s*X2s*Y1c*curvature - X1c*X2s*Y2s*curvature + \
                    2*Y1c*Z20*Z20*curvature - 3*Y1c*Z20*Z2c*curvature + Y1c*Z2c*Z2c*curvature - 3*Y1s*Z20*Z2s*curvature + \
@@ -262,7 +263,7 @@ def calculate_r_singularity(self, high_order=False):
                    Y2s*(Z20*d_X2c_d_varphi - X20*d_Z2c_d_varphi) + X2c*Y20*d_Z2s_d_varphi - \
                    X20*Y2c*d_Z2s_d_varphi)
 
-
+    """
     # We consider the system sqrt(g) = 0 and
     # d (sqrtg) / d theta = 0.
     # We algebraically eliminate r in "20200322-02 Max r for Garren Boozer.nb", in the section
