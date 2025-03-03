@@ -4,6 +4,11 @@ This module contains the calculation for the O(r^2) solution
 
 import logging
 import numpy as np
+
+from qsc.grad_B_tensor import calculate_grad_grad_B_tensor
+from qsc.r_singularity import calculate_r_singularity
+
+from .mercier import new_mercier
 from .util import mu0
 import jax.numpy as jnp
 from .calculate_r1_helpers import *
@@ -233,7 +238,7 @@ def calculate_r2(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0
         self.Z2c_untwisted = self.Z2s * (-sinangle) + self.Z2c * cosangle
 
 
-def calc_r2_new(X1c, Y1c, Y1s, B0_over_abs_G0, d_d_varphi, iota_N, torsion, abs_G0_over_B0, B2s, B0, curvature, etabar, B2c, spsi, sG, p2, sigma, I2_over_B0, nphi, d_l_d_phi, helicity, nfp, G0, iota, I2, varphi, d_X1c_d_varphi, d_Y1c_d_varphi, d_Y1s_d_varphi):
+def calc_r2_new(X1c, Y1c, Y1s, B0_over_abs_G0, d_d_varphi, iota_N, torsion, abs_G0_over_B0, B2s, B0, curvature, etabar, B2c, spsi, sG, p2, sigma, I2_over_B0, nphi, d_l_d_phi, helicity, nfp, G0, iota, I2, varphi, d_X1c_d_varphi, d_Y1c_d_varphi, d_Y1s_d_varphi, d_phi, axis_length):
     V1 = X1c * X1c + Y1c * Y1c + Y1s * Y1s
     V2 = 2 * Y1s * Y1c
     V3 = X1c * X1c + Y1c * Y1c - Y1s * Y1s
@@ -296,7 +301,7 @@ def calc_r2_new(X1c, Y1c, Y1s, B0_over_abs_G0, d_d_varphi, iota_N, torsion, abs_
 
     fYs_from_X20 = -2 * iota_N * Y2c_from_X20 - 4 * spsi * sG * abs_G0_over_B0 * (Z2c)
     fYs_from_Y20 = jnp.full(nphi, -2 * iota_N)
-    fYs_inhomogeneous = np.matmul(d_d_varphi,Y2s_inhomogeneous) - 2 * iota_N * Y2c_inhomogeneous + torsion * abs_G0_over_B0 * X2s \
+    fYs_inhomogeneous = jnp.matmul(d_d_varphi,Y2s_inhomogeneous) - 2 * iota_N * Y2c_inhomogeneous + torsion * abs_G0_over_B0 * X2s \
         - 4 * spsi * sG * abs_G0_over_B0 * (-X2c * Z20) - 2 * spsi * I2_over_B0 * X2s * abs_G0_over_B0
 
     fYc_from_X20 = 2 * iota_N * Y2s_from_X20 - 4 * spsi * sG * abs_G0_over_B0 * (-Z2s)
@@ -385,36 +390,36 @@ def calc_r2_new(X1c, Y1c, Y1s, B0_over_abs_G0, d_d_varphi, iota_N, torsion, abs_
     d2_Y1s_d_varphi2 = jnp.matmul(d_d_varphi, d_Y1s_d_varphi)
 
     # O(r^2) diagnostics:
-    self.mercier()
-    self.calculate_grad_grad_B_tensor()
+    mercier_results = new_mercier(d_l_d_phi, B0, G0, p2, etabar, curvature, sigma, iota_N, iota, d_phi, nfp, axis_length, B20_mean, G2, I2)
+    grad_grad_B_results = calculate_grad_grad_B_tensor()
     #self.grad_grad_B_inverse_scale_length_vs_varphi = t.grad_grad_B_inverse_scale_length_vs_varphi
     #self.grad_grad_B_inverse_scale_length = t.grad_grad_B_inverse_scale_length
-    self.calculate_r_singularity()
+    r_singularity_results = calculate_r_singularity()
 
-    if helicity == 0:
-        X20_untwisted = X20
-        X2s_untwisted = X2s
-        X2c_untwisted = X2c
-        Y20_untwisted = Y20
-        Y2s_untwisted = Y2s
-        Y2c_untwisted = Y2c
-        Z20_untwisted = Z20
-        Z2s_untwisted = Z2s
-        Z2c_untwisted = Z2c
-    else:
-        angle = -helicity * nfp * varphi
-        sinangle = jnp.sin(angle)
-        cosangle = jnp.cos(angle)
-        X20_untwisted = X20
-        Y20_untwisted = Y20
-        Z20_untwisted = Z20
-        sinangle = jnp.sin(2*angle)
-        cosangle = jnp.cos(2*angle)
-        X2s_untwisted = X2s *   cosangle  + X2c * sinangle
-        X2c_untwisted = X2s * (-sinangle) + X2c * cosangle
-        Y2s_untwisted = Y2s *   cosangle  + Y2c * sinangle
-        Y2c_untwisted = Y2s * (-sinangle) + Y2c * cosangle
-        Z2s_untwisted = Z2s *   cosangle  + Z2c * sinangle
-        Z2c_untwisted = Z2s * (-sinangle) + Z2c * cosangle
-        
+    #if helicity == 0:
+    X20_untwisted = X20
+    X2s_untwisted = X2s
+    X2c_untwisted = X2c
+    Y20_untwisted = Y20
+    Y2s_untwisted = Y2s
+    Y2c_untwisted = Y2c
+    Z20_untwisted = Z20
+    Z2s_untwisted = Z2s
+    Z2c_untwisted = Z2c
+    #else:
+    angle = -helicity * nfp * varphi
+    sinangle = jnp.sin(angle)
+    cosangle = jnp.cos(angle)
+    X20_untwisted = X20
+    Y20_untwisted = Y20
+    Z20_untwisted = Z20
+    sinangle = jnp.sin(2*angle)
+    cosangle = jnp.cos(2*angle)
+    X2s_untwisted = X2s *   cosangle  + X2c * sinangle
+    X2c_untwisted = X2s * (-sinangle) + X2c * cosangle
+    Y2s_untwisted = Y2s *   cosangle  + Y2c * sinangle
+    Y2c_untwisted = Y2s * (-sinangle) + Y2c * cosangle
+    Z2s_untwisted = Z2s *   cosangle  + Z2c * sinangle
+    Z2c_untwisted = Z2s * (-sinangle) + Z2c * cosangle
+
     return N_helicity, G2, d_curvature_d_varphi, d_torsion_d_varphi, d_X20_d_varphi, d_X2s_d_varphi, d_X2c_d_varphi, d_Y20_d_varphi, d_Y2s_d_varphi, d_Y2c_d_varphi, d_Z20_d_varphi, d_Z2s_d_varphi, d_Z2c_d_varphi, d2_X1c_d_varphi2, d2_Y1c_d_varphi2, d2_Y1s_d_varphi2, V1, V2, V3, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2s, Z2c, beta_1s, B20, X20_untwisted, X2s_untwisted, X2c_untwisted, Y20_untwisted, Y2s_untwisted, Y2c_untwisted, Z20_untwisted, Z2s_untwisted, Z2c_untwisted

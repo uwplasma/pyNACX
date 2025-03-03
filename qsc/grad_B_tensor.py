@@ -68,7 +68,7 @@ def calculate_grad_B_tensor():
     
     
     
-def calculate_grad_grad_B_tensor(self, two_ways=False):
+def calculate_grad_grad_B_tensor(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2s, Z2c, iotaN, iota, curvature, torsion,   ):
     """
     Compute the components of the grad grad B tensor, and the scale
     length L grad grad B associated with the Frobenius norm of this
@@ -83,8 +83,9 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
     """
 
     # Shortcuts
-    s = self
+    #s = self
     
+    """
     X1c = s.X1c
     Y1s = s.Y1s
     Y1c = s.Y1c
@@ -100,11 +101,13 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
     Z20 = s.Z20
     Z2s = s.Z2s
     Z2c = s.Z2c
-
-    iota_N0 = s.iotaN
-    iota = s.iota
-    lp = jnp.abs(s.G0) / s.B0
-
+    """
+    
+    iota_N0 = iotaN
+    #iota = s.iota
+    lp = jnp.abs(G0) / B0
+    
+    """
     curvature = s.curvature
     torsion = s.torsion
 
@@ -141,6 +144,7 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
     d2_Y1c_d_varphi2 = s.d2_Y1c_d_varphi2
     d_curvature_d_varphi = s.d_curvature_d_varphi
     d_torsion_d_varphi = s.d_torsion_d_varphi
+    """
 
     grad_grad_B = jnp.zeros((s.nphi, 3, 3, 3))
     grad_grad_B_alt = jnp.zeros((s.nphi, 3, 3, 3))
@@ -551,15 +555,18 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                            curvature*curvature)/(G0*G0*G0))
 
 
-    self.grad_grad_B = grad_grad_B
+    grad_grad_B = grad_grad_B
 
     # Compute the (inverse) scale length
     squared = grad_grad_B * grad_grad_B
     norm_squared = jnp.sum(squared, axis=(1,2,3))
-    self.grad_grad_B_inverse_scale_length_vs_varphi = jnp.sqrt(jnp.sqrt(norm_squared) / (4*B0))
-    self.L_grad_grad_B = 1 / self.grad_grad_B_inverse_scale_length_vs_varphi
-    self.grad_grad_B_inverse_scale_length = jnp.max(self.grad_grad_B_inverse_scale_length_vs_varphi)
-
+    grad_grad_B_inverse_scale_length_vs_varphi = jnp.sqrt(jnp.sqrt(norm_squared) / (4*B0))
+    L_grad_grad_B = 1 / self.grad_grad_B_inverse_scale_length_vs_varphi
+    grad_grad_B_inverse_scale_length = jnp.max(self.grad_grad_B_inverse_scale_length_vs_varphi)
+    
+    return grad_grad_B, grad_grad_B_inverse_scale_length_vs_varphi, L_grad_grad_B, grad_grad_B_inverse_scale_length
+    #two way is not used because default called with two_way = False
+    """
     if not two_ways:
         return
 
@@ -1209,6 +1216,7 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
     grad_grad_B_alt = grad_grad_B_alt.at[:,2,2,2].set((-2*B0*curvature*curvature)/sign_G)
 
     self.grad_grad_B_alt = grad_grad_B_alt
+    """
 
 
 def Bfield_cylindrical(self, r=0, theta=0):

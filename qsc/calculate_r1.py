@@ -89,7 +89,7 @@ def new_solve_sigma_equation(nphi, sigma0, helicity, nfp):
     sigma[0] = sigma0
     return sigma, iota, iotaN
 
-def solve_sigma_equation(_residual, _jacobian, nphi, sigma0, helicity, nfp):
+def solve_sigma_equation( self, nphi, sigma0, helicity, nfp):
     """
     Solve the sigma equation.
     """
@@ -101,7 +101,7 @@ def solve_sigma_equation(_residual, _jacobian, nphi, sigma0, helicity, nfp):
     self.sigma = np.copy(soln.x)
     self.sigma[0] = self.sigma0
     """
-    sigma = newton(_residual, x0, jac= _jacobian)
+    sigma = newton(self._residual, x0, jac= self._jacobian)
     iota = sigma[0]
     iotaN = iota + helicity * nfp
     sigma = sigma.at[0].set(sigma0)
@@ -143,7 +143,6 @@ def _determine_helicity(self):
     counter *= self.spsi * self.sG
     self.helicity = counter / 4
 
-@jax.jit
 def r1_diagnostics(nfp, etabar, sG, spsi, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_phi, d_d_varphi):
     """
     Compute various properties of the O(r^1) solution, once sigma and
