@@ -12,7 +12,7 @@ from .util import Struct, fourier_minimum
 #logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def calculate_grad_B_tensor(self):
+def calculate_grad_B_tensor():
     """
     Compute the components of the grad B tensor, and the scale
     length L grad B associated with the Frobenius norm of this
@@ -46,7 +46,8 @@ def calculate_grad_B_tensor(self):
     t = s.tangent_cylindrical.transpose()
     n = s.normal_cylindrical.transpose()
     b = s.binormal_cylindrical.transpose()
-    self.grad_B_tensor_cylindrical = jnp.array([[
+    
+    grad_B_tensor_cylindrical = jnp.array([[
                               tensor.nn * n[i] * n[j] \
                             + tensor.bn * b[i] * n[j] + tensor.nb * n[i] * b[j] \
                             + tensor.bb * b[i] * b[j] \
@@ -54,14 +55,18 @@ def calculate_grad_B_tensor(self):
                             + tensor.tt * t[i] * t[j]
                         for i in range(3)] for j in range(3)])
 
-    self.grad_B_colon_grad_B = tensor.tn * tensor.tn + tensor.nt * tensor.nt \
+    grad_B_colon_grad_B = tensor.tn * tensor.tn + tensor.nt * tensor.nt \
         + tensor.bb * tensor.bb + tensor.nn * tensor.nn \
         + tensor.nb * tensor.nb + tensor.bn * tensor.bn \
         + tensor.tt * tensor.tt
 
-    self.L_grad_B = s.B0 * jnp.sqrt(2 / self.grad_B_colon_grad_B)
-    self.inv_L_grad_B = 1.0 / self.L_grad_B
-    self.min_L_grad_B = fourier_minimum(self.L_grad_B)
+    L_grad_B = s.B0 * jnp.sqrt(2 / self.grad_B_colon_grad_B)
+    inv_L_grad_B = 1.0 / self.L_grad_B
+    min_L_grad_B = fourier_minimum(self.L_grad_B)
+    
+    return grad_B_tensor_cylindrical, grad_B_colon_grad_B, L_grad_B, inv_L_grad_B, min_L_grad_B
+    
+    
     
 def calculate_grad_grad_B_tensor(self, two_ways=False):
     """

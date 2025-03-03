@@ -143,38 +143,31 @@ def _determine_helicity(self):
     counter *= self.spsi * self.sG
     self.helicity = counter / 4
 
-def r1_diagnostics(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0,
-                 I2, sG, spsi, nphi, B2s, B2c, p2):
+@jax.jit
+def r1_diagnostics(nfp, etabar, sG, spsi, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_phi, d_d_varphi):
     """
     Compute various properties of the O(r^1) solution, once sigma and
     iota are solved for.
     """
-    self.Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
-    self.Y1c = derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+    Y1s = sG * spsi * curvature / etabar
+    Y1c = sG * spsi * curvature * sigma / etabar
     
     # If helicity is nonzero, then the original X1s/X1c/Y1s/Y1c variables are defined with respect to a "poloidal" angle that
     # is actually helical, with the theta=0 curve wrapping around the magnetic axis as you follow phi around toroidally. Therefore
     # here we convert to an untwisted poloidal angle, such that the theta=0 curve does not wrap around the axis.
    
-    helicity = derive_helicity(rc, nfp, zs, rs, zc, nphi, sG, spsi)
-    varphi = derive_varphi(nphi, nfp, rc, rs, zc, zs)
     
     angle = calc_angle(helicity, nfp, varphi)
     sinangle = calc_sinangle(angle)
     cosangle = calc_cosangle(angle)
     
-    X1s = derive_calc_X1s(nphi)
-    X1c = derive_calc_X1c(etabar, nphi, nfp, rc, rs, zc, zs)
-    Y1s = derive_calc_Y1s(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
-    Y1c = derive_calc_Y1c(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
-    
-    self.X1s_untwisted = calc_X1s_untwisted(X1s, cosangle, X1c, sinangle)
+    X1s_untwisted = calc_X1s_untwisted(X1s, cosangle, X1c, sinangle)
         
-    self.X1c_untwisted = calc_X1c_untwisted(X1s, sinangle, X1c, cosangle)
+    X1c_untwisted = calc_X1c_untwisted(X1s, sinangle, X1c, cosangle)
         
-    self.Y1s_untwisted = calc_X1s_untwisted(Y1s, cosangle, Y1c, sinangle)
+    Y1s_untwisted = calc_X1s_untwisted(Y1s, cosangle, Y1c, sinangle)
         
-    self.Y1c_untwisted = calc_Y1c_untwisted(Y1s, sinangle, Y1c, cosangle)
+    Y1c_untwisted = calc_Y1c_untwisted(Y1s, sinangle, Y1c, cosangle)
 
     # Use (R,Z) for elongation in the (R,Z) plane,
     # or use (X,Y) for elongation in the plane perpendicular to the magnetic axis.
@@ -182,18 +175,16 @@ def r1_diagnostics(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigm
     p = calc_p(X1s, X1c, Y1s, Y1c)
     q = calc_q(X1s, Y1c, X1c, Y1s)
 
-    self.elongation = derive_elongation(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
-    self.mean_elongation = derive_mean_elongation(_residual, _jacobian, sG, spsi, sigma0, etabar, nphi, nfp, rc, rs, zc, zs)
+    elongation = (p + jnp.sqrt(p * p - 4 * q * q)) / (2 * jnp.abs(q))
+    mean_elongation = jnp.sum(elongation * d_l_d_phi) / jnp.sum(d_l_d_phi)
     
-    index = np.argmax(self.elongation)
+    index = np.argmax(elongation)
     
-    self.max_elongation = derive_max_elongation(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+    max_elongation = -fourier_minimum(-elongation)
 
-    self.d_X1c_d_varphi = derive_d_X1c_d_varphi(etabar, nphi, nfp, rc, rs, zc, zs)
-    print(f"d_X1c_d_varphi: {self.d_X1c_d_varphi}")
-    self.d_X1s_d_varphi = derive_d_X1s_d_varphi(rc, zs, rs, zc, nfp,  nphi)
-    self.d_Y1s_d_varphi = derive_d_Y1s_d_varphi(sG, spsi, nphi, nfp, rc, rs, zc, zs, etabar)
-    self.d_Y1c_d_varphi = derive_d_Y1c_d_varphi(_residual, _jacobian, sG, spsi, nphi, nfp, rc, rs, zc, zs, sigma0, etabar)
+    d_X1c_d_varphi = jnp.matmul(d_d_varphi, X1c)
+    d_X1s_d_varphi = jnp.matmul(d_d_varphi, X1s)
+    d_Y1s_d_varphi = jnp.matmul(d_d_varphi, Y1s)
+    d_Y1c_d_varphi = jnp.matmul(d_d_varphi, Y1c)
 
-    self.calculate_grad_B_tensor()
-
+    return Y1s, Y1c, X1s_untwisted, X1c_untwisted, Y1s_untwisted, Y1c_untwisted, elongation, mean_elongation, max_elongation, d_X1c_d_varphi, d_X1s_d_varphi, d_Y1s_d_varphi, d_Y1c_d_varphi

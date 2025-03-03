@@ -147,6 +147,91 @@ def calculate_r3(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0
         self.Z3s3_untwisted = derive_Z3s3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
         self.Z3c3_untwisted = derive_Z3c3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
 
+def calc_r3_new(B0, G0, X20, Y1c, X2c, X2s, B1c, X1c, X1s, Y1s, I2, iotaN, B20, Y20, Y2c, Y2s, Z20, abs_G0_over_B0, Z2c, Z2s, torsion, d_X1c_d_varphi, d_Y1c_d_varphi, d_d_varphi, spsi, p2, curvature, d_Z20_d_varphi, sG, G2, N_helicity, helicity, nfp, varphi): 
+    flux_constraint_coefficient = (-4*B0**2*G0*X20**2*Y1c**2 + 8*B0**2*G0*X20*X2c*Y1c**2 - 4*B0**2*G0*X2c**2*Y1c**2 - \
+        4*B0**2*G0*X2s**2*Y1c**2 + 8*B0*G0*B1c*X1c*X2s*Y1c*Y1s + 16*B0**2*G0*X20*X2s*Y1c*Y1s + \
+        2*B0**2*I2*iotaN*X1c**2*Y1s**2 - G0*B1c**2*X1c**2*Y1s**2 - 4*B0*G0*B20*X1c**2*Y1s**2 - \
+        8*B0*G0*B1c*X1c*X20*Y1s**2 - 4*B0**2*G0*X20**2*Y1s**2 - 8*B0*G0*B1c*X1c*X2c*Y1s**2 - \
+        8*B0**2*G0*X20*X2c*Y1s**2 - 4*B0**2*G0*X2c**2*Y1s**2 - 4*B0**2*G0*X2s**2*Y1s**2 + \
+        8*B0**2*G0*X1c*X20*Y1c*Y20 - 8*B0**2*G0*X1c*X2c*Y1c*Y20 - 8*B0**2*G0*X1c*X2s*Y1s*Y20 - \
+        4*B0**2*G0*X1c**2*Y20**2 - 8*B0**2*G0*X1c*X20*Y1c*Y2c + 8*B0**2*G0*X1c*X2c*Y1c*Y2c + \
+        24*B0**2*G0*X1c*X2s*Y1s*Y2c + 8*B0**2*G0*X1c**2*Y20*Y2c - 4*B0**2*G0*X1c**2*Y2c**2 + \
+        8*B0**2*G0*X1c*X2s*Y1c*Y2s - 8*B0*G0*B1c*X1c**2*Y1s*Y2s - 8*B0**2*G0*X1c*X20*Y1s*Y2s - \
+        24*B0**2*G0*X1c*X2c*Y1s*Y2s - 4*B0**2*G0*X1c**2*Y2s**2 - 4*B0**2*G0*X1c**2*Z20**2 - \
+        4*B0**2*G0*Y1c**2*Z20**2 - 4*B0**2*G0*Y1s**2*Z20**2 - 4*B0**2*abs_G0_over_B0*I2*Y1c*Y1s*Z2c + \
+        8*B0**2*G0*X1c**2*Z20*Z2c + 8*B0**2*G0*Y1c**2*Z20*Z2c - 8*B0**2*G0*Y1s**2*Z20*Z2c - \
+        4*B0**2*G0*X1c**2*Z2c**2 - 4*B0**2*G0*Y1c**2*Z2c**2 - 4*B0**2*G0*Y1s**2*Z2c**2 + \
+        2*B0**2*abs_G0_over_B0*I2*X1c**2*Z2s + 2*B0**2*abs_G0_over_B0*I2*Y1c**2*Z2s - 2*B0**2*abs_G0_over_B0*I2*Y1s**2*Z2s + \
+        16*B0**2*G0*Y1c*Y1s*Z20*Z2s - 4*B0**2*G0*X1c**2*Z2s**2 - 4*B0**2*G0*Y1c**2*Z2s**2 - \
+        4*B0**2*G0*Y1s**2*Z2s**2 + B0**2*abs_G0_over_B0*I2*X1c**3*Y1s*torsion + B0**2*abs_G0_over_B0*I2*X1c*Y1c**2*Y1s*torsion + \
+        B0**2*abs_G0_over_B0*I2*X1c*Y1s**3*torsion - B0**2*I2*X1c*Y1c*Y1s*d_X1c_d_varphi + \
+        B0**2*I2*X1c**2*Y1s*d_Y1c_d_varphi)/(16*B0**2*G0*X1c**2*Y1s**2)
+    
+    X3c1 = X1c * flux_constraint_coefficient
+    Y3c1 = Y1c * flux_constraint_coefficient
+    Y3s1 = Y1s * flux_constraint_coefficient
+    X3s1 = X1s * flux_constraint_coefficient
+    Z3c1 = 0
+    Z3s1 = 0
+   
+    X3c3 = 0
+    X3s3 = 0
+    Y3c3 = 0
+    Y3s3 = 0
+    Z3c3 = 0
+    Z3s3 = 0
+    
+    d_X3c1_d_varphi = d_d_varphi @ X3c1
+    d_Y3c1_d_varphi = d_d_varphi @ Y3c1
+    d_Y3s1_d_varphi = d_d_varphi @ Y3s1
+    
+    # The expression below is derived in the O(r**2) paper, and in "20190318-01 Wrick's streamlined Garren-Boozer method, MHD.nb" in the section "Not assuming quasisymmetry".
+    # Note Q = (1/2) * (XYEquation0 without X3 and Y3 terms) where XYEquation0 is the quantity in the above notebook.
+    Q = -spsi * B0 * abs_G0_over_B0 / (2*G0*G0) * (iotaN * I2 + mu0 * p2 * G0 / (B0 * B0)) + 2 * (X2c * Y2s - X2s * Y2c) \
+            + spsi * B0 / (2*G0) * (abs_G0_over_B0 * X20 * curvature - d_Z20_d_varphi) \
+            + I2 / (4 * G0) * (-abs_G0_over_B0 * torsion * (X1c*X1c + Y1s*Y1s + Y1c*Y1c) + Y1c * d_X1c_d_varphi - X1c * d_Y1c_d_varphi)
+    predicted_flux_constraint_coefficient = - Q / (2 * sG * spsi)
+    
+    B0_order_a_squared_to_cancel = -sG * B0 * B0 * (G2 + I2 * N_helicity) * abs_G0_over_B0 / (2*G0*G0) \
+        -spsi * spsi * B0 * 2 * (X2c * Y2s - X2s * Y2c) \
+        -spsi * B0 * B0 / (2*G0) * (abs_G0_over_B0 * X20 * curvature - d_Z20_d_varphi) \
+        -spsi * spsi * B0 * I2 / (4*G0) * (-abs_G0_over_B0 * torsion * (X1c*X1c + Y1c*Y1c + Y1s*Y1s) + Y1c * d_X1c_d_varphi - X1c * d_Y1c_d_varphi)
+    
+    if helicity == 0:
+        X3c1_untwisted = X3c1
+        Y3c1_untwisted = Y3c1
+        Y3s1_untwisted = Y3s1
+        X3s1_untwisted = X3s1
+        X3s3_untwisted = X3s3
+        X3c3_untwisted = X3c3
+        Y3c3_untwisted = Y3c3
+        Y3s3_untwisted = Y3s3
+        Z3s1_untwisted = Z3s1
+        Z3s3_untwisted = Z3s3
+        Z3c1_untwisted = Z3c1
+        Z3c3_untwisted = Z3c3
+    else:
+        angle = -helicity * nfp * varphi
+        sinangle = jnp.sin(angle)
+        cosangle = jnp.cos(angle)
+        X3s1_untwisted = X3s1 *   cosangle  + X3c1 * sinangle
+        X3c1_untwisted = X3s1 * (-sinangle) + X3c1 * cosangle
+        Y3s1_untwisted = Y3s1 *   cosangle  + Y3c1 * sinangle
+        Y3c1_untwisted = Y3s1 * (-sinangle) + Y3c1 * cosangle
+        Z3s1_untwisted = Z3s1 *   cosangle  + Z3c1 * sinangle
+        Z3c1_untwisted = Z3s1 * (-sinangle) + Z3c1 * cosangle
+        sinangle = jnp.sin(3*angle)
+        cosangle = jnp.cos(3*angle)
+        X3s3_untwisted = X3s3 *   cosangle  + X3c3 * sinangle
+        X3c3_untwisted = X3s3 * (-sinangle) + X3c3 * cosangle
+        Y3s3_untwisted = Y3s3 *   cosangle  + Y3c3 * sinangle
+        Y3c3_untwisted = Y3s3 * (-sinangle) + Y3c3 * cosangle
+        Z3s3_untwisted = Z3s3 *   cosangle  + Z3c3 * sinangle
+        Z3c3_untwisted = Z3s3 * (-sinangle) + Z3c3 * cosangle
+
+    
+
+    
 def calculate_shear(self,B31c = 0):
     """
     Compute the magnetic shear iota_2 (so iota=iota0+r^2*iota2) which comes
