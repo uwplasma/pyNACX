@@ -391,7 +391,7 @@ def calc_r2_new(X1c, Y1c, Y1s, B0_over_abs_G0, d_d_varphi, iota_N, torsion, abs_
 
     # O(r^2) diagnostics:
     mercier_results = new_mercier(d_l_d_phi, B0, G0, p2, etabar, curvature, sigma, iota_N, iota, d_phi, nfp, axis_length, B20_mean, G2, I2)
-    grad_grad_B_results = calculate_grad_grad_B_tensor(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2s, Z2c, iota_N, iota, curvature, torsion, G0, B0, sG, spsi, I2, G2, p2, B20, B2s, B2c, d_X1c_d_varphi, d_Y1s_d_varphi, d_Y1c_d_varphi, d_X20_d_varphi, d_X2s_d_varphi, d_X2c_d_varphi, d_Y20_d_varphi, d_Y2s_d_varphi, d_Y2c_d_varphi, d_Z20_d_varphi, d_Z2s_d_varphi, d_Z2c_d_varphi, d2_X1c_d_varphi2, d2_Y1s_d_varphi2, d2_Y1c_d_varphi2, d_curvature_d_varphi, d_torsion_d_varphi)
+    grad_grad_B_results = calculate_grad_grad_B_tensor(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2s, Z2c, iota_N, iota, curvature, torsion, G0, B0, sG, spsi, I2, G2, p2, B20, B2s, B2c, d_X1c_d_varphi, d_Y1s_d_varphi, d_Y1c_d_varphi, d_X20_d_varphi, d_X2s_d_varphi, d_X2c_d_varphi, d_Y20_d_varphi, d_Y2s_d_varphi, d_Y2c_d_varphi, d_Z20_d_varphi, d_Z2s_d_varphi, d_Z2c_d_varphi, d2_X1c_d_varphi2, d2_Y1s_d_varphi2, d2_Y1c_d_varphi2, d_curvature_d_varphi, d_torsion_d_varphi, nphi)
     #self.grad_grad_B_inverse_scale_length_vs_varphi = t.grad_grad_B_inverse_scale_length_vs_varphi
     #self.grad_grad_B_inverse_scale_length = t.grad_grad_B_inverse_scale_length
     #r_singularity_results = calculate_r_singularity()
@@ -422,4 +422,4 @@ def calc_r2_new(X1c, Y1c, Y1s, B0_over_abs_G0, d_d_varphi, iota_N, torsion, abs_
     Z2s_untwisted = Z2s *   cosangle  + Z2c * sinangle
     Z2c_untwisted = Z2s * (-sinangle) + Z2c * cosangle
 
-    return N_helicity, G2, d_curvature_d_varphi, d_torsion_d_varphi, d_X20_d_varphi, d_X2s_d_varphi, d_X2c_d_varphi, d_Y20_d_varphi, d_Y2s_d_varphi, d_Y2c_d_varphi, d_Z20_d_varphi, d_Z2s_d_varphi, d_Z2c_d_varphi, d2_X1c_d_varphi2, d2_Y1c_d_varphi2, d2_Y1s_d_varphi2, V1, V2, V3, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2s, Z2c, beta_1s, B20, X20_untwisted, X2s_untwisted, X2c_untwisted, Y20_untwisted, Y2s_untwisted, Y2c_untwisted, Z20_untwisted, Z2s_untwisted, Z2c_untwisted
+    return jnp.array(mercier_results), jnp.array(grad_grad_B_results), N_helicity, G2, d_curvature_d_varphi, d_torsion_d_varphi, d_X20_d_varphi, d_X2s_d_varphi, d_X2c_d_varphi, d_Y20_d_varphi, d_Y2s_d_varphi, d_Y2c_d_varphi, d_Z20_d_varphi, d_Z2s_d_varphi, d_Z2c_d_varphi, d2_X1c_d_varphi2, d2_Y1c_d_varphi2, d2_Y1s_d_varphi2, V1, V2, V3, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2s, Z2c, beta_1s, B20, X20_untwisted, X2s_untwisted, X2c_untwisted, Y20_untwisted, Y2s_untwisted, Y2c_untwisted, Z20_untwisted, Z2s_untwisted, Z2c_untwisted

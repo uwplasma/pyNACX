@@ -45,10 +45,16 @@ def calculate_grad_B_tensor(spsi, B0, d_l_d_varphi, sG, curvature, X1c, d_Y1s_d_
     else:
         tensor.tt = 0
      """
-     
-    tensor.tt = jax.lax.cond(hasattr(B0, "__len__"), 
+    #B0 = jnp.atleast_1d(B0)
+    
+    cond = jnp.ndim(B0) > 1
+    #B0 = jnp.atleast_1d(B0)
+    
+    B0 = jnp.broadcast_to(B0, (61,))
+    
+    tensor.tt = jax.lax.cond(cond,  
                              lambda _: sG * jnp.matmul(d_d_varphi, B0) / d_l_d_varphi, 
-                             lambda _: 0,
+                             lambda _: B0,
                              None)
     
     grad_B_tensor = tensor
@@ -78,7 +84,7 @@ def calculate_grad_B_tensor(spsi, B0, d_l_d_varphi, sG, curvature, X1c, d_Y1s_d_
     
     
     
-def calculate_grad_grad_B_tensor(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2s, Z2c, iotaN, iota, curvature, torsion, G0, B0, sG, spsi, I2, G2, p2, B20, B2s, B2c, d_X1c_d_varphi, d_Y1s_d_varphi, d_Y1c_d_varphi, d_X20_d_varphi, d_X2s_d_varphi, d_X2c_d_varphi, d_Y20_d_varphi, d_Y2s_d_varphi, d_Y2c_d_varphi, d_Z20_d_varphi, d_Z2s_d_varphi, d_Z2c_d_varphi, d2_X1c_d_varphi2, d2_Y1s_d_varphi2, d2_Y1c_d_varphi2, d_curvature_d_varphi, d_torsion_d_varphi):
+def calculate_grad_grad_B_tensor(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2s, Z2c, iotaN, iota, curvature, torsion, G0, B0, sG, spsi, I2, G2, p2, B20, B2s, B2c, d_X1c_d_varphi, d_Y1s_d_varphi, d_Y1c_d_varphi, d_X20_d_varphi, d_X2s_d_varphi, d_X2c_d_varphi, d_Y20_d_varphi, d_Y2s_d_varphi, d_Y2c_d_varphi, d_Z20_d_varphi, d_Z2s_d_varphi, d_Z2c_d_varphi, d2_X1c_d_varphi2, d2_Y1s_d_varphi2, d2_Y1c_d_varphi2, d_curvature_d_varphi, d_torsion_d_varphi, nphi):
     """
     Compute the components of the grad grad B tensor, and the scale
     length L grad grad B associated with the Frobenius norm of this
@@ -156,8 +162,8 @@ def calculate_grad_grad_B_tensor(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z2
     d_torsion_d_varphi = s.d_torsion_d_varphi
     """
 
-    grad_grad_B = jnp.zeros((s.nphi, 3, 3, 3))
-    grad_grad_B_alt = jnp.zeros((s.nphi, 3, 3, 3))
+    grad_grad_B = jnp.zeros((nphi, 3, 3, 3))
+    #grad_grad_B_alt = jnp.zeros((s.nphi, 3, 3, 3))
 
     # The elements that follow are computed in the Mathematica notebook "20200407-01 Grad grad B tensor near axis"
     # and then formatted for fortran by the python script process_grad_grad_B_tensor_code
@@ -571,8 +577,8 @@ def calculate_grad_grad_B_tensor(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z2
     squared = grad_grad_B * grad_grad_B
     norm_squared = jnp.sum(squared, axis=(1,2,3))
     grad_grad_B_inverse_scale_length_vs_varphi = jnp.sqrt(jnp.sqrt(norm_squared) / (4*B0))
-    L_grad_grad_B = 1 / self.grad_grad_B_inverse_scale_length_vs_varphi
-    grad_grad_B_inverse_scale_length = jnp.max(self.grad_grad_B_inverse_scale_length_vs_varphi)
+    L_grad_grad_B = 1 / grad_grad_B_inverse_scale_length_vs_varphi
+    grad_grad_B_inverse_scale_length = jnp.max(grad_grad_B_inverse_scale_length_vs_varphi)
     
     return grad_grad_B, grad_grad_B_inverse_scale_length_vs_varphi, L_grad_grad_B, grad_grad_B_inverse_scale_length
     #two way is not used because default called with two_way = False
