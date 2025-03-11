@@ -7,7 +7,9 @@ data that is known on a uniform grid in a periodic domain.
 
 import numpy as np
 #from numba import njit
+import jax
 import jax.numpy as jnp
+
 
 # Get machine precision
 eps = np.finfo(float).eps
@@ -52,13 +54,22 @@ def fourier_interpolation(fk, x):
     """
     D = 0.5 * (jnp.outer(x, jnp.ones(N)) - jnp.outer(jnp.ones(M), xk))
     
+    cond = jnp.mod(N, 2) == 0
+    
+    D = jax.lax.cond(cond, 
+                     lambda _ : 1 / jnp.tan(D + eps * (D==0)), 
+                     lambda _: 1 / jnp.sin(D + eps * (D==0)), 
+                     None)
+    
+    """
     if jnp.mod(N, 2) == 0:
         # Formula for N even
         D = 1 / jnp.tan(D + eps * (D==0))
     else:
         # Formula for N odd
         D = 1 / jnp.sin(D + eps * (D==0))
-
+    """
+    
     # Evaluate interpolant as matrix-vector products
     #return np.matmul(D, w * fk) / np.matmul(D, w)
     return jnp.dot(D, w * fk) / jnp.dot(D, w)

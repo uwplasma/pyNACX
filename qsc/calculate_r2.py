@@ -205,11 +205,11 @@ def calculate_r2(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0
     self.B20 = B20
 
     # O(r^2) diagnostics:
-#    self.mercier()
+    self.mercier()
     self.calculate_grad_grad_B_tensor()
     #self.grad_grad_B_inverse_scale_length_vs_varphi = t.grad_grad_B_inverse_scale_length_vs_varphi
     #self.grad_grad_B_inverse_scale_length = t.grad_grad_B_inverse_scale_length
-    self.calculate_r_singularity()
+    #self.calculate_r_singularity()
 
     if self.helicity == 0:
         self.X20_untwisted = self.X20
@@ -295,6 +295,7 @@ def calc_r2_new(X1c, Y1c, Y1s, B0_over_abs_G0, d_d_varphi, iota_N, torsion, abs_
         - (0.5) * abs_G0_over_B0 * beta_1s * Y1c
 
     fY0_from_X20 = torsion * abs_G0_over_B0 - spsi * I2_over_B0 * (2) * abs_G0_over_B0
+
     fY0_from_Y20 = jnp.zeros(nphi)
     fY0_inhomogeneous = -4 * spsi * sG * abs_G0_over_B0 * (X2s * Z2c - X2c * Z2s) \
         - spsi * I2_over_B0 * (-0.5 * curvature * X1c * X1c) * abs_G0_over_B0 - (0.5) * abs_G0_over_B0 * beta_1s * X1c
@@ -422,4 +423,6 @@ def calc_r2_new(X1c, Y1c, Y1s, B0_over_abs_G0, d_d_varphi, iota_N, torsion, abs_
     Z2s_untwisted = Z2s *   cosangle  + Z2c * sinangle
     Z2c_untwisted = Z2s * (-sinangle) + Z2c * cosangle
 
-    return jnp.array(mercier_results), jnp.array(grad_grad_B_results), N_helicity, G2, d_curvature_d_varphi, d_torsion_d_varphi, d_X20_d_varphi, d_X2s_d_varphi, d_X2c_d_varphi, d_Y20_d_varphi, d_Y2s_d_varphi, d_Y2c_d_varphi, d_Z20_d_varphi, d_Z2s_d_varphi, d_Z2c_d_varphi, d2_X1c_d_varphi2, d2_Y1c_d_varphi2, d2_Y1s_d_varphi2, V1, V2, V3, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2s, Z2c, beta_1s, B20, X20_untwisted, X2s_untwisted, X2c_untwisted, Y20_untwisted, Y2s_untwisted, Y2c_untwisted, Z20_untwisted, Z2s_untwisted, Z2c_untwisted
+    r2_results = N_helicity, G2, d_curvature_d_varphi, d_torsion_d_varphi, d_X20_d_varphi, d_X2s_d_varphi, d_X2c_d_varphi, d_Y20_d_varphi, d_Y2s_d_varphi, d_Y2c_d_varphi, d_Z20_d_varphi, d_Z2s_d_varphi, d_Z2c_d_varphi, d2_X1c_d_varphi2, d2_Y1c_d_varphi2, d2_Y1s_d_varphi2, V1, V2, V3, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2s, Z2c, beta_1s, B20, X20_untwisted, X2s_untwisted, X2c_untwisted, Y20_untwisted, Y2s_untwisted, Y2c_untwisted, Z20_untwisted, Z2s_untwisted, Z2c_untwisted
+    
+    return mercier_results, grad_grad_B_results, r2_results

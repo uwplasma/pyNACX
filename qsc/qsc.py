@@ -98,8 +98,8 @@ class Qsc():
       
         self.pre_calculations() #run initial calculations that rely on self 
         
-        Qsc.calculate(self.nfp, self.etabar, self.curvature, self.sigma, self.helicity, self.varphi, self.X1s, self.X1c, self.d_l_d_phi, self.d_d_varphi, self.sG, self.spsi, self.B0, self.G0, self.iotaN, self.torsion, self.abs_G0_over_B0, self.B2s, self.B2c, self.p2, self.I2, self.nphi, self.order, self.iota, self.d_l_d_varphi, self.tangent_cylindrical, self.normal_cylindrical, self.binormal_cylindrical, self.d_phi, self.axis_length)
-
+        self.initialize()
+        
     def change_nfourier(self, nfourier_new):
         """
         Resize the arrays of Fourier amplitudes. You can either increase
@@ -202,42 +202,104 @@ class Qsc():
         self.iotaN = iotaN
         print("\nSigma equation solved...")
         
+    def initialize(self): 
+        
+        print(f"nphi type: {type(self.nphi)}, nphi: {self.nphi}")
+       
+       
+        print(type(self.nfp))
+        print(type(self.etabar))
+        print(type(self.curvature)) 
+        print(type(self.sigma))
+        print(type(self.helicity))
+        print(type(self.varphi))
+        print(type(self.X1s))
+        print(type(self.X1c))
+        print(type(self.d_l_d_phi))
+        print(type(self.d_d_varphi))
+        print(type(self.sG))
+        print(type(self.spsi))
+        print(type(self.B0))
+        print(type(self.G0))
+        print(type(self.iotaN))
+        print(type(self.torsion))
+        print(type(self.abs_G0_over_B0))
+        print(type(self.B2s))
+        print(type(self.B2c))
+        print(type(self.p2))
+        print(type(self.I2))
+        print(type(self.nphi))
+        print(type(self.order))
+        print(type(self.iota))
+        print(type(self.d_l_d_varphi))
+        print(type(self.tangent_cylindrical))
+        print(type(self.normal_cylindrical))
+        print(type(self.binormal_cylindrical))
+        print(type(self.d_phi))
+        print(type(self.axis_length))
 
+        
+        jited_funtion = jax.jit(Qsc.calculate, static_argnames= ['order', 'nphi'])
+        
+        calculation_results = jited_funtion(nfp = self.nfp, etabar = self.etabar, curvature = self.curvature, sigma = self.sigma, helicity = self.helicity, varphi = self.varphi, X1s = self.X1s, X1c = self.X1c, d_l_d_phi = self.d_l_d_phi, d_d_varphi = self.d_d_varphi, sG = self.sG, spsi = self.spsi, B0 = self.B0, G0 = self.G0, iotaN = self.iotaN, torsion = self.torsion, abs_G0_over_B0 = self.abs_G0_over_B0, B2s = self.B2s, B2c = self.B2c, p2 = self.p2, I2 = self.I2, nphi = self.nphi, order = self.order, iota = self.iota, d_l_d_varphi = self.d_l_d_varphi, tangent_cylindrical = self.tangent_cylindrical, normal_cylindrical = self.normal_cylindrical, binormal_cylindrical = self.binormal_cylindrical, d_phi = self.d_phi, axis_length = self.axis_length)
+        
+        self.Y1s, self.Y1c, self.X1s_untwisted, self.X1c_untwisted, self.Y1s_untwisted, self.Y1c_untwisted, self.elongation, self.mean_elongation, self.max_elongation, self.d_X1c_d_varphi, self.d_X1s_d_varphi, self.d_Y1s_d_varphi, self.d_Y1c_d_varphi = calculation_results[0][0]
+        
+        self.grad_B_tensor, self.grad_B_tensor_cylindrical, self.grad_B_colon_grad_B, self.L_grad_B, self.inv_L_grad_B, self.min_L_grad_B = calculation_results[0][1]
+        
+        self.N_helicity, self.G2, self.d_curvature_d_varphi, self.d_torsion_d_varphi, self.d_X20_d_varphi, self.d_X2s_d_varphi, self.d_X2c_d_varphi, self.d_Y20_d_varphi, self.d_Y2s_d_varphi, self.d_Y2c_d_varphi, self.d_Z20_d_varphi, self.d_Z2s_d_varphi, self.d_Z2c_d_varphi, self.d2_X1c_d_varphi2, self.d2_Y1c_d_varphi2, self.d2_Y1s_d_varphi2, self.V1, self.V2, self.V3, self.X20, self.X2s, self.X2c, self.Y20, self.Y2s, self.Y2c, self.Z20, self.Z2s, self.Z2c, self.beta_1s, self.B20, self.X20_untwisted, self.X2s_untwisted, self.X2c_untwisted, self.Y20_untwisted, self.Y2s_untwisted, self.Y2c_untwisted, self.Z20_untwisted, self.Z2s_untwisted, self.Z2c_untwisted = calculation_results[1][2]
+        
+        self.DGeod_times_r2, self.d2_volume_d_psi2, self.DWell_times_r2, self.DMerc_times_r2 = calculation_results[1][0]
+        
+        self.grad_grad_B, self.grad_grad_B_inverse_scale_length_vs_varphi, self.L_grad_grad_B, self.grad_grad_B_inverse_scale_length = calculation_results[1][1]
+        
+        self.X3c1, self.Y3c1, self.Y3s1, self.X3s1, self.Z3c1, self.Z3s1, self.X3c3, self.X3s3, self.Y3c3, self.Y3s3, self.Z3c3, self.Z3s3, self.d_X3c1_d_varphi, self.d_Y3c1_d_varphi, self.d_Y3s1_d_varphi, self.flux_constraint_coefficient, self.B0_order_a_squared_to_cancel, self.X3c1_untwisted, self.Y3c1_untwisted, self.Y3s1_untwisted, self.X3s1_untwisted, self.X3s3_untwisted, self.X3c3_untwisted, self.Y3c3_untwisted, self.Y3s3_untwisted, self.Z3s1_untwisted, self.Z3s3_untwisted, self.Z3c1_untwisted, self.Z3c3_untwisted = calculation_results[2]
+        
     def calculate(nfp, etabar, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_phi, d_d_varphi, sG, spsi, B0, G0, iotaN, torsion, abs_G0_over_B0, B2s, B2c, p2, I2, nphi, order, iota, d_l_d_varphi, tangent_cylindrical, normal_cylindrical, binormal_cylindrical, d_phi, axis_length):
-        from .calculate_r1 import solve_sigma_equation
+        
         """
         A jax compatible driver of main calculations.
         """
         print("\nCalculating R1...")
         r1_results = r1_diagnostics(nfp, etabar, sG, spsi, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_phi, d_d_varphi, B0, d_l_d_varphi, tangent_cylindrical, normal_cylindrical, binormal_cylindrical, iotaN, torsion)
-#        grad_b_results = calculate_grad_B_tensor()
 
-        Y1s = r1_results[0]
-        Y1c = r1_results[1]
-        d_X1c_d_varphi = r1_results[-4]
-        d_Y1s_d_varphi = r1_results[-2]
-        d_Y1c_d_varphi = r1_results[-1]
+
+        Y1s = r1_results[0][0]
+        Y1c = r1_results[0][1]
+        d_X1c_d_varphi = r1_results[0][-4]
+        d_Y1s_d_varphi = r1_results[0][-2]
+        d_Y1c_d_varphi = r1_results[0][-1]
         r2_results = jax.lax.cond(order != 'r1',
                           lambda _:  calc_r2_new(X1c, Y1c, Y1s, B0 / jnp.abs(G0), d_d_varphi, iotaN, torsion, abs_G0_over_B0, B2s, B0, curvature, etabar, B2c, spsi, sG, p2, sigma, I2/B0, nphi, d_l_d_phi, helicity, nfp, G0, iota, I2, varphi, d_X1c_d_varphi, d_Y1c_d_varphi, d_Y1s_d_varphi, d_phi, axis_length),
-                          lambda _:  tuple(jnp.zeros_like(r) for r in calc_r2_new(X1c, Y1c, Y1s, B0/jnp.abs(G0), d_d_varphi, iotaN, torsion, abs_G0_over_B0, B2s, B0, curvature, etabar, B2c, spsi, sG, p2, sigma, I2/B0, nphi, d_l_d_phi, helicity, nfp, G0, iota, I2, varphi, d_X1c_d_varphi, d_Y1c_d_varphi, d_Y1s_d_varphi, d_phi, axis_length)),
+                          lambda _: tuple(
+                            tuple(jax.numpy.zeros_like(r) for r in inner_tuple)  # Apply zeros_like to each element of the inner tuple
+                            for inner_tuple in calc_r2_new(
+                                X1c, Y1c, Y1s, B0 / jnp.abs(G0), d_d_varphi, iotaN, torsion, abs_G0_over_B0, 
+                                B2s, B0, curvature, etabar, B2c, spsi, sG, p2, sigma, I2 / B0, nphi, 
+                                d_l_d_phi, helicity, nfp, G0, iota, I2, varphi, d_X1c_d_varphi, 
+                                d_Y1c_d_varphi, d_Y1s_d_varphi, d_phi, axis_length)
+                            ),
                           operand=None)
         
+ 
+        print("\nCalculating R2...")
 
+        X20 = r2_results[2][20]
+        X2c = r2_results[2][22]
+        X2s = r2_results[2][21]
+        B20 = r2_results[2][30]
+        Y20 = r2_results[2][23]
+        Y2c = r2_results[2][25]
+        Y2s = r2_results[2][24]
+        Z20 = r2_results[2][26]
+        Z2c = r2_results[2][28]
+        Z2s = r2_results[2][27]
+        d_Z20_d_varphi = r2_results[2][10]
+        G2 = r2_results[2][1]
+        N_helicity  = r2_results[2][0]
         
-        X20 = r2_results[20]
-        X2c = r2_results[22]
-        X2s = r2_results[21]
-        B20 = r2_results[30]
-        Y20 = r2_results[23]
-        Y2c = r2_results[25]
-        Y2s = r2_results[24]
-        Z20 = r2_results[26]
-        Z2c = r2_results[28]
-        Z2s = r2_results[27]
-        d_Z20_d_varphi = r2_results[10]
-        G2 = r2_results[1]
-        N_helicity  = r2_results[0]
-        
+        print("\nCalculating R3...")
+
         r3_result = jax.lax.cond(order == 'r3',
                          lambda _: calc_r3_new(B0, G0, X20, Y1c, X2c, X2s, etabar*B0, X1c, X1s, Y1s, I2, iotaN, B20, Y20, Y2c, Y2s, Z20, abs_G0_over_B0, Z2c, Z2s, torsion, d_X1c_d_varphi, d_Y1c_d_varphi, d_d_varphi, spsi, p2, curvature, d_Z20_d_varphi, sG, G2, N_helicity, helicity, nfp, varphi),
                          lambda _: tuple(jnp.zeros_like(r) for r in calc_r3_new(B0, G0, X20, Y1c, X2c, X2s, etabar*B0, X1c, X1s, Y1s, I2, iotaN, B20, Y20, Y2c, Y2s, Z20, abs_G0_over_B0, Z2c, Z2s, torsion, d_X1c_d_varphi, d_Y1c_d_varphi, d_d_varphi, spsi, p2, curvature, d_Z20_d_varphi, sG, G2, N_helicity, helicity, nfp, varphi)),

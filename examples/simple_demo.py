@@ -4,8 +4,8 @@ sys.path.append('/Users/z/Documents/GitHub/pyNACX')
 
 
 import numpy as np
-#import jax
-#import jax.numpy as jnp
+import jax
+import jax.numpy as jnp
 from qsc import Qsc
 from qsc import derive_r3 , calculate_r1
 
@@ -56,7 +56,8 @@ print(f" {derive_r3.derive_X3s1(_residual, _jacobian, rc, zs, rs, zc, nfp, etaba
 """
 
 print("Running pyNACX...")
-stel = Qsc(rc=[1, 0.09], zs=[0, -0.09], nfp=2, etabar=0.95, I2=0.9, order='r1', B2c=-0.7, p2=-600000.)
+stel = Qsc(rc=[1, 0.09], zs=[0, -0.09], nfp=2, etabar=0.95, I2=0.9, order='r3', B2c=-0.7, p2=-600000.)
+
 
 print("pyNACX finished")
 print(stel.iota) # Rotational transform on-axis for this configuration

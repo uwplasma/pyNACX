@@ -10,7 +10,10 @@ import scipy.optimize
 from qsc.fourier_interpolation import fourier_interpolation
 from scipy.interpolate import CubicSpline as spline
 
+import jax
+import jax.scipy.optimize as jso
 import jax.numpy as jnp
+from jaxopt import ScipyMinimize
 
 
 #logging.basicConfig(level=logging.INFO)
@@ -24,6 +27,62 @@ class Struct():
     attributes.
     """
     pass
+
+def jax_fourier_minimum(y):
+    """
+    Given uniformly spaced data y on a periodic domain, find the
+    minimum of the spectral interpolant.
+    """
+    y = jnp.array(y)  # Ensure correct argument
+
+    # Handle the case of a constant
+    def handle_constant_case(y):
+        return jnp.repeat(y[0], 3)
+
+    def func(x):
+            interp = fourier_interpolation(y, jnp.array([x]))
+            return interp[0]
+        
+    def handle_non_constant_case(y):
+        n = len(y)
+        dx = 2 * jnp.pi / n
+        
+        index = jnp.argmin(y)
+        
+        
+    
+        f0 = func(index * dx)
+        
+        #look for bracket 
+        def body(j, carry): 
+            fm = func(carry[0])
+            fp = func(carry[2])
+            
+            #cond = f0 < fm and f0 < fp
+
+            carry = jax.lax.cond(jnp.logical_and(f0 < fm, f0 < fp),
+                                 lambda _: jnp.array([index - j, index, index + j]) * dx,
+                                 lambda _: carry,
+                                 None)        
+            
+            return carry
+        
+        carry = jnp.array([index, index, index]) * dx 
+        
+        bracket = jax.lax.fori_loop(1, 4, body, carry)
+        
+        return bracket
+
+    
+    max_min_diff = jnp.max(y) - jnp.min(y)
+    mean_y_abs = jnp.abs(jnp.mean(y))
+    
+    is_constant = (max_min_diff / jnp.maximum(1e-14, mean_y_abs) < 1e-14)
+    
+    result = jax.lax.cond(is_constant, handle_constant_case, handle_non_constant_case, y)
+    
+    
+    return jso.minimize(func, result, method = 'BFGS')
 
 def fourier_minimum(y):
     """
@@ -92,7 +151,7 @@ def to_Fourier(R_2D, Z_2D, nfp, mpol, ntor, lasym):
     theta = jnp.linspace(0, 2 * jnp.pi, ntheta, endpoint=False)
     phi_conversion = jnp.linspace(0, 2 * jnp.pi / nfp, nphi_conversion, endpoint=False)
     RBC = jnp.zeros((int(2 * ntor + 1), int(mpol + 1)))
-    RBS = jnp.zeros((int(2 * ntor + 1), int(mpol + 1)))
+    RBS = jnp.zeros((int(2 * ntor + 1) , int(mpol + 1)))
     ZBC = jnp.zeros((int(2 * ntor + 1), int(mpol + 1)))
     ZBS = jnp.zeros((int(2 * ntor + 1), int(mpol + 1)))
     factor = 2 / (ntheta * nphi_conversion)

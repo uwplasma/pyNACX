@@ -7,7 +7,7 @@ import logging
 import numpy as np
 
 from qsc.grad_B_tensor import calculate_grad_B_tensor
-from .util import fourier_minimum
+from .util import fourier_minimum, jax_fourier_minimum
 from .newton import new_new_newton, newton
 import jax.numpy as jnp
 from jax import jacobian
@@ -181,7 +181,7 @@ def r1_diagnostics(nfp, etabar, sG, spsi, curvature, sigma, helicity, varphi, X1
     
     index = np.argmax(elongation)
     
-    max_elongation = -fourier_minimum(-elongation)
+    max_elongation = -jax_fourier_minimum(-elongation).x
 
     d_X1c_d_varphi = jnp.matmul(d_d_varphi, X1c)
     d_X1s_d_varphi = jnp.matmul(d_d_varphi, X1s)
@@ -190,4 +190,5 @@ def r1_diagnostics(nfp, etabar, sG, spsi, curvature, sigma, helicity, varphi, X1
     
     grad_b_tensor_results = calculate_grad_B_tensor(spsi, B0, d_l_d_varphi, sG, curvature, X1c, d_Y1s_d_varphi, iotaN, Y1c, d_X1c_d_varphi, Y1s, torsion, d_Y1c_d_varphi, d_d_varphi, tangent_cylindrical, normal_cylindrical, binormal_cylindrical )
 
-    return Y1s, Y1c, X1s_untwisted, X1c_untwisted, Y1s_untwisted, Y1c_untwisted, elongation, mean_elongation, max_elongation, d_X1c_d_varphi, d_X1s_d_varphi, d_Y1s_d_varphi, d_Y1c_d_varphi
+    r1_results = Y1s, Y1c, X1s_untwisted, X1c_untwisted, Y1s_untwisted, Y1c_untwisted, elongation, mean_elongation, max_elongation, d_X1c_d_varphi, d_X1s_d_varphi, d_Y1s_d_varphi, d_Y1c_d_varphi
+    return r1_results, grad_b_tensor_results

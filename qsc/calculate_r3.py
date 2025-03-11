@@ -229,7 +229,10 @@ def calc_r3_new(B0, G0, X20, Y1c, X2c, X2s, B1c, X1c, X1s, Y1s, I2, iotaN, B20, 
     Z3s3_untwisted = Z3s3 *   cosangle  + Z3c3 * sinangle
     Z3c3_untwisted = Z3s3 * (-sinangle) + Z3c3 * cosangle
     
-    return X3c1, Y3c1, Y3s1, X3s1, Z3c1, Z3s1, X3c3, X3s3, Y3c3, Y3s3, Z3c3, Z3s3, d_X3c1_d_varphi, d_Y3c1_d_varphi, d_Y3s1_d_varphi, flux_constraint_coefficient, B0_order_a_squared_to_cancel, X3c1_untwisted, Y3c1_untwisted, Y3s1_untwisted, X3s1_untwisted, X3s3_untwisted, X3c3_untwisted, Y3c3_untwisted, Y3s3_untwisted, Z3s1_untwisted, Z3s3_untwisted, Z3c1_untwisted, Z3c3_untwisted
+    r3_results = X3c1, Y3c1, Y3s1, X3s1, Z3c1, Z3s1, X3c3, X3s3, Y3c3, Y3s3, Z3c3, Z3s3, d_X3c1_d_varphi, d_Y3c1_d_varphi, d_Y3s1_d_varphi, flux_constraint_coefficient, B0_order_a_squared_to_cancel, X3c1_untwisted, Y3c1_untwisted, Y3s1_untwisted, X3s1_untwisted, X3s3_untwisted, X3c3_untwisted, Y3c3_untwisted, Y3s3_untwisted, Z3s1_untwisted, Z3s3_untwisted, Z3c1_untwisted, Z3c3_untwisted
+    for obj in r3_results: 
+        print(type(obj))
+    return r3_results
 
     
 

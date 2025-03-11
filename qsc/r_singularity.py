@@ -8,6 +8,7 @@ become singular.
 import logging
 import warnings
 import numpy as np
+import jax
 import jax.numpy as jnp
 
 #from .util import Struct, fourier_minimum
@@ -15,71 +16,17 @@ import jax.numpy as jnp
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-def calculate_r_singularity(self, high_order=False):
+def calculate_r_singularity(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2s, Z2c, iotaN, iota, G0, B0, curvature, torsion, nphi, sG, spsi, I2, G2, p2, B20, B2s, B2c, d_X1c_d_varphi, d_Y1s_d_varphi, d_Y1c_d_varphi, d_X20_d_varphi, d_X2s_d_varphi, d_X2c_d_varphi, d_Y20_d_varphi, d_Y2s_d_varphi, d_Y2c_d_varphi, d_Z20_d_varphi, d_Z2s_d_varphi, d_Z2c_d_varphi, d2_X1c_d_varphi2, d2_Y1s_d_varphi2, d2_Y1c_d_varphi2, d_curvature_d_varphi, d_torsion_d_varphi):
     """
     """
 
-    # Shorthand:
-    s = self
-    
-    X1c = s.X1c
-    Y1s = s.Y1s
-    Y1c = s.Y1c
+    iota_N0 = iotaN
+    iota = iota
+    lp = jnp.abs(G0) / B0
 
-    X20 = s.X20
-    X2s = s.X2s
-    X2c = s.X2c
-
-    Y20 = s.Y20
-    Y2s = s.Y2s
-    Y2c = s.Y2c
-
-    Z20 = s.Z20
-    Z2s = s.Z2s
-    Z2c = s.Z2c
-
-    iota_N0 = s.iotaN
-    iota = s.iota
-    lp = jnp.abs(s.G0) / s.B0
-
-    curvature = s.curvature
-    torsion = s.torsion
-
-    nphi = s.nphi
-    sign_G = s.sG
-    sign_psi = s.spsi
-    B0 = s.B0
-    G0 = s.G0
-    I2 = s.I2
-    G2 = s.G2
-    p2 = s.p2
-
-    B20 = s.B20
-    B2s = s.B2s
-    B2c = s.B2c
-
-    d_X1c_d_varphi = s.d_X1c_d_varphi
-    d_Y1s_d_varphi = s.d_Y1s_d_varphi
-    d_Y1c_d_varphi = s.d_Y1c_d_varphi
-
-    d_X20_d_varphi = s.d_X20_d_varphi
-    d_X2s_d_varphi = s.d_X2s_d_varphi
-    d_X2c_d_varphi = s.d_X2c_d_varphi
-
-    d_Y20_d_varphi = s.d_Y20_d_varphi
-    d_Y2s_d_varphi = s.d_Y2s_d_varphi
-    d_Y2c_d_varphi = s.d_Y2c_d_varphi
-
-    d_Z20_d_varphi = s.d_Z20_d_varphi
-    d_Z2s_d_varphi = s.d_Z2s_d_varphi
-    d_Z2c_d_varphi = s.d_Z2c_d_varphi
-
-    d2_X1c_d_varphi2 = s.d2_X1c_d_varphi2
-    d2_Y1s_d_varphi2 = s.d2_Y1s_d_varphi2
-    d2_Y1c_d_varphi2 = s.d2_Y1c_d_varphi2
-
-    d_curvature_d_varphi = s.d_curvature_d_varphi
-    d_torsion_d_varphi = s.d_torsion_d_varphi
+    nphi = nphi
+    sign_G = sG
+    sign_psi = spsi
 
     r_singularity_basic_vs_varphi = jnp.zeros(nphi)
     r_singularity_vs_varphi = jnp.zeros(nphi)
@@ -126,144 +73,6 @@ def calculate_r_singularity(self, high_order=False):
         X1c*Z20*d_Y1c_d_varphi + X1c*Z2c*d_Y1c_d_varphi - \
         X1c*Z2s*d_Y1s_d_varphi + X1c*Y1s*d_Z2s_d_varphi
     # highorder is default False and not called with true 
-    """  
-    if high_order:
-        g3s1 = lp*(2*X20*X20*Y1c*curvature + X2c*X2c*Y1c*curvature + X2s*X2s*Y1c*curvature - X1c*X2s*Y2s*curvature + \
-                   2*Y1c*Z20*Z20*curvature - 3*Y1c*Z20*Z2c*curvature + Y1c*Z2c*Z2c*curvature - 3*Y1s*Z20*Z2s*curvature + \
-                   Y1c*Z2s*Z2s*curvature - 2*Y1c*Y20*Z20*torsion - Y1c*Y2c*Z20*torsion - Y1s*Y2s*Z20*torsion + \
-                   4*Y1c*Y20*Z2c*torsion - Y1c*Y2c*Z2c*torsion + 5*Y1s*Y2s*Z2c*torsion - \
-                   X1c*X2s*Z2s*torsion + 4*Y1s*Y20*Z2s*torsion - 5*Y1s*Y2c*Z2s*torsion - \
-                   Y1c*Y2s*Z2s*torsion - X1c*X2c*(Y20*curvature + Y2c*curvature + (Z20 + Z2c)*torsion) - \
-                   X20*(3*X2c*Y1c*curvature + 3*X2s*Y1s*curvature + \
-                        2*X1c*(Y20*curvature - 2*Y2c*curvature + (Z20 - 2*Z2c)*torsion))) - 2*Y20*Z2c*d_X1c_d_varphi + \
-                        2*Y1c*Z20*d_X20_d_varphi - 2*Y1c*Z2c*d_X20_d_varphi - \
-                        2*Y1s*Z2s*d_X20_d_varphi - Y1c*Z20*d_X2c_d_varphi + Y1c*Z2c*d_X2c_d_varphi + \
-                        Y1s*Z2s*d_X2c_d_varphi - Y1s*Z20*d_X2s_d_varphi - Y1s*Z2c*d_X2s_d_varphi + \
-                        Y1c*Z2s*d_X2s_d_varphi - 2*X2c*Z20*d_Y1c_d_varphi + \
-                        2*X20*Z2c*d_Y1c_d_varphi - 2*X2s*Z20*d_Y1s_d_varphi + \
-                        4*X2s*Z2c*d_Y1s_d_varphi + 2*X20*Z2s*d_Y1s_d_varphi - \
-                        4*X2c*Z2s*d_Y1s_d_varphi - 2*X1c*Z20*d_Y20_d_varphi + \
-                        2*X1c*Z2c*d_Y20_d_varphi + X1c*Z20*d_Y2c_d_varphi - X1c*Z2c*d_Y2c_d_varphi - \
-                        X1c*Z2s*d_Y2s_d_varphi - 2*X20*Y1c*d_Z20_d_varphi + \
-                        2*X2c*Y1c*d_Z20_d_varphi + 2*X2s*Y1s*d_Z20_d_varphi + \
-                        2*X1c*Y20*d_Z20_d_varphi + X20*Y1c*d_Z2c_d_varphi - X2c*Y1c*d_Z2c_d_varphi - \
-                        X2s*Y1s*d_Z2c_d_varphi - X1c*Y20*d_Z2c_d_varphi + \
-                        Y2c*(2*Z20*d_X1c_d_varphi + X1c*(-2*d_Z20_d_varphi + d_Z2c_d_varphi)) - \
-                        X2s*Y1c*d_Z2s_d_varphi + X20*Y1s*d_Z2s_d_varphi + X2c*Y1s*d_Z2s_d_varphi + \
-                        X1c*Y2s*d_Z2s_d_varphi
-        
-        g3s3 = lp*(-(X2c*X2c*Y1c*curvature) + X2s*X2s*Y1c*curvature - X1c*X2s*Y2s*curvature + Y1c*Z20*Z2c*curvature - \
-                   Y1c*Z2c*Z2c*curvature - Y1s*Z20*Z2s*curvature - 2*Y1s*Z2c*Z2s*curvature + Y1c*Z2s*Z2s*curvature - \
-                   3*Y1c*Y2c*Z20*torsion + 3*Y1s*Y2s*Z20*torsion + 2*Y1c*Y20*Z2c*torsion + \
-                   Y1c*Y2c*Z2c*torsion + Y1s*Y2s*Z2c*torsion - X1c*X2s*Z2s*torsion - \
-                   2*Y1s*Y20*Z2s*torsion + Y1s*Y2c*Z2s*torsion - Y1c*Y2s*Z2s*torsion + \
-                   X20*(X2c*Y1c*curvature - X2s*Y1s*curvature + 2*X1c*(Y2c*curvature + Z2c*torsion)) + \
-                   X2c*(-2*X2s*Y1s*curvature + X1c*(-3*Y20*curvature + Y2c*curvature + (-3*Z20 + Z2c)*torsion))) - \
-                   2*Y20*Z2c*d_X1c_d_varphi + Y1c*Z20*d_X2c_d_varphi - Y1c*Z2c*d_X2c_d_varphi - \
-                   Y1s*Z2s*d_X2c_d_varphi - Y1s*Z20*d_X2s_d_varphi - Y1s*Z2c*d_X2s_d_varphi + \
-                   Y1c*Z2s*d_X2s_d_varphi - 2*X2c*Z20*d_Y1c_d_varphi + \
-                   2*X20*Z2c*d_Y1c_d_varphi + 2*X2s*Z20*d_Y1s_d_varphi - \
-                   2*X20*Z2s*d_Y1s_d_varphi - X1c*Z20*d_Y2c_d_varphi + X1c*Z2c*d_Y2c_d_varphi - \
-                   X1c*Z2s*d_Y2s_d_varphi - X20*Y1c*d_Z2c_d_varphi + X2c*Y1c*d_Z2c_d_varphi + \
-                   X2s*Y1s*d_Z2c_d_varphi + X1c*Y20*d_Z2c_d_varphi + \
-                   Y2c*(2*Z20*d_X1c_d_varphi - X1c*d_Z2c_d_varphi) - X2s*Y1c*d_Z2s_d_varphi + \
-                   X20*Y1s*d_Z2s_d_varphi + X2c*Y1s*d_Z2s_d_varphi + X1c*Y2s*d_Z2s_d_varphi
-        
-        g3c1 = -(lp*(2*X20*X20*Y1s*curvature + X2c*X2c*Y1s*curvature + X2s*X2s*Y1s*curvature - X1c*X2s*Y20*curvature - \
-                     5*X1c*X2s*Y2c*curvature + 2*Y1s*Z20*Z20*curvature + 3*Y1s*Z20*Z2c*curvature + Y1s*Z2c*Z2c*curvature - \
-                     3*Y1c*Z20*Z2s*curvature + Y1s*Z2s*Z2s*curvature - X1c*X2s*Z20*torsion - \
-                     2*Y1s*Y20*Z20*torsion + Y1s*Y2c*Z20*torsion - Y1c*Y2s*Z20*torsion - \
-                     5*X1c*X2s*Z2c*torsion - 4*Y1s*Y20*Z2c*torsion - Y1s*Y2c*Z2c*torsion - \
-                     5*Y1c*Y2s*Z2c*torsion + 4*Y1c*Y20*Z2s*torsion + 5*Y1c*Y2c*Z2s*torsion - \
-                     Y1s*Y2s*Z2s*torsion + 5*X1c*X2c*(Y2s*curvature + Z2s*torsion) + \
-                     X20*(-3*X2s*Y1c*curvature + 3*X2c*Y1s*curvature + 4*X1c*(Y2s*curvature + Z2s*torsion)))) + \
-                     2*Y20*Z2s*d_X1c_d_varphi + 4*Y2c*Z2s*d_X1c_d_varphi - \
-                     2*Y1s*Z20*d_X20_d_varphi - 2*Y1s*Z2c*d_X20_d_varphi + \
-                     2*Y1c*Z2s*d_X20_d_varphi - Y1s*Z20*d_X2c_d_varphi - Y1s*Z2c*d_X2c_d_varphi + \
-                     Y1c*Z2s*d_X2c_d_varphi + Y1c*Z20*d_X2s_d_varphi - Y1c*Z2c*d_X2s_d_varphi - \
-                     Y1s*Z2s*d_X2s_d_varphi + 2*X2s*Z20*d_Y1c_d_varphi + \
-                     4*X2s*Z2c*d_Y1c_d_varphi - 2*X20*Z2s*d_Y1c_d_varphi - \
-                     4*X2c*Z2s*d_Y1c_d_varphi - 2*X2c*Z20*d_Y1s_d_varphi + \
-                     2*X20*Z2c*d_Y1s_d_varphi - 2*X1c*Z2s*d_Y20_d_varphi - \
-                     X1c*Z2s*d_Y2c_d_varphi - X1c*Z20*d_Y2s_d_varphi + X1c*Z2c*d_Y2s_d_varphi - \
-                     2*X2s*Y1c*d_Z20_d_varphi + 2*X20*Y1s*d_Z20_d_varphi + \
-                     2*X2c*Y1s*d_Z20_d_varphi - X2s*Y1c*d_Z2c_d_varphi + X20*Y1s*d_Z2c_d_varphi + \
-                     X2c*Y1s*d_Z2c_d_varphi + Y2s*\
-                     (-2*Z20*d_X1c_d_varphi - 4*Z2c*d_X1c_d_varphi + \
-                      X1c*(2*d_Z20_d_varphi + d_Z2c_d_varphi)) - X20*Y1c*d_Z2s_d_varphi + \
-                      X2c*Y1c*d_Z2s_d_varphi + X2s*Y1s*d_Z2s_d_varphi + X1c*Y20*d_Z2s_d_varphi - \
-                      X1c*Y2c*d_Z2s_d_varphi
-        
-        g3c3 = -(lp*(X2c*X2c*Y1s*curvature - X2s*X2s*Y1s*curvature - 3*X1c*X2s*Y20*curvature + X1c*X2s*Y2c*curvature + \
-                     Y1s*Z20*Z2c*curvature + Y1s*Z2c*Z2c*curvature + Y1c*Z20*Z2s*curvature - 2*Y1c*Z2c*Z2s*curvature - \
-                     Y1s*Z2s*Z2s*curvature - 3*X1c*X2s*Z20*torsion - 3*Y1s*Y2c*Z20*torsion - \
-                     3*Y1c*Y2s*Z20*torsion + X1c*X2s*Z2c*torsion + 2*Y1s*Y20*Z2c*torsion - \
-                     Y1s*Y2c*Z2c*torsion + Y1c*Y2s*Z2c*torsion + 2*Y1c*Y20*Z2s*torsion + \
-                     Y1c*Y2c*Z2s*torsion + Y1s*Y2s*Z2s*torsion + \
-                     X2c*(-2*X2s*Y1c*curvature + X1c*(Y2s*curvature + Z2s*torsion)) + \
-                     X20*(X2s*Y1c*curvature + X2c*Y1s*curvature + 2*X1c*(Y2s*curvature + Z2s*torsion)))) + \
-                     2*Y20*Z2s*d_X1c_d_varphi - Y1s*Z20*d_X2c_d_varphi - Y1s*Z2c*d_X2c_d_varphi + \
-                     Y1c*Z2s*d_X2c_d_varphi - Y1c*Z20*d_X2s_d_varphi + Y1c*Z2c*d_X2s_d_varphi + \
-                     Y1s*Z2s*d_X2s_d_varphi + 2*X2s*Z20*d_Y1c_d_varphi - \
-                     2*X20*Z2s*d_Y1c_d_varphi + 2*X2c*Z20*d_Y1s_d_varphi - \
-                     2*X20*Z2c*d_Y1s_d_varphi - X1c*Z2s*d_Y2c_d_varphi + X1c*Z20*d_Y2s_d_varphi - \
-                     X1c*Z2c*d_Y2s_d_varphi - X2s*Y1c*d_Z2c_d_varphi + X20*Y1s*d_Z2c_d_varphi + \
-                     X2c*Y1s*d_Z2c_d_varphi + Y2s*(-2*Z20*d_X1c_d_varphi + X1c*d_Z2c_d_varphi) + \
-                     X20*Y1c*d_Z2s_d_varphi - X2c*Y1c*d_Z2s_d_varphi - X2s*Y1s*d_Z2s_d_varphi - \
-                     X1c*Y20*d_Z2s_d_varphi + X1c*Y2c*d_Z2s_d_varphi
-        
-        g40 = -2*(-3*lp*(-((Y2s*Z2c - Y2c*Z2s)*(Z20*curvature - Y20*torsion)) + \
-                         X20*(X2s*(Y2c*curvature + Z2c*torsion) - X2c*(Y2s*curvature + Z2s*torsion))) - \
-                  2*Y2c*Z2s*d_X20_d_varphi - Y20*Z2s*d_X2c_d_varphi - \
-                  Y2c*Z20*d_X2s_d_varphi + Y20*Z2c*d_X2s_d_varphi - \
-                  2*X2s*Z2c*d_Y20_d_varphi + 2*X2c*Z2s*d_Y20_d_varphi - \
-                  X2s*Z20*d_Y2c_d_varphi + X20*Z2s*d_Y2c_d_varphi + X2c*Z20*d_Y2s_d_varphi - \
-                  X20*Z2c*d_Y2s_d_varphi + 2*X2s*Y2c*d_Z20_d_varphi + \
-                  X2s*Y20*d_Z2c_d_varphi + Y2s*\
-                  (2*Z2c*d_X20_d_varphi + Z20*d_X2c_d_varphi - 2*X2c*d_Z20_d_varphi - \
-                   X20*d_Z2c_d_varphi) - X2c*Y20*d_Z2s_d_varphi + X20*Y2c*d_Z2s_d_varphi)
-        
-        g4s2 = 4*(lp*(Y2c*Z20*Z20*curvature - Y20*Z20*Z2c*curvature - Y2s*Z2c*Z2s*curvature + Y2c*Z2s*Z2s*curvature - \
-                      Y20*Y2c*Z20*torsion + Y20*Y20*Z2c*torsion + Y2s*Y2s*Z2c*torsion - Y2c*Y2s*Z2s*torsion - \
-                      X20*X2c*(Y20*curvature + Z20*torsion) + X20*X20*(Y2c*curvature + Z2c*torsion) + \
-                      X2s*X2s*(Y2c*curvature + Z2c*torsion) - X2c*X2s*(Y2s*curvature + Z2s*torsion)) - \
-                  Y20*Z2c*d_X20_d_varphi - Y2s*Z2c*d_X2s_d_varphi - X2c*Z20*d_Y20_d_varphi + \
-                  X20*Z2c*d_Y20_d_varphi + X2s*Z2c*d_Y2s_d_varphi - X2c*Z2s*d_Y2s_d_varphi + \
-                  X2c*Y20*d_Z20_d_varphi + X2c*Y2s*d_Z2s_d_varphi + \
-                  Y2c*(Z20*d_X20_d_varphi + Z2s*d_X2s_d_varphi - X20*d_Z20_d_varphi - \
-                       X2s*d_Z2s_d_varphi))
-        
-        g4s4 = 2*(lp*(Y2c*Z20*Z2c*curvature - Y20*Z2c*Z2c*curvature - Y2s*Z20*Z2s*curvature + Y20*Z2s*Z2s*curvature - \
-                      Y2c*Y2c*Z20*torsion + Y2s*Y2s*Z20*torsion + Y20*Y2c*Z2c*torsion - Y20*Y2s*Z2s*torsion - \
-                      X2c*X2c*(Y20*curvature + Z20*torsion) + X2s*X2s*(Y20*curvature + Z20*torsion) + \
-                      X20*X2c*(Y2c*curvature + Z2c*torsion) - X20*X2s*(Y2s*curvature + Z2s*torsion)) - \
-                  Y20*Z2c*d_X2c_d_varphi - Y2s*Z20*d_X2s_d_varphi + Y20*Z2s*d_X2s_d_varphi - \
-                  X2c*Z20*d_Y2c_d_varphi + X20*Z2c*d_Y2c_d_varphi + X2s*Z20*d_Y2s_d_varphi - \
-                  X20*Z2s*d_Y2s_d_varphi + X2c*Y20*d_Z2c_d_varphi + \
-                  Y2c*(Z20*d_X2c_d_varphi - X20*d_Z2c_d_varphi) - X2s*Y20*d_Z2s_d_varphi + \
-                  X20*Y2s*d_Z2s_d_varphi)
-        
-        g4c2 = -4*(lp*(Y2s*Z20*Z20*curvature + Y2s*Z2c*Z2c*curvature - Y20*Z20*Z2s*curvature - Y2c*Z2c*Z2s*curvature - \
-                       Y20*Y2s*Z20*torsion - Y2c*Y2s*Z2c*torsion + Y20*Y20*Z2s*torsion + Y2c*Y2c*Z2s*torsion - \
-                       X20*X2s*(Y20*curvature + Z20*torsion) - X2c*X2s*(Y2c*curvature + Z2c*torsion) + \
-                       X20*X20*(Y2s*curvature + Z2s*torsion) + X2c*X2c*(Y2s*curvature + Z2s*torsion)) - \
-                   Y20*Z2s*d_X20_d_varphi - Y2c*Z2s*d_X2c_d_varphi - X2s*Z20*d_Y20_d_varphi + \
-                   X20*Z2s*d_Y20_d_varphi - X2s*Z2c*d_Y2c_d_varphi + X2c*Z2s*d_Y2c_d_varphi + \
-                   X2s*Y20*d_Z20_d_varphi + X2s*Y2c*d_Z2c_d_varphi + \
-                   Y2s*(Z20*d_X20_d_varphi + Z2c*d_X2c_d_varphi - X20*d_Z20_d_varphi - \
-                        X2c*d_Z2c_d_varphi))
-        
-        g4c4 = -2*(lp*(Y2s*Z20*Z2c*curvature + Y2c*Z20*Z2s*curvature - 2*Y20*Z2c*Z2s*curvature - \
-                       2*Y2c*Y2s*Z20*torsion + Y20*Y2s*Z2c*torsion + Y20*Y2c*Z2s*torsion + \
-                       X20*X2s*(Y2c*curvature + Z2c*torsion) + \
-                       X2c*(-2*X2s*(Y20*curvature + Z20*torsion) + X20*(Y2s*curvature + Z2s*torsion))) - \
-                   Y20*Z2s*d_X2c_d_varphi + Y2c*Z20*d_X2s_d_varphi - Y20*Z2c*d_X2s_d_varphi - \
-                   X2s*Z20*d_Y2c_d_varphi + X20*Z2s*d_Y2c_d_varphi - X2c*Z20*d_Y2s_d_varphi + \
-                   X20*Z2c*d_Y2s_d_varphi + X2s*Y20*d_Z2c_d_varphi + \
-                   Y2s*(Z20*d_X2c_d_varphi - X20*d_Z2c_d_varphi) + X2c*Y20*d_Z2s_d_varphi - \
-                   X20*Y2c*d_Z2s_d_varphi)
-
-    """
     # We consider the system sqrt(g) = 0 and
     # d (sqrtg) / d theta = 0.
     # We algebraically eliminate r in "20200322-02 Max r for Garren Boozer.nb", in the section
@@ -293,195 +102,114 @@ def calculate_r_singularity(self, high_order=False):
 
     coefficients = coefficients.at[: ,0].set((K0 + K4c)*(K0 + K4c) - K2c*K2c)
     
+    """"""
+    
     for jphi in range(nphi):
-        # Solve for the roots of the quartic polynomial:
-        #try:
-            #roots = jnp.polynomial.polynomial.polyroots(coefficients.at[jphi, :].get()) # Do I need to reverse the order of the coefficients?
-        roots = jnp.roots(coefficients.at[jphi, :].get())
-        #except jnp.linalg.LinAlgError:
-         #   raise RuntimeError('Problem with polyroots. coefficients={} lp={} B0={} g0={} g1c={}'.format(coefficients.at[jphi, :].get(), lp, s.B0, g0, g1c))
-
+        
+        roots = jnp.polynomial.polynomial.polyroots(coefficients[jphi, :]) # Do I need to reverse the order of the coefficients?
+        
         real_parts = jnp.real(roots)
         imag_parts = jnp.imag(roots)
-
-        logger.debug('jphi={} g0={} g1c={} g20={} g2s={} g2c={} K0={} K2s={} K2c={} K4s={} K4c={} coefficients={} real={} imag={}'.format(jphi, g0[jphi], g1c[jphi], g20[jphi], g2s[jphi], g2c[jphi], K0[jphi], K2s[jphi], K2c[jphi], K4s[jphi], K4c[jphi], coefficients.at[jphi, :].get(), real_parts, imag_parts))
-
+        
         # This huge number indicates a true solution has not yet been found.
         rc = 1e+100
-
-        for jr in range(4):
-            # Loop over the roots of the equation for w.
-
-            # If root is not purely real, skip it.
-            if jnp.abs(imag_parts.at[jr].get()) > 1e-7:
-                logger.debug("Skipping root with jr={} since imag part is {}".format(jr, imag_parts.at[jr].get()))
-                continue
-
-            sin2theta = real_parts.at[jr].get()
-
-            # Discard any roots that have magnitude larger than 1. (I'm not sure this ever happens, but check to be sure.)
-            if jnp.abs(sin2theta) > 1:
-                logger.debug("Skipping root with jr={} since sin2theta={}".format(jr, sin2theta))
-                continue
-
-            # Determine varpi by checking which choice gives the smaller residual in the K equation
-            abs_cos2theta = jnp.sqrt(1 - sin2theta * sin2theta)
-            residual_if_varpi_plus  = jnp.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] *   abs_cos2theta \
+        
+        # jr starts at index 0
+        jr = 0
+        sin2theta = real_parts[jr]
+        
+         # Determine varpi by checking which choice gives the smaller residual in the K equation
+        abs_cos2theta = np.sqrt(1 - sin2theta * sin2theta)
+        residual_if_varpi_plus  = np.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] *   abs_cos2theta \
                                              + K4s[jphi] * 2 * sin2theta *   abs_cos2theta  + K4c[jphi] * (1 - 2 * sin2theta * sin2theta))
-            residual_if_varpi_minus = jnp.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] * (-abs_cos2theta) \
+        residual_if_varpi_minus = np.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] * (-abs_cos2theta) \
                                              + K4s[jphi] * 2 * sin2theta * (-abs_cos2theta) + K4c[jphi] * (1 - 2 * sin2theta * sin2theta))
+        
+        
+        varpi = jax.lax.cond(residual_if_varpi_plus > residual_if_varpi_minus, 
+                             lambda _: -1, 
+                             lambda _: 1, 
+                             None)
+        
+        cos2theta = varpi * abs_cos2theta
+        
+        # The next few lines give an older method for computing varpi, which has problems in edge cases
+        # where w (the root of the quartic polynomial) is very close to +1 or -1, giving varpi
+        # not very close to +1 or -1 due to bad loss of precision.
+        #
+        #varpi_denominator = ((K4s*2*sin2theta + K2c) * sqrt(1 - sin2theta*sin2theta))
+        #if (abs(varpi_denominator) < 1e-8) print *,"WARNING!!! varpi_denominator=",varpi_denominator
+        #varpi = -(K0 + K2s * sin2theta + K4c*(1 - 2*sin2theta*sin2theta)) / varpi_denominator
+        #if (abs(varpi*varpi-1) > 1e-3) print *,"WARNING!!! abs(varpi*varpi-1) =",abs(varpi*varpi-1)
+        #varpi = nint(varpi) ! Ensure varpi is exactly either +1 or -1.
+        #cos2theta = varpi * sqrt(1 - sin2theta*sin2theta)
 
-            if residual_if_varpi_plus > residual_if_varpi_minus:
-                varpi = -1
-            else:
-                varpi = 1
-
-            cos2theta = varpi * abs_cos2theta
-
-            # The next few lines give an older method for computing varpi, which has problems in edge cases
-            # where w (the root of the quartic polynomial) is very close to +1 or -1, giving varpi
-            # not very close to +1 or -1 due to bad loss of precision.
-            #
-            #varpi_denominator = ((K4s*2*sin2theta + K2c) * sqrt(1 - sin2theta*sin2theta))
-            #if (abs(varpi_denominator) < 1e-8) print *,"WARNING!!! varpi_denominator=",varpi_denominator
-            #varpi = -(K0 + K2s * sin2theta + K4c*(1 - 2*sin2theta*sin2theta)) / varpi_denominator
-            #if (abs(varpi*varpi-1) > 1e-3) print *,"WARNING!!! abs(varpi*varpi-1) =",abs(varpi*varpi-1)
-            #varpi = nint(varpi) ! Ensure varpi is exactly either +1 or -1.
-            #cos2theta = varpi * sqrt(1 - sin2theta*sin2theta)
-
-            # To get (sin theta, cos theta) from (sin 2 theta, cos 2 theta), we consider two cases to
-            # avoid precision loss when cos2theta is added to or subtracted from 1:
-            get_cos_from_cos2 = cos2theta > 0
-            if get_cos_from_cos2:
-                abs_costheta = jnp.sqrt(0.5*(1 + cos2theta))
-            else:
-                abs_sintheta = jnp.sqrt(0.5 * (1 - cos2theta))
-                
-            logger.debug("  jr={}  sin2theta={}  cos2theta={}".format(jr, sin2theta, cos2theta))
-            for varsigma in [-1, 1]:
-                if get_cos_from_cos2:
-                    costheta = varsigma * abs_costheta
-                    sintheta = sin2theta / (2 * costheta)
-                else:
-                    sintheta = varsigma * abs_sintheta
-                    costheta = sin2theta / (2 * sintheta)
-                logger.debug("    varsigma={}  costheta={}  sintheta={}".format(varsigma, costheta, sintheta))
-
-                # Sanity test
-                if jnp.abs(costheta*costheta + sintheta*sintheta - 1) > 1e-13:
-                    msg = "Error! sintheta={} costheta={} jphi={} jr={} sin2theta={} cos2theta={} abs(costheta*costheta + sintheta*sintheta - 1)={}".format(sintheta, costheta, jphi, jr, sin2theta, cos2theta, jnp.abs(costheta*costheta + sintheta*sintheta - 1))
-                    logger.error(msg)
-                    raise RuntimeError(msg)
-
-                """
-                # Try to get r using the simpler method, the equation that is linear in r.
-                denominator = 2 * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-                if np.abs(denominator) > 1e-8:
-                    # This method cannot be used if we would need to divide by 0
-                    rr = g1c[jphi] * sintheta / denominator
-                    residual = g0[jphi] + rr * g1c[jphi] * costheta + rr * rr * (g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta) # Residual in the equation sqrt(g)=0.
-                    logger.debug("    Linear method: rr={}  residual={}".format(rr, residual))
-                    if (rr>0) and np.abs(residual) < 1e-5:
-                        if rr < rc:
-                            # If this is a new minimum
-                            rc = rr
-                            sintheta_at_rc = sintheta
-                            costheta_at_rc = costheta
-                            logger.debug("      New minimum: rc={}".format(rc))
-                else:
-                    # Use the more complicated method to determine rr by solving a quadratic equation.
-                    quadratic_A = g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta
-                    quadratic_B = costheta * g1c[jphi]
-                    quadratic_C = g0[jphi]
-                    radical = np.sqrt(quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C)
-                    for sign_quadratic in [-1, 1]:
-                        rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-                        residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-                        logger.debug("    Quadratic method: A={} B={} C={} radicand={}, radical={}  rr={}  residual={}".format(quadratic_A, quadratic_B, quadratic_C, quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C, radical, rr, residual))
-                        if (rr>0) and np.abs(residual) < 1e-5:
-                            if rr < rc:
-                                # If this is a new minimum
-                                rc = rr
-                                sintheta_at_rc = sintheta
-                                costheta_at_rc = costheta
-                                logger.debug("      New minimum: rc={}".format(rc))
-                """
-
-                # Try to get r using the simpler method, the equation that is linear in r.
-                linear_solutions = []
-                denominator = 2 * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-                if jnp.abs(denominator) > 1e-8:
-                    # This method cannot be used if we would need to divide by 0
-                    rr = g1c[jphi] * sintheta / denominator
-                    residual = g0[jphi] + rr * g1c[jphi] * costheta + rr * rr * (g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta) # Residual in the equation sqrt(g)=0.
-                    logger.debug("    Linear method: rr={}  residual={}".format(rr, residual))
-                    if (rr>0) and jnp.abs(residual) < 1e-5:
-                        linear_solutions = [rr]
-                        
-                # Use the more complicated method to determine rr by solving a quadratic equation.
-                quadratic_solutions = []
-                quadratic_A = g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta
-                quadratic_B = costheta * g1c[jphi]
-                quadratic_C = g0[jphi]
-                radicand = quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C
-                if jnp.abs(quadratic_A) < 1e-13:
-                    rr = -quadratic_C / quadratic_B
-                    residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-                    logger.debug("    Quadratic method but A is small: A={} rr={}  residual={}".format(quadratic_A, rr, residual))
-                    if rr > 0 and jnp.abs(residual) < 1e-5:
-                        quadratic_solutions.append(rr)
-                else:
-                    # quadratic_A is nonzero, so we can apply the quadratic formula.
-                    # I've seen a case where radicand is <0 due I think to under-resolution in phi.
-                    if radicand >= 0:
-                        radical = jnp.sqrt(radicand)
-                        for sign_quadratic in [-1, 1]:
-                            rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-                            residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-                            logger.debug("    Quadratic method: A={} B={} C={} radicand={}, radical={}  rr={}  residual={}".format(quadratic_A, quadratic_B, quadratic_C, quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C, radical, rr, residual))
-                            if (rr>0) and jnp.abs(residual) < 1e-5:
-                                quadratic_solutions.append(rr)
-
-                logger.debug("    # linear solutions={}  # quadratic solutions={}".format(len(linear_solutions), len(quadratic_solutions)))
-                if len(quadratic_solutions) > 1:
-                    # Pick the smaller one
-                    quadratic_solutions = [jnp.min(quadratic_solutions)]
-                    
-                # If both methods find a solution, check that they agree:
-                if len(linear_solutions) > 0 and len(quadratic_solutions) > 0:
-                    diff = jnp.abs(linear_solutions[0] - quadratic_solutions[0])
-                    logger.debug("  linear solution={}  quadratic solution={}  diff={}".format(linear_solutions[0], quadratic_solutions[0], diff))
-                    if diff > 1e-5:
-                        warnings.warn("  Difference between linear solution {} and quadratic solution {} is {}".format(linear_solutions[0], quadratic_solutions[0], diff))
-                        
-                    #assert np.abs(linear_solutions[0] - quadratic_solutions[0]) < 1e-5, "Difference between linear solution {} and quadratic solution {} is {}".format(linear_solutions[0], quadratic_solutions[0], linear_solutions[0] - quadratic_solutions[0])
-                    
-                # Prefer the quadratic solution
-                rr = -1
-                if len(quadratic_solutions) > 0:
-                    rr = quadratic_solutions[0]
-                elif len(linear_solutions) > 0:
-                    rr = linear_solutions[0]
-
-                if rr > 0 and rr < rc:
-                    # This is a new minimum
-                    rc = rr
-                    sintheta_at_rc = sintheta
-                    costheta_at_rc = costheta
-                    logger.debug("      New minimum: rc={}".format(rc))
+        # To get (sin theta, cos theta) from (sin 2 theta, cos 2 theta), we consider two cases to
+        # avoid precision loss when cos2theta is added to or subtracted from 1:
+        get_cos_from_cos2 = cos2theta > 0
+            
+        abs_costheta = jax.lax.cond(get_cos_from_cos2, 
+                                    lambda _: np.sqrt(0.5*(1 + cos2theta)), 
+                                    lambda _: 0, 
+                                    None)
+        
+        abs_sintheta = jax.lax.cond(get_cos_from_cos2, 
+                                    lambda _: 0, 
+                                    lambda _: np.sqrt(0.5 * (1 - cos2theta)), 
+                                    None)
+        
+        varsigma = -1 
+        
+        costheta, sintheta = jax.lax.cond(get_cos_from_cos2, 
+                                          lambda _ : (varsigma * abs_costheta, sin2theta / (2 * costheta)), 
+                                          lambda _ : (sin2theta / (2 * sintheta), varsigma * abs_sintheta), 
+                                          None)
+        
+        linear_solutions = jnp.array()
+        
+        quadratic_A = g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta
+        quadratic_B = costheta * g1c[jphi]
+        quadratic_C = g0[jphi]
+        
+        radicand = quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C
+        
+        
+        
+        def large_quadratic_case():
+            rr = -quadratic_C / quadratic_B
+            residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
+            
+            append_cond = jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5)
+            jax.lax.cond(append_cond, 
+                         lambda _: linear_solutions.append(rr), 
+                         None, 
+                         None)
+        
+        def small_quadratic_case():
+            
+            pass
+            
+        jax.lax.cond(np.abs(quadratic_A) < 1e-13, 
+                     lambda _: large_quadratic_case, 
+                     lambda _: small_quadratic_case,
+                     None)
                     
         r_singularity_basic_vs_varphi = r_singularity_basic_vs_varphi.at[jphi].set(rc)
         #r_singularity_Newton_solve()
         r_singularity_vs_varphi = r_singularity_vs_varphi.at[jphi].set(rc)
         r_singularity_residual_sqnorm = r_singularity_residual_sqnorm.at[jphi].set(0) # Newton_residual_sqnorm
         r_singularity_theta_vs_varphi = r_singularity_theta_vs_varphi.at[jphi].set(0) # theta FIX ME!!
+        
+    carry = r_singularity_basic_vs_varphi, r_singularity_vs_varphi, r_singularity_residual_sqnorm, r_singularity_theta_vs_varphi
+    
+    jax.lax.fori_loop(0, nphi, body, carry)
 
-    self.r_singularity_vs_varphi = r_singularity_vs_varphi
-    self.inv_r_singularity_vs_varphi = 1 / r_singularity_vs_varphi
-    self.r_singularity_basic_vs_varphi = r_singularity_basic_vs_varphi
-    self.r_singularity = jnp.min(r_singularity_vs_varphi)    
-    self.r_singularity_theta_vs_varphi = r_singularity_theta_vs_varphi
-    self.r_singularity_residual_sqnorm = r_singularity_residual_sqnorm
+    r_singularity_vs_varphi = r_singularity_vs_varphi
+    inv_r_singularity_vs_varphi = 1 / r_singularity_vs_varphi
+    r_singularity_basic_vs_varphi = r_singularity_basic_vs_varphi
+    r_singularity = jnp.min(r_singularity_vs_varphi)    
+    r_singularity_theta_vs_varphi = r_singularity_theta_vs_varphi
+    r_singularity_residual_sqnorm = r_singularity_residual_sqnorm
     
 """
   call cpu_time(end_time)

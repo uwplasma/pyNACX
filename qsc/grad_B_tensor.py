@@ -8,7 +8,7 @@ import logging
 import numpy as np
 import jax
 import jax.numpy as jnp
-from .util import Struct, fourier_minimum
+from .util import Struct, fourier_minimum, jax_fourier_minimum
 
 #logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,60 +25,53 @@ def calculate_grad_B_tensor(spsi, B0, d_l_d_varphi, sG, curvature, X1c, d_Y1s_d_
     """
 
     #s = self # Shorthand
-    tensor = Struct()
+    #tensor = Struct()
     
     factor = spsi * B0 / d_l_d_varphi
-    tensor.tn = sG * B0 * curvature
-    tensor.nt = tensor.tn
-    tensor.bb = factor * (X1c * d_Y1s_d_varphi - iotaN * X1c * Y1c)
-    tensor.nn = factor * (d_X1c_d_varphi * Y1s + iotaN * X1c * Y1c)
-    tensor.bn = factor * (-sG * spsi * d_l_d_varphi * torsion \
+    tn = sG * B0 * curvature
+    nt = tn
+    bb = factor * (X1c * d_Y1s_d_varphi - iotaN * X1c * Y1c)
+    nn = factor * (d_X1c_d_varphi * Y1s + iotaN * X1c * Y1c)
+    bn = factor * (-sG * spsi * d_l_d_varphi * torsion \
                           - iotaN * X1c * X1c)
-    tensor.nb = factor * (d_Y1c_d_varphi * Y1s - d_Y1s_d_varphi * Y1c \
+    nb = factor * (d_Y1c_d_varphi * Y1s - d_Y1s_d_varphi * Y1c \
                           + sG * spsi * d_l_d_varphi * torsion \
                           + iotaN * (Y1s * Y1s + Y1c * Y1c))
     
-    #need to figure this out
-    """ 
-    if hasattr(s.B0, "__len__"): # if B0 is an array (in quasisymmetry B0 is a scalar)
-        tensor.tt = sG * jnp.matmul(d_d_varphi, B0) / d_l_d_varphi
-    else:
-        tensor.tt = 0
-     """
-    #B0 = jnp.atleast_1d(B0)
+
+
     
     cond = jnp.ndim(B0) > 1
-    #B0 = jnp.atleast_1d(B0)
     
     B0 = jnp.broadcast_to(B0, (61,))
     
-    tensor.tt = jax.lax.cond(cond,  
-                             lambda _: sG * jnp.matmul(d_d_varphi, B0) / d_l_d_varphi, 
-                             lambda _: B0,
-                             None)
+    tt = jax.lax.cond(cond,  
+                        lambda _: sG * jnp.matmul(d_d_varphi, B0) / d_l_d_varphi, 
+                        lambda _: B0,
+                        None)
     
-    grad_B_tensor = tensor
+    grad_B_tensor = (tn, nt, bb, nn, bn, nb, tt)
     
     t = tangent_cylindrical.transpose()
     n = normal_cylindrical.transpose()
     b = binormal_cylindrical.transpose()
     
     grad_B_tensor_cylindrical = jnp.array([[
-                              tensor.nn * n[i] * n[j] \
-                            + tensor.bn * b[i] * n[j] + tensor.nb * n[i] * b[j] \
-                            + tensor.bb * b[i] * b[j] \
-                            + tensor.tn * t[i] * n[j] + tensor.nt * n[i] * t[j] \
-                            + tensor.tt * t[i] * t[j]
+                              nn * n[i] * n[j] \
+                            + bn * b[i] * n[j] + nb * n[i] * b[j] \
+                            + bb * b[i] * b[j] \
+                            + tn * t[i] * n[j] + nt * n[i] * t[j] \
+                            + tt * t[i] * t[j]
                         for i in range(3)] for j in range(3)])
 
-    grad_B_colon_grad_B = tensor.tn * tensor.tn + tensor.nt * tensor.nt \
-        + tensor.bb * tensor.bb + tensor.nn * tensor.nn \
-        + tensor.nb * tensor.nb + tensor.bn * tensor.bn \
-        + tensor.tt * tensor.tt
+    grad_B_colon_grad_B = tn * tn + nt * nt \
+        + bb * bb + nn * nn \
+        + nb * nb + bn * bn \
+        + tt * tt
 
     L_grad_B = B0 * jnp.sqrt(2 / grad_B_colon_grad_B)
     inv_L_grad_B = 1.0 / L_grad_B
-    min_L_grad_B = fourier_minimum(L_grad_B)
+    min_L_grad_B = jax_fourier_minimum(L_grad_B).x
     
     return grad_B_tensor, grad_B_tensor_cylindrical, grad_B_colon_grad_B, L_grad_B, inv_L_grad_B, min_L_grad_B
     
