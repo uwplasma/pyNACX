@@ -72,23 +72,57 @@ def _jacobian(self, x):
     #logger.debug("_jacobian called with x={}, jac={}".format(x, jac))
     return jac
 
-def new_solve_sigma_equation(nphi, sigma0, helicity, nfp):
-    from .solve_sigma_helpers import helper_residual
+def new_solve_sigma_equation(nphi, sigma0, helicity, nfp, d_d_varphi, etabar_squared_over_curvature_squared, spsi, torsion, I2, B0, G0):
     """
     in progress solve sigma to equation that is unreliant on self
     """
     x0 = jnp.full(nphi, sigma0)
     x0.at[0].set(0) # Initial guess for iota
-    """
-    soln = scipy.optimize.root(self._residual, x0, jac=self._jacobian, method='lm')
-    self.iota = soln.x[0]
-    self.sigma = np.copy(soln.x)
-    self.sigma[0] = self.sigma0
-    """
-    sigma = new_new_newton(helper_residual, x0) # helper residual is a functon that runs without self but still returns r  
+    
+    def _residual(x):
+        """
+        Residual in the sigma equation, used for Newton's method.  x is
+        the state vector, corresponding to sigma on the phi grid,
+        except that the first element of x is actually iota.
+        """
+        sigma = jnp.copy(x)
+        sigma = sigma.at[0].set(sigma0) # somthing is not right here
+
+    
+        iota = x[0]
+        r = jnp.matmul(d_d_varphi, sigma) \
+            + (iota + helicity * nfp) * \
+            (etabar_squared_over_curvature_squared * etabar_squared_over_curvature_squared + 1 + sigma * sigma) \
+            - 2 * etabar_squared_over_curvature_squared * (-spsi * torsion + I2 / B0) * G0 / B0
+    
+        return r
+    
+    def _jacobian(x):
+        """
+        Compute the Jacobian matrix for solving the sigma equation. x is
+        the state vector, corresponding to sigma on the phi grid,
+        except that the first element of x is actually iota.
+        """
+        sigma = np.copy(x)
+        sigma[0] = sigma0
+        iota = x[0]
+
+        # d (Riccati equation) / d sigma:
+        # For convenience we will fill all the columns now, and re-write the first column in a moment.
+        jac = np.copy(d_d_varphi)
+        for j in range(nphi):
+            jac[j, j] += (iota + helicity * nfp) * 2 * sigma[j]
+
+        # d (Riccati equation) / d iota:
+        jac[:, 0] = etabar_squared_over_curvature_squared * etabar_squared_over_curvature_squared + 1 + sigma * sigma
+
+        
+        return jac
+    
+    sigma = new_new_newton(_residual, x0, _jacobian) # helper residual is a functon that runs without self but still returns r  
     iota = sigma[0]
     iotaN = calc_iotaN(iota, helicity, nfp)
-    sigma[0] = sigma0
+    sigma = sigma.at[0].set(sigma0)
     return sigma, iota, iotaN
 
 def solve_sigma_equation( self, nphi, sigma0, helicity, nfp):

@@ -6,8 +6,8 @@ curvature and torsion from the magnetix axis shape.
 import logging
 import numpy as np
 from scipy.interpolate import CubicSpline as spline
-from .spectral_diff_matrix import spectral_diff_matrix
-from .util import fourier_minimum
+from .spectral_diff_matrix import jax_spectral_diff_matrix, spectral_diff_matrix
+from .util import fourier_minimum, jax_fourier_minimum
 
 import jax
 import jax.numpy as jnp
@@ -24,32 +24,35 @@ def calculate_helicity(nphi, normal_cylindrical, spsi, sG):
     by counting the number of times the normal vector rotates
     poloidally as you follow the axis around toroidally.
     """
-    quadrant = jnp.zeros(nphi + 1)
-    for j in range(nphi):
-        if normal_cylindrical[j,0] >= 0:
-            if normal_cylindrical[j,2] >= 0:
-                quadrant = quadrant.at[j].set(1)
-            else:
-                quadrant = quadrant.at[j].set(4)
-        else:
-            if normal_cylindrical[j,2] >= 0:
-                quadrant = quadrant.at[j].set(2)
-            else:
-                quadrant = quadrant.at[j].set(3)
-    quadrant = quadrant.at[nphi].set(quadrant[0])
 
-    counter = 0         
-    for j in range(nphi):
-        if quadrant[j] == 4 and quadrant[j+1] == 1:
-            counter += 1
-        elif quadrant[j] == 1 and quadrant[j+1] == 4:
-            counter -= 1
-        else:
-            counter += quadrant[j+1] - quadrant[j]
+    def classify_quadrant(j):
+        x, _, z = normal_cylindrical[j]
 
-    # It is necessary to flip the sign of axis_helicity in order
-    # to maintain "iota_N = iota + axis_helicity" under the parity
-    # transformations.
+        def case_1(): return 1  # x >= 0, z >= 0
+        def case_2(): return 4  # x >= 0, z < 0
+        def case_3(): return 2  # x < 0, z >= 0
+        def case_4(): return 3  # x < 0, z < 0
+
+        return jax.lax.cond(x >= 0,
+                        lambda: jax.lax.cond(z >= 0, case_1, case_2),
+                        lambda: jax.lax.cond(z >= 0, case_3, case_4))
+
+    quadrant = jnp.array([classify_quadrant(j) for j in range(nphi)])
+    quadrant = jnp.append(quadrant, quadrant[0])
+
+    def count_step(j, counter):
+        counter = jax.lax.cond(
+            (quadrant[j] == 4) & (quadrant[j+1] == 1),
+            lambda: counter + 1,
+            lambda: jax.lax.cond(
+                (quadrant[j] == 1) & (quadrant[j+1] == 4),
+                lambda: counter - 1,
+                lambda: counter + (quadrant[j+1] - quadrant[j])
+            )
+        )
+        return counter
+
+    counter = jax.lax.fori_loop(0, nphi, count_step, 0)
     counter *= spsi * sG
     helicity = counter / 4
     return helicity
@@ -145,7 +148,7 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
     torsion = torsion_numerator / torsion_denominator
     etabar_squared_over_curvature_squared = etabar ** 2 / curvature ** 2
 
-    d_d_phi = spectral_diff_matrix(nphi, xmax=2 * np.pi / nfp)
+    d_d_phi = jax_spectral_diff_matrix(nphi, xmax=2 * jnp.pi / nfp)
     d_varphi_d_phi = B0_over_abs_G0 * d_l_d_phi
 
     # Calculate d_d_varphi
@@ -162,7 +165,7 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
     # Add all results to self:
     X1s = jnp.zeros(nphi)
     X1c = etabar / curvature
-    min_R0 = fourier_minimum(R0)
+    min_R0 = jax_fourier_minimum(R0)
     Bbar = spsi * B0
 
     # The output is not stellarator-symmetric if (1) R0s is nonzero,

@@ -10,7 +10,7 @@ import jax.numpy as jnp
 import jax
 from qsc.calculate_r3 import calc_r3_new
 from qsc.init_axis import init_axis
-from qsc.calculate_r1 import r1_diagnostics
+from qsc.calculate_r1 import new_solve_sigma_equation, r1_diagnostics
 from qsc.calculate_r2 import calc_r2_new
 from qsc.grad_B_tensor import calculate_grad_B_tensor
 
@@ -94,7 +94,7 @@ class Qsc():
         self.p2 = p2
         self.order = order
         self.min_R0_threshold = 0.3
-        self._set_names()
+        #self._set_names()
       
         self.pre_calculations() #run initial calculations that rely on self 
         
@@ -196,7 +196,7 @@ class Qsc():
         
         print("\nInit axis completed...")
         
-        sigma, iota, iotaN = self.solve_sigma_equation(self.nphi, self.sigma0, self.helicity, self.nfp)
+        sigma, iota, iotaN = new_solve_sigma_equation(self.nphi, self.sigma0, self.helicity, self.nfp, self.d_d_varphi, self.etabar_squared_over_curvature_squared, self.spsi, self.torsion, self.I2, self.B0, self.G0)
         self.sigma = sigma
         self.iota = iota
         self.iotaN = iotaN
