@@ -5,6 +5,7 @@ Functions for computing the maximum r at which the flux surfaces
 become singular.
 """
 
+from typing import NamedTuple
 import logging
 import warnings
 import numpy as np
@@ -16,17 +17,97 @@ import jax.numpy as jnp
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-def calculate_r_singularity(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2s, Z2c, iotaN, iota, G0, B0, curvature, torsion, nphi, sG, spsi, I2, G2, p2, B20, B2s, B2c, d_X1c_d_varphi, d_Y1s_d_varphi, d_Y1c_d_varphi, d_X20_d_varphi, d_X2s_d_varphi, d_X2c_d_varphi, d_Y20_d_varphi, d_Y2s_d_varphi, d_Y2c_d_varphi, d_Z20_d_varphi, d_Z2s_d_varphi, d_Z2c_d_varphi, d2_X1c_d_varphi2, d2_Y1s_d_varphi2, d2_Y1c_d_varphi2, d_curvature_d_varphi, d_torsion_d_varphi):
-    """
-    """
+class State(NamedTuple):
+    r_singularity_basic_vs_varphi: jnp.ndarray
+    r_singularity_vs_varphi: jnp.ndarray 
+    r_singularity_residual_sqnorm: jnp.ndarray
+    r_singularity_theta_vs_varphi: jnp.ndarray
+    coefficients: jnp.ndarray
+    real_parts: jnp.ndarray
+    imag_parts: jnp.ndarray
+    rc: jnp.ndarray
+    K0: jnp.ndarray
+    K2s: jnp.ndarray
+    K4s: jnp.ndarray
+    K2c: jnp.ndarray
+    K4c: jnp.ndarray
+    jphi: jnp.ndarray
+    sin2theta: jnp.ndarray
+    get_cos_from_cos2: jnp.ndarray
+    abs_costheta_or_abs_sintheta: jnp.ndarray
+    cos2theta: jnp.ndarray
+    g0: jnp.ndarray
+    g1c: jnp.ndarray
+    g20: jnp.ndarray
+    g2c: jnp.ndarray
+    g2s: jnp.ndarray
+    
+    
+    
+
+def calculate_r_singularity(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2s, Z2c, iotaN, iota, G0, B0, curvature, torsion, nphi, sG, spsi, I2, G2, p2, B20, B2s, B2c, d_X1c_d_varphi, d_Y1s_d_varphi, d_Y1c_d_varphi, d_X20_d_varphi, d_X2s_d_varphi, d_X2c_d_varphi, d_Y20_d_varphi, d_Y2s_d_varphi, d_Y2c_d_varphi, d_Z20_d_varphi, d_Z2s_d_varphi, d_Z2c_d_varphi, d2_X1c_d_varphi2, d2_Y1s_d_varphi2, d2_Y1c_d_varphi2, d_curvature_d_varphi, d_torsion_d_varphi): 
+        
+
+    # Shorthand
+    
+    X1c = X1c
+    Y1s = Y1s
+    Y1c = Y1c
+
+    X20 = X20
+    X2s = X2s
+    X2c = X2c
+
+    Y20 = Y20
+    Y2s = Y2s
+    Y2c = Y2c
+
+    Z20 = Z20
+    Z2s = Z2s
+    Z2c = Z2c
 
     iota_N0 = iotaN
     iota = iota
     lp = jnp.abs(G0) / B0
 
+    curvature = curvature
+    torsion = torsion
+
     nphi = nphi
     sign_G = sG
     sign_psi = spsi
+    B0 = B0
+    G0 = G0
+    I2 = I2
+    G2 = G2
+    p2 = p2
+
+    B20 = B20
+    B2s = B2s
+    B2c = B2c
+
+    d_X1c_d_varphi = d_X1c_d_varphi
+    d_Y1s_d_varphi = d_Y1s_d_varphi
+    d_Y1c_d_varphi = d_Y1c_d_varphi
+
+    d_X20_d_varphi = d_X20_d_varphi
+    d_X2s_d_varphi = d_X2s_d_varphi
+    d_X2c_d_varphi = d_X2c_d_varphi
+
+    d_Y20_d_varphi = d_Y20_d_varphi
+    d_Y2s_d_varphi = d_Y2s_d_varphi
+    d_Y2c_d_varphi = d_Y2c_d_varphi
+
+    d_Z20_d_varphi = d_Z20_d_varphi
+    d_Z2s_d_varphi = d_Z2s_d_varphi
+    d_Z2c_d_varphi = d_Z2c_d_varphi
+
+    d2_X1c_d_varphi2 = d2_X1c_d_varphi2
+    d2_Y1s_d_varphi2 = d2_Y1s_d_varphi2
+    d2_Y1c_d_varphi2 = d2_Y1c_d_varphi2
+
+    d_curvature_d_varphi = d_curvature_d_varphi
+    d_torsion_d_varphi = d_torsion_d_varphi
 
     r_singularity_basic_vs_varphi = jnp.zeros(nphi)
     r_singularity_vs_varphi = jnp.zeros(nphi)
@@ -72,7 +153,8 @@ def calculate_r_singularity(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2
         Y1c*Z2c*d_X1c_d_varphi - Y1s*Z2s*d_X1c_d_varphi - \
         X1c*Z20*d_Y1c_d_varphi + X1c*Z2c*d_Y1c_d_varphi - \
         X1c*Z2s*d_Y1s_d_varphi + X1c*Y1s*d_Z2s_d_varphi
-    # highorder is default False and not called with true 
+    
+    
     # We consider the system sqrt(g) = 0 and
     # d (sqrtg) / d theta = 0.
     # We algebraically eliminate r in "20200322-02 Max r for Garren Boozer.nb", in the section
@@ -90,941 +172,205 @@ def calculate_r_singularity(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2
 
     K4c = g1c*g1c*g2c - 8*g0*g2c*g2c + 8*g0*g2s*g2s
 
-    coefficients =jnp.zeros((nphi,5))
+    coefficients = jnp.zeros((nphi,5))
     
-    coefficients = coefficients.at[:, 4].set(4*(K4c*K4c + K4s*K4s))
+    coefficients = coefficients.at[:, 4].set( 4*(K4c*K4c + K4s*K4s))
 
-    coefficients = coefficients.at[:, 3].set(4*(K4s*K2c - K2s*K4c))
+    coefficients = coefficients.at[:, 3].set( 4*(K4s*K2c - K2s*K4c))
 
-    coefficients = coefficients.at[: ,2].set(K2s*K2s + K2c*K2c - 4*K0*K4c - 4*K4c*K4c - 4*K4s*K4s)
+    coefficients = coefficients.at[:, 2].set (K2s*K2s + K2c*K2c - 4*K0*K4c - 4*K4c*K4c - 4*K4s*K4s)
 
-    coefficients = coefficients.at[: ,1].set(2*K0*K2s + 2*K4c*K2s - 4*K4s*K2c)
+    coefficients = coefficients.at[:, 1].set( 2*K0*K2s + 2*K4c*K2s - 4*K4s*K2c)
 
-    coefficients = coefficients.at[: ,0].set((K0 + K4c)*(K0 + K4c) - K2c*K2c)
-    
-    """"""
-    
-    def body(j, carry):
-        
-        jphi = j
-        
-        roots = jax.numpy.roots(coefficients[jphi, :], strip_zeros = False) # Do I need to reverse the order of the coefficients?
-        
+    coefficients = coefficients.at[:, 0].set( (K0 + K4c)*(K0 + K4c) - K2c*K2c)
+
+    for jphi in range(nphi):
+        # Solve for the roots of the quartic polynomial:
+       
+        roots = jnp.roots(coefficients[jphi, :], strip_zeros=False) # Do I need to reverse the order of the coefficients?
+       
+
         real_parts = jnp.real(roots)
-        
+        imag_parts = jnp.imag(roots)
+
+        logger.debug('jphi={} g0={} g1c={} g20={} g2s={} g2c={} K0={} K2s={} K2c={} K4s={} K4c={} coefficients={} real={} imag={}'.format(jphi, g0[jphi], g1c[jphi], g20[jphi], g2s[jphi], g2c[jphi], K0[jphi], K2s[jphi], K2c[jphi], K4s[jphi], K4c[jphi], coefficients[jphi,:], real_parts, imag_parts))
+
         # This huge number indicates a true solution has not yet been found.
         rc = 1e+100
-        
-        # jr is at index 0
-        jr = 0
-        sin2theta = real_parts[jr]
-        
-        # Determine varpi by checking which choice gives the smaller residual in the K equation
-        abs_cos2theta = jnp.sqrt(1 - sin2theta * sin2theta)
-        residual_if_varpi_plus  = jnp.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] *   abs_cos2theta \
+
+        for jr in range(4):
+            # Loop over the roots of the equation for w.
+
+            
+
+            sin2theta = real_parts[jr]
+
+            
+
+            # Determine varpi by checking which choice gives the smaller residual in the K equation
+            abs_cos2theta = jnp.sqrt(1 - sin2theta * sin2theta)
+            residual_if_varpi_plus  = jnp.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] *   abs_cos2theta \
                                              + K4s[jphi] * 2 * sin2theta *   abs_cos2theta  + K4c[jphi] * (1 - 2 * sin2theta * sin2theta))
-        residual_if_varpi_minus = jnp.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] * (-abs_cos2theta) \
+            residual_if_varpi_minus = jnp.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] * (-abs_cos2theta) \
                                              + K4s[jphi] * 2 * sin2theta * (-abs_cos2theta) + K4c[jphi] * (1 - 2 * sin2theta * sin2theta))
-        
-        
-        varpi = jax.lax.cond(residual_if_varpi_plus > residual_if_varpi_minus, 
-                             lambda _: -1, 
-                             lambda _: 1, 
-                             None)
-        
-        cos2theta = varpi * abs_cos2theta
-        
-        # The next few lines give an older method for computing varpi, which has problems in edge cases
-        # where w (the root of the quartic polynomial) is very close to +1 or -1, giving varpi
-        # not very close to +1 or -1 due to bad loss of precision.
-        #
-        #varpi_denominator = ((K4s*2*sin2theta + K2c) * sqrt(1 - sin2theta*sin2theta))
-        #if (abs(varpi_denominator) < 1e-8) print *,"WARNING!!! varpi_denominator=",varpi_denominator
-        #varpi = -(K0 + K2s * sin2theta + K4c*(1 - 2*sin2theta*sin2theta)) / varpi_denominator
-        #if (abs(varpi*varpi-1) > 1e-3) print *,"WARNING!!! abs(varpi*varpi-1) =",abs(varpi*varpi-1)
-        #varpi = nint(varpi) ! Ensure varpi is exactly either +1 or -1.
-        #cos2theta = varpi * sqrt(1 - sin2theta*sin2theta)
 
-        # To get (sin theta, cos theta) from (sin 2 theta, cos 2 theta), we consider two cases to
-        # avoid precision loss when cos2theta is added to or subtracted from 1:
-        get_cos_from_cos2 = cos2theta > 0
-            
-        abs_costheta = jax.lax.cond(get_cos_from_cos2, 
-                                    lambda _: jnp.sqrt(0.5*(1 + cos2theta)), 
-                                    lambda _: float(0), 
-                                    None)
-        
-        abs_sintheta = jax.lax.cond(get_cos_from_cos2, 
-                                    lambda _: float(0), 
-                                    lambda _:jnp.sqrt(0.5 * (1 - cos2theta)), 
-                                    None)
-        
-        varsigma = -1 
-        
-        def costheta_sintheta_decleration_get_cos_from_cos2_true_case():
-          costheta = varsigma * abs_costheta
-          sintheta = sin2theta / (2 * costheta)
-          return costheta, sintheta
-        
-        def costheta_sintheta_decleration_get_cos_from_cos2_false_case(): 
-          sintheta = varsigma * abs_sintheta
-          costheta = sin2theta / (2 * sintheta)
-          return costheta, sintheta
-        
-        costheta, sintheta = jax.lax.cond(get_cos_from_cos2, 
-                                          lambda _ : costheta_sintheta_decleration_get_cos_from_cos2_true_case(), 
-                                          lambda _ : costheta_sintheta_decleration_get_cos_from_cos2_false_case(), 
-                                          None)
-        
-        linear_solutions = jnp.empty((0,), dtype=jnp.float32)
+            if residual_if_varpi_plus > residual_if_varpi_minus:
+                varpi = -1
+            else:
+                varpi = 1
 
-        denominator = 2 * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-        
-        def large_denominator_case(): 
-          rr = g1c[jphi] * sintheta / denominator
-          residual = g0[jphi] + rr * g1c[jphi] * costheta + rr * rr * (g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta)
-          return rr, residual
-        
-        
-        rr, residual = jax.lax.cond(jnp.abs(denominator) > 1e-8,
-                                    lambda _: large_denominator_case(),
-                                    lambda _: (float(0), float(0)), 
-                                    None)
-        
-        linear_solutions = jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5),
-                                         lambda _: jnp.concatenate([linear_solutions, jnp.atleast_1d(rr)]), 
-                                         lambda _: linear_solutions, 
-                                         None)
-        
-        quadratic_solutions = jnp.array()
-        quadratic_A = g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta
-        quadratic_B = costheta * g1c[jphi]
-        quadratic_C = g0[jphi]
-        
-        radicand = quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C
-        
-        def large_quadratic_case():
-            rr = -quadratic_C / quadratic_B
-            residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-            
-            append_cond = jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5)
-            jax.lax.cond(append_cond, 
-                         lambda _: linear_solutions.append(rr), 
-                         None, 
-                         None)
-            return rr, residual
-        
-        def small_quadratic_case():
-            rr, residual = jax.lax.cond(radicand >= 0,
-                         lambda _ : large_radicand_case(), 
-                         lambda _ : rr, radicand, 
-                         None)
-            return rr, residual
-        
-        def large_radicand_case(): 
-          radical = jnp.sqrt(radicand)
-          sign_quadratic = -1 
-          rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-          residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-          jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5),
-                       lambda _: quadratic_solutions.append(rr), 
-                       None, 
-                       None) 
-          
-          sign_quadratic = 1
-          rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-          residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-          jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5),
-                       lambda _: quadratic_solutions.append(rr), 
-                       None, 
-                       None) 
-            
-        rr, residual = jax.lax.cond(jnp.abs(quadratic_A) < 1e-13,
-                                    lambda _: large_quadratic_case(),
-                                    lambda _: small_quadratic_case(),
-                                    None)
-        
-        quadratic_solutions = jax.lax.cond(len(linear_solutions) > 1,
-                     lambda _: [jnp.min(quadratic_solutions)], 
-                     lambda _: None, 
-                     None)
-        
-        rr = -1
-        rr = jax.lax.cond(len(quadratic_solutions) > 0,
-                          lambda _: quadratic_solutions[0],
-                          lambda _: jax.lax.cond(len(linear_solutions) > 0,
-                                                lambda _: linear_solutions[0],
-                                                lambda _: 0, 
-                                                None),
-                          None)
-        
-        rc, sintheta_at_rc, costheta_at_rc = jax.lax.cond(jnp.logical_and(rr > 0, rr<rc), 
-                                                          lambda _: (rr, sintheta, costheta), 
-                                                          lambda _: None, 
-                                                          None)
-        
-        varsigma = 1
-        
-        costheta, sintheta = jax.lax.cond(get_cos_from_cos2, 
-                                          lambda _ : (varsigma * abs_costheta, sin2theta / (2 * costheta)), 
-                                          lambda _ : (sin2theta / (2 * sintheta), varsigma * abs_sintheta), 
-                                          None)
-        
-        linear_solutions = jnp.array()
-        denominator = 2 * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-        
-        rr, residual = jax.lax.cond(jnp.abs(denominator) > 1e-8,
-                                    lambda _: g1c[jphi] * sintheta / denominator, g0[jphi] + rr * g1c[jphi] * costheta + rr * rr * (g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta),
-                                    lambda _: 0, 
-                                    None)
-        
-        quadratic_solutions = jnp.array()
-        quadratic_A = g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta
-        quadratic_B = costheta * g1c[jphi]
-        quadratic_C = g0[jphi]
-        
-        radicand = quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C
-        
-        def large_quadratic_case():
-            rr = -quadratic_C / quadratic_B
-            residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-            
-            append_cond = jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5)
-            jax.lax.cond(append_cond, 
-                         lambda _: linear_solutions.append(rr), 
-                         None, 
-                         None)
-            return rr, residual
-        
-        def small_quadratic_case():
-            rr, residual = jax.lax.cond(radicand >= 0,
-                         lambda _ : large_radicand_case(), 
-                         lambda _ : rr, radicand, 
-                         None)
-            return rr, residual
-        
-        def large_radicand_case(): 
-          radical = jnp.sqrt(radicand)
-          sign_quadratic = -1 
-          rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-          residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-          jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5),
-                       lambda _: quadratic_solutions.append(rr), 
-                       None, 
-                       None) 
-          
-          sign_quadratic = 1
-          rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-          residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-          jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5),
-                       lambda _: quadratic_solutions.append(rr), 
-                       None, 
-                       None) 
-            
-        rr, residual = jax.lax.cond(jnp.abs(quadratic_A) < 1e-13,
-                                    lambda _: large_quadratic_case(),
-                                    lambda _: small_quadratic_case(),
-                                    None)
-        
-        quadratic_solutions = jax.lax.cond(len(linear_solutions) > 1,
-                     lambda _: [jnp.min(quadratic_solutions)], 
-                     lambda _: None, 
-                     None)
-        
-        rr = -1
-        rr = jax.lax.cond(len(quadratic_solutions) > 0,
-                          lambda _: quadratic_solutions[0],
-                          lambda _: jax.lax.cond(len(linear_solutions) > 0,
-                                                lambda _: linear_solutions[0],
-                                                lambda _: 0, 
-                                                None),
-                          None)
-        
-        rc, sintheta_at_rc, costheta_at_rc = jax.lax.cond(jnp.logical_and(rr > 0, rr<rc), 
-                                                          lambda _: (rr, sintheta, costheta), 
-                                                          lambda _: None, 
-                                                          None)
-        
-        
+            cos2theta = varpi * abs_cos2theta
+
+            # The next few lines give an older method for computing varpi, which has problems in edge cases
+            # where w (the root of the quartic polynomial) is very close to +1 or -1, giving varpi
+            # not very close to +1 or -1 due to bad loss of precision.
+            #
+            #varpi_denominator = ((K4s*2*sin2theta + K2c) * sqrt(1 - sin2theta*sin2theta))
+            #if (abs(varpi_denominator) < 1e-8) print *,"WARNING!!! varpi_denominator=",varpi_denominator
+            #varpi = -(K0 + K2s * sin2theta + K4c*(1 - 2*sin2theta*sin2theta)) / varpi_denominator
+            #if (abs(varpi*varpi-1) > 1e-3) print *,"WARNING!!! abs(varpi*varpi-1) =",abs(varpi*varpi-1)
+            #varpi = nint(varpi) ! Ensure varpi is exactly either +1 or -1.
+            #cos2theta = varpi * sqrt(1 - sin2theta*sin2theta)
+
+            # To get (sin theta, cos theta) from (sin 2 theta, cos 2 theta), we consider two cases to
+            # avoid precision loss when cos2theta is added to or subtracted from 1:
+            get_cos_from_cos2 = cos2theta > 0
+            if get_cos_from_cos2:
+                abs_costheta = jnp.sqrt(0.5*(1 + cos2theta))
+            else:
+                abs_sintheta = jnp.sqrt(0.5 * (1 - cos2theta))
+                
+            logger.debug("  jr={}  sin2theta={}  cos2theta={}".format(jr, sin2theta, cos2theta))
+            for varsigma in [-1, 1]:
+                if get_cos_from_cos2:
+                    costheta = varsigma * abs_costheta
+                    sintheta = sin2theta / (2 * costheta)
+                else:
+                    sintheta = varsigma * abs_sintheta
+                    costheta = sin2theta / (2 * sintheta)
+                logger.debug("    varsigma={}  costheta={}  sintheta={}".format(varsigma, costheta, sintheta))
+
+                # Sanity test
+                if jnp.abs(costheta*costheta + sintheta*sintheta - 1) > 1e-13:
+                    msg = "Error! sintheta={} costheta={} jphi={} jr={} sin2theta={} cos2theta={} abs(costheta*costheta + sintheta*sintheta - 1)={}".format(sintheta, costheta, jphi, jr, sin2theta, cos2theta, jnp.abs(costheta*costheta + sintheta*sintheta - 1))
+                    logger.error(msg)
+                    raise RuntimeError(msg)
+
+                """
+                # Try to get r using the simpler method, the equation that is linear in r.
+                denominator = 2 * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
+                if np.abs(denominator) > 1e-8:
+                    # This method cannot be used if we would need to divide by 0
+                    rr = g1c[jphi] * sintheta / denominator
+                    residual = g0[jphi] + rr * g1c[jphi] * costheta + rr * rr * (g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta) # Residual in the equation sqrt(g)=0.
+                    logger.debug("    Linear method: rr={}  residual={}".format(rr, residual))
+                    if (rr>0) and np.abs(residual) < 1e-5:
+                        if rr < rc:
+                            # If this is a new minimum
+                            rc = rr
+                            sintheta_at_rc = sintheta
+                            costheta_at_rc = costheta
+                            logger.debug("      New minimum: rc={}".format(rc))
+                else:
+                    # Use the more complicated method to determine rr by solving a quadratic equation.
+                    quadratic_A = g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta
+                    quadratic_B = costheta * g1c[jphi]
+                    quadratic_C = g0[jphi]
+                    radical = np.sqrt(quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C)
+                    for sign_quadratic in [-1, 1]:
+                        rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
+                        residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
+                        logger.debug("    Quadratic method: A={} B={} C={} radicand={}, radical={}  rr={}  residual={}".format(quadratic_A, quadratic_B, quadratic_C, quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C, radical, rr, residual))
+                        if (rr>0) and np.abs(residual) < 1e-5:
+                            if rr < rc:
+                                # If this is a new minimum
+                                rc = rr
+                                sintheta_at_rc = sintheta
+                                costheta_at_rc = costheta
+                                logger.debug("      New minimum: rc={}".format(rc))
+                """
+
+                # Try to get r using the simpler method, the equation that is linear in r.
+                linear_solutions = []
+                denominator = 2 * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
+                if jnp.abs(denominator) > 1e-8:
+                    # This method cannot be used if we would need to divide by 0
+                    rr = g1c[jphi] * sintheta / denominator
+                    residual = g0[jphi] + rr * g1c[jphi] * costheta + rr * rr * (g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta) # Residual in the equation sqrt(g)=0.
+                    logger.debug("    Linear method: rr={}  residual={}".format(rr, residual))
+                    if (rr>0) and jnp.abs(residual) < 1e-5:
+                        linear_solutions = [rr]
+                        
+                # Use the more complicated method to determine rr by solving a quadratic equation.
+                quadratic_solutions = []
+                quadratic_A = g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta
+                quadratic_B = costheta * g1c[jphi]
+                quadratic_C = g0[jphi]
+                radicand = quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C
+                if jnp.abs(quadratic_A) < 1e-13:
+                    rr = -quadratic_C / quadratic_B
+                    residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
+                    logger.debug("    Quadratic method but A is small: A={} rr={}  residual={}".format(quadratic_A, rr, residual))
+                    if rr > 0 and jnp.abs(residual) < 1e-5:
+                        quadratic_solutions.append(rr)
+                else:
+                    # quadratic_A is nonzero, so we can apply the quadratic formula.
+                    # I've seen a case where radicand is <0 due I think to under-resolution in phi.
+                    if radicand >= 0:
+                        radical = jnp.sqrt(radicand)
+                        for sign_quadratic in [-1, 1]:
+                            rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
+                            residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
+                            logger.debug("    Quadratic method: A={} B={} C={} radicand={}, radical={}  rr={}  residual={}".format(quadratic_A, quadratic_B, quadratic_C, quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C, radical, rr, residual))
+                            if (rr>0) and jnp.abs(residual) < 1e-5:
+                                quadratic_solutions.append(rr)
+
+                logger.debug("    # linear solutions={}  # quadratic solutions={}".format(len(linear_solutions), len(quadratic_solutions)))
+                if len(quadratic_solutions) > 1:
+                    # Pick the smaller one
+                    quadratic_solutions = [jnp.min(quadratic_solutions)]
                     
-        r_singularity_basic_vs_varphi = r_singularity_basic_vs_varphi.at[jphi].set(rc)
-    
-        r_singularity_vs_varphi = r_singularity_vs_varphi.at[jphi].set(rc)
-        r_singularity_residual_sqnorm = r_singularity_residual_sqnorm.at[jphi].set(0) # Newton_residual_sqnorm
-        r_singularity_theta_vs_varphi = r_singularity_theta_vs_varphi.at[jphi].set(0) # theta FIX ME!!
-        # jr is at index 1
-        jr = 1
-        sin2theta = real_parts[jr]
-        
-        # Determine varpi by checking which choice gives the smaller residual in the K equation
-        abs_cos2theta = jnp.sqrt(1 - sin2theta * sin2theta)
-        residual_if_varpi_plus  = jnp.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] *   abs_cos2theta \
-                                             + K4s[jphi] * 2 * sin2theta *   abs_cos2theta  + K4c[jphi] * (1 - 2 * sin2theta * sin2theta))
-        residual_if_varpi_minus = jnp.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] * (-abs_cos2theta) \
-                                             + K4s[jphi] * 2 * sin2theta * (-abs_cos2theta) + K4c[jphi] * (1 - 2 * sin2theta * sin2theta))
-        
-        
-        varpi = jax.lax.cond(residual_if_varpi_plus > residual_if_varpi_minus, 
-                             lambda _: -1, 
-                             lambda _: 1, 
-                             None)
-        
-        cos2theta = varpi * abs_cos2theta
-        
-        # The next few lines give an older method for computing varpi, which has problems in edge cases
-        # where w (the root of the quartic polynomial) is very close to +1 or -1, giving varpi
-        # not very close to +1 or -1 due to bad loss of precision.
-        #
-        #varpi_denominator = ((K4s*2*sin2theta + K2c) * sqrt(1 - sin2theta*sin2theta))
-        #if (abs(varpi_denominator) < 1e-8) print *,"WARNING!!! varpi_denominator=",varpi_denominator
-        #varpi = -(K0 + K2s * sin2theta + K4c*(1 - 2*sin2theta*sin2theta)) / varpi_denominator
-        #if (abs(varpi*varpi-1) > 1e-3) print *,"WARNING!!! abs(varpi*varpi-1) =",abs(varpi*varpi-1)
-        #varpi = nint(varpi) ! Ensure varpi is exactly either +1 or -1.
-        #cos2theta = varpi * sqrt(1 - sin2theta*sin2theta)
-
-        # To get (sin theta, cos theta) from (sin 2 theta, cos 2 theta), we consider two cases to
-        # avoid precision loss when cos2theta is added to or subtracted from 1:
-        get_cos_from_cos2 = cos2theta > 0
-            
-        abs_costheta = jax.lax.cond(get_cos_from_cos2, 
-                                    lambda _: np.sqrt(0.5*(1 + cos2theta)), 
-                                    lambda _: 0, 
-                                    None)
-        
-        abs_sintheta = jax.lax.cond(get_cos_from_cos2, 
-                                    lambda _: 0, 
-                                    lambda _: np.sqrt(0.5 * (1 - cos2theta)), 
-                                    None)
-        
-        varsigma = -1 
-        
-        costheta, sintheta = jax.lax.cond(get_cos_from_cos2, 
-                                          lambda _ : (varsigma * abs_costheta, sin2theta / (2 * costheta)), 
-                                          lambda _ : (sin2theta / (2 * sintheta), varsigma * abs_sintheta), 
-                                          None)
-        
-        linear_solutions = jnp.array()
-        denominator = 2 * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-        
-        rr, residual = jax.lax.cond(jnp.abs(denominator) > 1e-8,
-                                    lambda _: g1c[jphi] * sintheta / denominator, g0[jphi] + rr * g1c[jphi] * costheta + rr * rr * (g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta),
-                                    lambda _: 0, 
-                                    None)
-        
-        quadratic_solutions = jnp.array()
-        quadratic_A = g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta
-        quadratic_B = costheta * g1c[jphi]
-        quadratic_C = g0[jphi]
-        
-        radicand = quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C
-        
-        def large_quadratic_case():
-            rr = -quadratic_C / quadratic_B
-            residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-            
-            append_cond = jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5)
-            jax.lax.cond(append_cond, 
-                         lambda _: linear_solutions.append(rr), 
-                         None, 
-                         None)
-            return rr, residual
-        
-        def small_quadratic_case():
-            rr, residual = jax.lax.cond(radicand >= 0,
-                         lambda _ : large_radicand_case(), 
-                         lambda _ : rr, radicand, 
-                         None)
-            return rr, residual
-        
-        def large_radicand_case(): 
-          radical = jnp.sqrt(radicand)
-          sign_quadratic = -1 
-          rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-          residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-          jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5),
-                       lambda _: quadratic_solutions.append(rr), 
-                       None, 
-                       None) 
-          
-          sign_quadratic = 1
-          rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-          residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-          jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5),
-                       lambda _: quadratic_solutions.append(rr), 
-                       None, 
-                       None) 
-            
-        rr, residual = jax.lax.cond(jnp.abs(quadratic_A) < 1e-13,
-                                    lambda _: large_quadratic_case(),
-                                    lambda _: small_quadratic_case(),
-                                    None)
-        
-        quadratic_solutions = jax.lax.cond(len(linear_solutions) > 1,
-                     lambda _: [jnp.min(quadratic_solutions)], 
-                     lambda _: None, 
-                     None)
-        
-        rr = -1
-        rr = jax.lax.cond(len(quadratic_solutions) > 0,
-                          lambda _: quadratic_solutions[0],
-                          lambda _: jax.lax.cond(len(linear_solutions) > 0,
-                                                lambda _: linear_solutions[0],
-                                                lambda _: 0, 
-                                                None),
-                          None)
-        
-        rc, sintheta_at_rc, costheta_at_rc = jax.lax.cond(jnp.logical_and(rr > 0, rr<rc), 
-                                                          lambda _: (rr, sintheta, costheta), 
-                                                          lambda _: None, 
-                                                          None)
-        
-        varsigma = 1
-        
-        costheta, sintheta = jax.lax.cond(get_cos_from_cos2, 
-                                          lambda _ : (varsigma * abs_costheta, sin2theta / (2 * costheta)), 
-                                          lambda _ : (sin2theta / (2 * sintheta), varsigma * abs_sintheta), 
-                                          None)
-        
-        linear_solutions = jnp.array()
-        denominator = 2 * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-        
-        rr, residual = jax.lax.cond(jnp.abs(denominator) > 1e-8,
-                                    lambda _: g1c[jphi] * sintheta / denominator, g0[jphi] + rr * g1c[jphi] * costheta + rr * rr * (g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta),
-                                    lambda _: 0, 
-                                    None)
-        
-        quadratic_solutions = jnp.array()
-        quadratic_A = g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta
-        quadratic_B = costheta * g1c[jphi]
-        quadratic_C = g0[jphi]
-        
-        radicand = quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C
-        
-        def large_quadratic_case():
-            rr = -quadratic_C / quadratic_B
-            residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-            
-            append_cond = jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5)
-            jax.lax.cond(append_cond, 
-                         lambda _: linear_solutions.append(rr), 
-                         None, 
-                         None)
-            return rr, residual
-        
-        def small_quadratic_case():
-            rr, residual = jax.lax.cond(radicand >= 0,
-                         lambda _ : large_radicand_case(), 
-                         lambda _ : rr, radicand, 
-                         None)
-            return rr, residual
-        
-        def large_radicand_case(): 
-          radical = jnp.sqrt(radicand)
-          sign_quadratic = -1 
-          rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-          residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-          jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5),
-                       lambda _: quadratic_solutions.append(rr), 
-                       None, 
-                       None) 
-          
-          sign_quadratic = 1
-          rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-          residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-          jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5),
-                       lambda _: quadratic_solutions.append(rr), 
-                       None, 
-                       None) 
-            
-        rr, residual = jax.lax.cond(jnp.abs(quadratic_A) < 1e-13,
-                                    lambda _: large_quadratic_case(),
-                                    lambda _: small_quadratic_case(),
-                                    None)
-        
-        quadratic_solutions = jax.lax.cond(len(linear_solutions) > 1,
-                     lambda _: [jnp.min(quadratic_solutions)], 
-                     lambda _: None, 
-                     None)
-        
-        rr = -1
-        rr = jax.lax.cond(len(quadratic_solutions) > 0,
-                          lambda _: quadratic_solutions[0],
-                          lambda _: jax.lax.cond(len(linear_solutions) > 0,
-                                                lambda _: linear_solutions[0],
-                                                lambda _: 0, 
-                                                None),
-                          None)
-        
-        rc, sintheta_at_rc, costheta_at_rc = jax.lax.cond(jnp.logical_and(rr > 0, rr<rc), 
-                                                          lambda _: (rr, sintheta, costheta), 
-                                                          lambda _: None, 
-                                                          None)
-        
-        
+                # If both methods find a solution, check that they agree:
+                if len(linear_solutions) > 0 and len(quadratic_solutions) > 0:
+                    diff = jnp.abs(linear_solutions[0] - quadratic_solutions[0])
+                    logger.debug("  linear solution={}  quadratic solution={}  diff={}".format(linear_solutions[0], quadratic_solutions[0], diff))
+                    if diff > 1e-5:
+                        warnings.warn("  Difference between linear solution {} and quadratic solution {} is {}".format(linear_solutions[0], quadratic_solutions[0], diff))
+                        
+                    #assert np.abs(linear_solutions[0] - quadratic_solutions[0]) < 1e-5, "Difference between linear solution {} and quadratic solution {} is {}".format(linear_solutions[0], quadratic_solutions[0], linear_solutions[0] - quadratic_solutions[0])
                     
-        r_singularity_basic_vs_varphi = r_singularity_basic_vs_varphi.at[jphi].set(rc)
-    
-        r_singularity_vs_varphi = r_singularity_vs_varphi.at[jphi].set(rc)
-        r_singularity_residual_sqnorm = r_singularity_residual_sqnorm.at[jphi].set(0) # Newton_residual_sqnorm
-        r_singularity_theta_vs_varphi = r_singularity_theta_vs_varphi.at[jphi].set(0) # theta FIX ME!!
-        
-        # jr is at index 2
-        jr = 2
-        sin2theta = real_parts[jr]
-        
-        # Determine varpi by checking which choice gives the smaller residual in the K equation
-        abs_cos2theta = jnp.sqrt(1 - sin2theta * sin2theta)
-        residual_if_varpi_plus  = jnp.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] *   abs_cos2theta \
-                                             + K4s[jphi] * 2 * sin2theta *   abs_cos2theta  + K4c[jphi] * (1 - 2 * sin2theta * sin2theta))
-        residual_if_varpi_minus = jnp.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] * (-abs_cos2theta) \
-                                             + K4s[jphi] * 2 * sin2theta * (-abs_cos2theta) + K4c[jphi] * (1 - 2 * sin2theta * sin2theta))
-        
-        
-        varpi = jax.lax.cond(residual_if_varpi_plus > residual_if_varpi_minus, 
-                             lambda _: -1, 
-                             lambda _: 1, 
-                             None)
-        
-        cos2theta = varpi * abs_cos2theta
-        
-        # The next few lines give an older method for computing varpi, which has problems in edge cases
-        # where w (the root of the quartic polynomial) is very close to +1 or -1, giving varpi
-        # not very close to +1 or -1 due to bad loss of precision.
-        #
-        #varpi_denominator = ((K4s*2*sin2theta + K2c) * sqrt(1 - sin2theta*sin2theta))
-        #if (abs(varpi_denominator) < 1e-8) print *,"WARNING!!! varpi_denominator=",varpi_denominator
-        #varpi = -(K0 + K2s * sin2theta + K4c*(1 - 2*sin2theta*sin2theta)) / varpi_denominator
-        #if (abs(varpi*varpi-1) > 1e-3) print *,"WARNING!!! abs(varpi*varpi-1) =",abs(varpi*varpi-1)
-        #varpi = nint(varpi) ! Ensure varpi is exactly either +1 or -1.
-        #cos2theta = varpi * sqrt(1 - sin2theta*sin2theta)
+                # Prefer the quadratic solution
+                rr = -1
+                if len(quadratic_solutions) > 0:
+                    rr = quadratic_solutions[0]
+                elif len(linear_solutions) > 0:
+                    rr = linear_solutions[0]
 
-        # To get (sin theta, cos theta) from (sin 2 theta, cos 2 theta), we consider two cases to
-        # avoid precision loss when cos2theta is added to or subtracted from 1:
-        get_cos_from_cos2 = cos2theta > 0
-            
-        abs_costheta = jax.lax.cond(get_cos_from_cos2, 
-                                    lambda _: np.sqrt(0.5*(1 + cos2theta)), 
-                                    lambda _: 0, 
-                                    None)
-        
-        abs_sintheta = jax.lax.cond(get_cos_from_cos2, 
-                                    lambda _: 0, 
-                                    lambda _: np.sqrt(0.5 * (1 - cos2theta)), 
-                                    None)
-        
-        varsigma = -1 
-        
-        costheta, sintheta = jax.lax.cond(get_cos_from_cos2, 
-                                          lambda _ : (varsigma * abs_costheta, sin2theta / (2 * costheta)), 
-                                          lambda _ : (sin2theta / (2 * sintheta), varsigma * abs_sintheta), 
-                                          None)
-        
-        linear_solutions = jnp.array()
-        denominator = 2 * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-        
-        rr, residual = jax.lax.cond(jnp.abs(denominator) > 1e-8,
-                                    lambda _: g1c[jphi] * sintheta / denominator, g0[jphi] + rr * g1c[jphi] * costheta + rr * rr * (g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta),
-                                    lambda _: 0, 
-                                    None)
-        
-        quadratic_solutions = jnp.array()
-        quadratic_A = g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta
-        quadratic_B = costheta * g1c[jphi]
-        quadratic_C = g0[jphi]
-        
-        radicand = quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C
-        
-        def large_quadratic_case():
-            rr = -quadratic_C / quadratic_B
-            residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-            
-            append_cond = jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5)
-            jax.lax.cond(append_cond, 
-                         lambda _: linear_solutions.append(rr), 
-                         None, 
-                         None)
-            return rr, residual
-        
-        def small_quadratic_case():
-            rr, residual = jax.lax.cond(radicand >= 0,
-                         lambda _ : large_radicand_case(), 
-                         lambda _ : rr, radicand, 
-                         None)
-            return rr, residual
-        
-        def large_radicand_case(): 
-          radical = jnp.sqrt(radicand)
-          sign_quadratic = -1 
-          rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-          residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-          jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5),
-                       lambda _: quadratic_solutions.append(rr), 
-                       None, 
-                       None) 
-          
-          sign_quadratic = 1
-          rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-          residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-          jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5),
-                       lambda _: quadratic_solutions.append(rr), 
-                       None, 
-                       None) 
-            
-        rr, residual = jax.lax.cond(jnp.abs(quadratic_A) < 1e-13,
-                                    lambda _: large_quadratic_case(),
-                                    lambda _: small_quadratic_case(),
-                                    None)
-        
-        quadratic_solutions = jax.lax.cond(len(linear_solutions) > 1,
-                     lambda _: [jnp.min(quadratic_solutions)], 
-                     lambda _: None, 
-                     None)
-        
-        rr = -1
-        rr = jax.lax.cond(len(quadratic_solutions) > 0,
-                          lambda _: quadratic_solutions[0],
-                          lambda _: jax.lax.cond(len(linear_solutions) > 0,
-                                                lambda _: linear_solutions[0],
-                                                lambda _: 0, 
-                                                None),
-                          None)
-        
-        rc, sintheta_at_rc, costheta_at_rc = jax.lax.cond(jnp.logical_and(rr > 0, rr<rc), 
-                                                          lambda _: (rr, sintheta, costheta), 
-                                                          lambda _: None, 
-                                                          None)
-        
-        varsigma = 1
-        
-        costheta, sintheta = jax.lax.cond(get_cos_from_cos2, 
-                                          lambda _ : (varsigma * abs_costheta, sin2theta / (2 * costheta)), 
-                                          lambda _ : (sin2theta / (2 * sintheta), varsigma * abs_sintheta), 
-                                          None)
-        
-        linear_solutions = jnp.array()
-        denominator = 2 * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-        
-        rr, residual = jax.lax.cond(jnp.abs(denominator) > 1e-8,
-                                    lambda _: g1c[jphi] * sintheta / denominator, g0[jphi] + rr * g1c[jphi] * costheta + rr * rr * (g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta),
-                                    lambda _: 0, 
-                                    None)
-        
-        quadratic_solutions = jnp.array()
-        quadratic_A = g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta
-        quadratic_B = costheta * g1c[jphi]
-        quadratic_C = g0[jphi]
-        
-        radicand = quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C
-        
-        def large_quadratic_case():
-            rr = -quadratic_C / quadratic_B
-            residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-            
-            append_cond = jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5)
-            jax.lax.cond(append_cond, 
-                         lambda _: linear_solutions.append(rr), 
-                         None, 
-                         None)
-            return rr, residual
-        
-        def small_quadratic_case():
-            rr, residual = jax.lax.cond(radicand >= 0,
-                         lambda _ : large_radicand_case(), 
-                         lambda _ : rr, radicand, 
-                         None)
-            return rr, residual
-        
-        def large_radicand_case(): 
-          radical = jnp.sqrt(radicand)
-          sign_quadratic = -1 
-          rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-          residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-          jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5),
-                       lambda _: quadratic_solutions.append(rr), 
-                       None, 
-                       None) 
-          
-          sign_quadratic = 1
-          rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-          residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-          jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5),
-                       lambda _: quadratic_solutions.append(rr), 
-                       None, 
-                       None) 
-            
-        rr, residual = jax.lax.cond(jnp.abs(quadratic_A) < 1e-13,
-                                    lambda _: large_quadratic_case(),
-                                    lambda _: small_quadratic_case(),
-                                    None)
-        
-        quadratic_solutions = jax.lax.cond(len(linear_solutions) > 1,
-                     lambda _: [jnp.min(quadratic_solutions)], 
-                     lambda _: None, 
-                     None)
-        
-        rr = -1
-        rr = jax.lax.cond(len(quadratic_solutions) > 0,
-                          lambda _: quadratic_solutions[0],
-                          lambda _: jax.lax.cond(len(linear_solutions) > 0,
-                                                lambda _: linear_solutions[0],
-                                                lambda _: 0, 
-                                                None),
-                          None)
-        
-        rc, sintheta_at_rc, costheta_at_rc = jax.lax.cond(jnp.logical_and(rr > 0, rr<rc), 
-                                                          lambda _: (rr, sintheta, costheta), 
-                                                          lambda _: None, 
-                                                          None)
-        
-        
+                if rr > 0 and rr < rc:
+                    # This is a new minimum
+                    rc = rr
+                    sintheta_at_rc = sintheta
+                    costheta_at_rc = costheta
+                    logger.debug("      New minimum: rc={}".format(rc))
                     
-        r_singularity_basic_vs_varphi = r_singularity_basic_vs_varphi.at[jphi].set(rc)
+        r_singularity_basic_vs_varphi[jphi] = rc
+        #r_singularity_Newton_solve()
+        r_singularity_vs_varphi[jphi] = rc
+        r_singularity_residual_sqnorm[jphi] = 0 # Newton_residual_sqnorm
+        r_singularity_theta_vs_varphi[jphi] = 0 # theta FIX ME!!
+
+    self.r_singularity_vs_varphi = r_singularity_vs_varphi
+    self.inv_r_singularity_vs_varphi = 1 / r_singularity_vs_varphi
+    self.r_singularity_basic_vs_varphi = r_singularity_basic_vs_varphi
+    self.r_singularity = jnp.min(r_singularity_vs_varphi)    
+    self.r_singularity_theta_vs_varphi = r_singularity_theta_vs_varphi
+    self.r_singularity_residual_sqnorm = r_singularity_residual_sqnorm
     
-        r_singularity_vs_varphi = r_singularity_vs_varphi.at[jphi].set(rc)
-        r_singularity_residual_sqnorm = r_singularity_residual_sqnorm.at[jphi].set(0) # Newton_residual_sqnorm
-        r_singularity_theta_vs_varphi = r_singularity_theta_vs_varphi.at[jphi].set(0) # theta FIX ME!!
-
-        # jr is at index 3
-        jr = 3
-        sin2theta = real_parts[jr]
-        
-        # Determine varpi by checking which choice gives the smaller residual in the K equation
-        abs_cos2theta = jnp.sqrt(1 - sin2theta * sin2theta)
-        residual_if_varpi_plus  = jnp.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] *   abs_cos2theta \
-                                             + K4s[jphi] * 2 * sin2theta *   abs_cos2theta  + K4c[jphi] * (1 - 2 * sin2theta * sin2theta))
-        residual_if_varpi_minus = jnp.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] * (-abs_cos2theta) \
-                                             + K4s[jphi] * 2 * sin2theta * (-abs_cos2theta) + K4c[jphi] * (1 - 2 * sin2theta * sin2theta))
-        
-        
-        varpi = jax.lax.cond(residual_if_varpi_plus > residual_if_varpi_minus, 
-                             lambda _: -1, 
-                             lambda _: 1, 
-                             None)
-        
-        cos2theta = varpi * abs_cos2theta
-        
-        # The next few lines give an older method for computing varpi, which has problems in edge cases
-        # where w (the root of the quartic polynomial) is very close to +1 or -1, giving varpi
-        # not very close to +1 or -1 due to bad loss of precision.
-        #
-        #varpi_denominator = ((K4s*2*sin2theta + K2c) * sqrt(1 - sin2theta*sin2theta))
-        #if (abs(varpi_denominator) < 1e-8) print *,"WARNING!!! varpi_denominator=",varpi_denominator
-        #varpi = -(K0 + K2s * sin2theta + K4c*(1 - 2*sin2theta*sin2theta)) / varpi_denominator
-        #if (abs(varpi*varpi-1) > 1e-3) print *,"WARNING!!! abs(varpi*varpi-1) =",abs(varpi*varpi-1)
-        #varpi = nint(varpi) ! Ensure varpi is exactly either +1 or -1.
-        #cos2theta = varpi * sqrt(1 - sin2theta*sin2theta)
-
-        # To get (sin theta, cos theta) from (sin 2 theta, cos 2 theta), we consider two cases to
-        # avoid precision loss when cos2theta is added to or subtracted from 1:
-        get_cos_from_cos2 = cos2theta > 0
-            
-        abs_costheta = jax.lax.cond(get_cos_from_cos2, 
-                                    lambda _: np.sqrt(0.5*(1 + cos2theta)), 
-                                    lambda _: 0, 
-                                    None)
-        
-        abs_sintheta = jax.lax.cond(get_cos_from_cos2, 
-                                    lambda _: 0, 
-                                    lambda _: np.sqrt(0.5 * (1 - cos2theta)), 
-                                    None)
-        
-        varsigma = -1 
-        
-        costheta, sintheta = jax.lax.cond(get_cos_from_cos2, 
-                                          lambda _ : (varsigma * abs_costheta, sin2theta / (2 * costheta)), 
-                                          lambda _ : (sin2theta / (2 * sintheta), varsigma * abs_sintheta), 
-                                          None)
-        
-        linear_solutions = jnp.array()
-        denominator = 2 * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-        
-        rr, residual = jax.lax.cond(jnp.abs(denominator) > 1e-8,
-                                    lambda _: g1c[jphi] * sintheta / denominator, g0[jphi] + rr * g1c[jphi] * costheta + rr * rr * (g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta),
-                                    lambda _: 0, 
-                                    None)
-        
-        quadratic_solutions = jnp.array()
-        quadratic_A = g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta
-        quadratic_B = costheta * g1c[jphi]
-        quadratic_C = g0[jphi]
-        
-        radicand = quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C
-        
-        def large_quadratic_case():
-            rr = -quadratic_C / quadratic_B
-            residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-            
-            append_cond = jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5)
-            jax.lax.cond(append_cond, 
-                         lambda _: linear_solutions.append(rr), 
-                         None, 
-                         None)
-            return rr, residual
-        
-        def small_quadratic_case():
-            rr, residual = jax.lax.cond(radicand >= 0,
-                         lambda _ : large_radicand_case(), 
-                         lambda _ : rr, radicand, 
-                         None)
-            return rr, residual
-        
-        def large_radicand_case(): 
-          radical = jnp.sqrt(radicand)
-          sign_quadratic = -1 
-          rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-          residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-          jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5),
-                       lambda _: quadratic_solutions.append(rr), 
-                       None, 
-                       None) 
-          
-          sign_quadratic = 1
-          rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-          residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-          jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5),
-                       lambda _: quadratic_solutions.append(rr), 
-                       None, 
-                       None) 
-            
-        rr, residual = jax.lax.cond(jnp.abs(quadratic_A) < 1e-13,
-                                    lambda _: large_quadratic_case(),
-                                    lambda _: small_quadratic_case(),
-                                    None)
-        
-        quadratic_solutions = jax.lax.cond(len(linear_solutions) > 1,
-                     lambda _: [jnp.min(quadratic_solutions)], 
-                     lambda _: None, 
-                     None)
-        
-        rr = -1
-        rr = jax.lax.cond(len(quadratic_solutions) > 0,
-                          lambda _: quadratic_solutions[0],
-                          lambda _: jax.lax.cond(len(linear_solutions) > 0,
-                                                lambda _: linear_solutions[0],
-                                                lambda _: 0, 
-                                                None),
-                          None)
-        
-        rc, sintheta_at_rc, costheta_at_rc = jax.lax.cond(jnp.logical_and(rr > 0, rr<rc), 
-                                                          lambda _: (rr, sintheta, costheta), 
-                                                          lambda _: None, 
-                                                          None)
-        
-        varsigma = 1
-        
-        costheta, sintheta = jax.lax.cond(get_cos_from_cos2, 
-                                          lambda _ : (varsigma * abs_costheta, sin2theta / (2 * costheta)), 
-                                          lambda _ : (sin2theta / (2 * sintheta), varsigma * abs_sintheta), 
-                                          None)
-        
-        linear_solutions = jnp.array()
-        denominator = 2 * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-        
-        rr, residual = jax.lax.cond(jnp.abs(denominator) > 1e-8,
-                                    lambda _: g1c[jphi] * sintheta / denominator, g0[jphi] + rr * g1c[jphi] * costheta + rr * rr * (g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta),
-                                    lambda _: 0, 
-                                    None)
-        
-        quadratic_solutions = jnp.array()
-        quadratic_A = g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta
-        quadratic_B = costheta * g1c[jphi]
-        quadratic_C = g0[jphi]
-        
-        radicand = quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C
-        
-        def large_quadratic_case():
-            rr = -quadratic_C / quadratic_B
-            residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
-            
-            append_cond = jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5)
-            jax.lax.cond(append_cond, 
-                         lambda _: linear_solutions.append(rr), 
-                         None, 
-                         None)
-            return rr, residual
-        
-        def small_quadratic_case():
-            rr, residual = jax.lax.cond(radicand >= 0,
-                         lambda _ : large_radicand_case(), 
-                         lambda _ : rr, radicand, 
-                         None)
-            return rr, residual
-        
-        def large_radicand_case(): 
-          radical = jnp.sqrt(radicand)
-          sign_quadratic = -1 
-          rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-          residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-          jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5),
-                       lambda _: quadratic_solutions.append(rr), 
-                       None, 
-                       None) 
-          
-          sign_quadratic = 1
-          rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-          residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-          jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5),
-                       lambda _: quadratic_solutions.append(rr), 
-                       None, 
-                       None) 
-            
-        rr, residual = jax.lax.cond(jnp.abs(quadratic_A) < 1e-13,
-                                    lambda _: large_quadratic_case(),
-                                    lambda _: small_quadratic_case(),
-                                    None)
-        
-        quadratic_solutions = jax.lax.cond(len(linear_solutions) > 1,
-                     lambda _: [jnp.min(quadratic_solutions)], 
-                     lambda _: None, 
-                     None)
-        
-        rr = -1
-        rr = jax.lax.cond(len(quadratic_solutions) > 0,
-                          lambda _: quadratic_solutions[0],
-                          lambda _: jax.lax.cond(len(linear_solutions) > 0,
-                                                lambda _: linear_solutions[0],
-                                                lambda _: 0, 
-                                                None),
-                          None)
-        
-        rc, sintheta_at_rc, costheta_at_rc = jax.lax.cond(jnp.logical_and(rr > 0, rr<rc), 
-                                                          lambda _: (rr, sintheta, costheta), 
-                                                          lambda _: None, 
-                                                          None)
-        
-        
-                    
-        r_singularity_basic_vs_varphi = r_singularity_basic_vs_varphi.at[jphi].set(rc)
-    
-        r_singularity_vs_varphi = r_singularity_vs_varphi.at[jphi].set(rc)
-        r_singularity_residual_sqnorm = r_singularity_residual_sqnorm.at[jphi].set(0) # Newton_residual_sqnorm
-        r_singularity_theta_vs_varphi = r_singularity_theta_vs_varphi.at[jphi].set(0) # theta FIX ME!!
-
-    carry = r_singularity_basic_vs_varphi, r_singularity_vs_varphi, r_singularity_residual_sqnorm, r_singularity_theta_vs_varphi
-    
-    jax.lax.fori_loop(0, nphi, body, carry)
-
-    r_singularity_vs_varphi = r_singularity_vs_varphi
-    inv_r_singularity_vs_varphi = 1 / r_singularity_vs_varphi
-    r_singularity_basic_vs_varphi = r_singularity_basic_vs_varphi
-    r_singularity = jnp.min(r_singularity_vs_varphi)    
-    r_singularity_theta_vs_varphi = r_singularity_theta_vs_varphi
-    r_singularity_residual_sqnorm = r_singularity_residual_sqnorm
-    
-    return r_singularity_vs_varphi, inv_r_singularity_vs_varphi, r_singularity_basic_vs_varphi, r_singularity, r_singularity_theta_vs_varphi, r_singularity_residual_sqnorm
-
-
-
-  
-  
-
 
 
 def new_calculate_r_singularity(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2s, Z2c, iotaN, iota, G0, B0, curvature, torsion, nphi, sG, spsi, I2, G2, p2, B20, B2s, B2c, d_X1c_d_varphi, d_Y1s_d_varphi, d_Y1c_d_varphi, d_X20_d_varphi, d_X2s_d_varphi, d_X2c_d_varphi, d_Y20_d_varphi, d_Y2s_d_varphi, d_Y2c_d_varphi, d_Z20_d_varphi, d_Z2s_d_varphi, d_Z2c_d_varphi, d2_X1c_d_varphi2, d2_Y1s_d_varphi2, d2_Y1c_d_varphi2, d_curvature_d_varphi, d_torsion_d_varphi): 
     """
     """
-
-
     iota_N0 = iotaN
     iota = iota
     lp = jnp.abs(G0) / B0
@@ -1077,6 +423,14 @@ def new_calculate_r_singularity(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z20
         Y1c*Z2c*d_X1c_d_varphi - Y1s*Z2s*d_X1c_d_varphi - \
         X1c*Z20*d_Y1c_d_varphi + X1c*Z2c*d_Y1c_d_varphi - \
         X1c*Z2s*d_Y1s_d_varphi + X1c*Y1s*d_Z2s_d_varphi
+        
+    state = np.array(20)
+    
+    state[18] = g0
+    state[19] = g1c
+    state[20] = g20
+    state[21] = g2c
+    state[22] = g2s
   
 
     # We consider the system sqrt(g) = 0 and
@@ -1098,63 +452,140 @@ def new_calculate_r_singularity(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z20
 
     coefficients = jnp.zeros((nphi,5))
     
-    coefficients[:, 4] = 4*(K4c*K4c + K4s*K4s)
+    coefficients = coefficients.at[:, 4].set(4*(K4c*K4c + K4s*K4s))
 
-    coefficients[:, 3] = 4*(K4s*K2c - K2s*K4c)
+    coefficients = coefficients.at[:, 3].set(4*(K4s*K2c - K2s*K4c))
 
-    coefficients[:, 2] = K2s*K2s + K2c*K2c - 4*K0*K4c - 4*K4c*K4c - 4*K4s*K4s
+    coefficients = coefficients.at[: ,2].set(K2s*K2s + K2c*K2c - 4*K0*K4c - 4*K4c*K4c - 4*K4s*K4s)
 
-    coefficients[:, 1] = 2*K0*K2s + 2*K4c*K2s - 4*K4s*K2c
+    coefficients = coefficients.at[: ,1].set(2*K0*K2s + 2*K4c*K2s - 4*K4s*K2c)
 
-    coefficients[:, 0] = (K0 + K4c)*(K0 + K4c) - K2c*K2c
+    coefficients = coefficients.at[: ,0].set((K0 + K4c)*(K0 + K4c) - K2c*K2c)
 
-    def jphi_loop(j, state):
-        jphi = j 
-        # Solve for the roots of the quartic polynomial:
+      
+    #state = r_singularity_basic_vs_varphi, r_singularity_vs_varphi, r_singularity_residual_sqnorm, r_singularity_theta_vs_varphi, real_parts
+    
+    state[0] =r_singularity_basic_vs_varphi 
+    state[1] =r_singularity_vs_varphi 
+    state[2] =r_singularity_residual_sqnorm 
+    state[3] = r_singularity_theta_vs_varphi
+    
+   
+    state[8] = K0  
+    state[9] = K2s
+    state[10] = K4s
+    state[11] = K2c
+    state[12] = K4c
+    
+    jax.lax.fori_loop(0, nphi, jphi_loop(), state)
+
+    r_singularity_vs_varphi = r_singularity_vs_varphi
+    inv_r_singularity_vs_varphi = 1 / r_singularity_vs_varphi
+    r_singularity_basic_vs_varphi = r_singularity_basic_vs_varphi
+    r_singularity = jnp.min(r_singularity_vs_varphi)    
+    r_singularity_theta_vs_varphi = r_singularity_theta_vs_varphi
+    r_singularity_residual_sqnorm = r_singularity_residual_sqnorm
+    
+    return r_singularity_vs_varphi, inv_r_singularity_vs_varphi, r_singularity_basic_vs_varphi, r_singularity, r_singularity_theta_vs_varphi, r_singularity_residual_sqnorm
+
+def jr_loop(j, state): 
+    """
+    called by jphi_loop to loop over the roots of the quartic polynomial in order to find the best root for r_singularity.
+
+    Args:
+        j (_type_): _description_
+        state (_type_): _description_
+    """
+    real_parts = state[5]
+    imag_parts = state[6]
+    
+    
+        # Loop over the roots of the equation for w.
+    jr = j
+        # If root is not purely real, skip it.
+    sin2theta = real_parts[jr]
+    
+    state[14] = sin2theta                
+
+    jax.lax.cond(jnp.logical_or(jnp.abs(imag_parts[jr]) > 1e-7, jnp.abs(sin2theta) > 1),
+            lambda _: compute(state), 
+            lambda _: cont(state), 
+            None)
+
+def jphi_loop(j, state):
+    jphi = j 
+    state[13] = jphi 
+    # Solve for the roots of the quartic polynomial:
+    coefficients = state[4]    
+    r_singularity_basic_vs_varphi = state[0] 
+    r_singularity_vs_varphi = state[1] 
+    r_singularity_residual_sqnorm  = state[2] 
+    r_singularity_theta_vs_varphi = state[3]
+   
+    roots = jax.numpy.roots(coefficients[jphi, :], strip_zeros = False) # Do I need to reverse the order of the coefficients?        
+    real_parts = jnp.real(roots)
+    imag_parts = jnp.imag(roots)
+
+    state[5] = real_parts
+    state[6] = imag_parts
+    # This huge number indicates a true solution has not yet been found.
+    rc = 1e+100
+    state[7] = rc 
         
-        roots = jax.numpy.roots(coefficients[jphi, :], strip_zeros = False) # Do I need to reverse the order of the coefficients?        
-        real_parts = jnp.real(roots)
-        imag_parts = jnp.imag(roots)
+    jax.lax.fori_loop(0, 4, jr_loop(), state)   
+                    
+    r_singularity_basic_vs_varphi[jphi] = rc
+    #r_singularity_Newton_solve()
+    r_singularity_vs_varphi[jphi] = rc
+    r_singularity_residual_sqnorm[jphi] = 0 # Newton_residual_sqnorm
+    r_singularity_theta_vs_varphi[jphi] = 0 # theta FIX ME!!
+        
+    # cant just reset state completely state = r_singularity_basic_vs_varphi, r_singularity_vs_varphi, r_singularity_residual_sqnorm, r_singularity_theta_vs_varphi
  
-        # This huge number indicates a true solution has not yet been found.
-        rc = 1e+100
-        
-        def jr_loop(j, state): 
-            # Loop over the roots of the equation for w.
-            jr = j
-            # If root is not purely real, skip it.
-            sin2theta = real_parts[jr]
-                
-            def compute():   
-                # Determine varpi by checking which choice gives the smaller residual in the K equation
-                abs_cos2theta = np.sqrt(1 - sin2theta * sin2theta)
-                residual_if_varpi_plus  = np.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] *   abs_cos2theta \
+def cont(state): 
+    rc = state[0]
+    return rc
+    
+def compute(state):   
+    sin2theta = state[14]
+    jphi = state[13]
+    K0 = state[8] 
+    K2s = state[9]
+    K4s = state[10]
+    K2c = state[11]
+    K4c = state[12]
+    
+    # Determine varpi by checking which choice gives the smaller residual in the K equation
+    abs_cos2theta = jnp.sqrt(1 - sin2theta * sin2theta)
+    residual_if_varpi_plus  = jnp.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] *   abs_cos2theta \
                                              + K4s[jphi] * 2 * sin2theta *   abs_cos2theta  + K4c[jphi] * (1 - 2 * sin2theta * sin2theta))
-                residual_if_varpi_minus = np.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] * (-abs_cos2theta) \
+    residual_if_varpi_minus = jnp.abs(K0[jphi] + K2s[jphi] * sin2theta + K2c[jphi] * (-abs_cos2theta) \
                                              + K4s[jphi] * 2 * sin2theta * (-abs_cos2theta) + K4c[jphi] * (1 - 2 * sin2theta * sin2theta))
 
 
-                varpi = jax.lax.cond(residual_if_varpi_plus > residual_if_varpi_minus, 
+    varpi = jax.lax.cond(residual_if_varpi_plus > residual_if_varpi_minus, 
                                 lambda _: -1, 
                                 lambda _: 1, 
                                 None)
 
-                cos2theta = varpi * abs_cos2theta
+    cos2theta = varpi * abs_cos2theta
+    state[17] = cos2theta
+    
+    # The next few lines give an older method for computing varpi, which has problems in edge cases
+    # where w (the root of the quartic polynomial) is very close to +1 or -1, giving varpi
+    # not very close to +1 or -1 due to bad loss of precision.
+    #
+    #varpi_denominator = ((K4s*2*sin2theta + K2c) * sqrt(1 - sin2theta*sin2theta))
+    #if (abs(varpi_denominator) < 1e-8) print *,"WARNING!!! varpi_denominator=",varpi_denominator
+    #varpi = -(K0 + K2s * sin2theta + K4c*(1 - 2*sin2theta*sin2theta)) / varpi_denominator
+    #if (abs(varpi*varpi-1) > 1e-3) print *,"WARNING!!! abs(varpi*varpi-1) =",abs(varpi*varpi-1)
+    #varpi = nint(varpi) ! Ensure varpi is exactly either +1 or -1.
+    #cos2theta = varpi * sqrt(1 - sin2theta*sin2theta)
 
-                # The next few lines give an older method for computing varpi, which has problems in edge cases
-                # where w (the root of the quartic polynomial) is very close to +1 or -1, giving varpi
-                # not very close to +1 or -1 due to bad loss of precision.
-                #
-                #varpi_denominator = ((K4s*2*sin2theta + K2c) * sqrt(1 - sin2theta*sin2theta))
-                #if (abs(varpi_denominator) < 1e-8) print *,"WARNING!!! varpi_denominator=",varpi_denominator
-                #varpi = -(K0 + K2s * sin2theta + K4c*(1 - 2*sin2theta*sin2theta)) / varpi_denominator
-                #if (abs(varpi*varpi-1) > 1e-3) print *,"WARNING!!! abs(varpi*varpi-1) =",abs(varpi*varpi-1)
-                #varpi = nint(varpi) ! Ensure varpi is exactly either +1 or -1.
-                #cos2theta = varpi * sqrt(1 - sin2theta*sin2theta)
-
-                # To get (sin theta, cos theta) from (sin 2 theta, cos 2 theta), we consider two cases to
-                # avoid precision loss when cos2theta is added to or subtracted from 1:
-                get_cos_from_cos2 = cos2theta > 0
+    # To get (sin theta, cos theta) from (sin 2 theta, cos 2 theta), we consider two cases to
+    # avoid precision loss when cos2theta is added to or subtracted from 1:
+    get_cos_from_cos2 = cos2theta > 0
+    state[15] = get_cos_from_cos2 
               
               
               #if get_cos_from_cos2:
@@ -1162,149 +593,134 @@ def new_calculate_r_singularity(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z20
               #else:
                #   abs_sintheta = np.sqrt(0.5 * (1 - cos2theta))
                
-                abs_costheta_or_abs_sintheta = jax.lax.cond(get_cos_from_cos2, 
+    abs_costheta_or_abs_sintheta = jax.lax.cond(get_cos_from_cos2, 
                                                         lambda _: jnp.sqrt(0.5*(1 + cos2theta)), 
                                                         lambda _: jnp.sqrt(0.5 * (1 - cos2theta)), 
                                                         None)
+    state[16] = abs_costheta_or_abs_sintheta 
+    rc = jax.lax.fori_loop(0,2, varsigma_loop(), state)
+    return rc
+
+def true_get_cos_from_cos2(varsigma, abs_costheta_or_abs_sintheta, sin2theta):
+    costheta = varsigma * abs_costheta_or_abs_sintheta
+    sintheta = sin2theta / (2 * costheta)
+    return costheta, sintheta
+
+def false_get_cos_from_cos2(varsigma, abs_costheta_or_abs_sintheta, sin2theta):
+    sintheta = varsigma * abs_costheta_or_abs_sintheta
+    costheta = sin2theta / (2 * sintheta)
+    return costheta, sintheta
                 
-                def varsigma_loop(j): 
+def large_denom_case(g1c, jphi, sintheta, denominator, g0, costheta, g20, g2s, sin2theta, g2c, cos2theta): 
+    rr = g1c[jphi] * sintheta / denominator
+    residual = g0[jphi] + rr * g1c[jphi] * costheta + rr * rr * (g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta) # Residual in the equation sqrt(g)=0. 
+    return rr, residual
                     
-                    varisgma = jax.lax.cond(j==0, 
-                                            lambda _: -1, 
-                                            lambda _: 1, 
-                                            None)
+def small_denom_case(rr, residual): 
+    return rr, residual  
+
+def small_quadratic_A_case(quadratic_C, quadratic_B, g1c, jphi, sintheta, g2s, cos2theta, g2c, sin2theta, quadratic_solutions):
+    rr = -quadratic_C / quadratic_B
+    residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
+                       
+    #will face issue with dynamically sized arrays
+    jax.lax.cond(jnp.logical_and((rr>0), jnp.abs(residual) < 1e-5) , 
+                                     lambda _: jnp.concatenate([rr], quadratic_solutions), 
+                                     lambda _: None,
+                                     None)
+                        
+def large_quadratic_A_case(quadratic_A, quadratic_B, g1c, jphi, sintheta, g2s, cos2theta, g2c, sin2theta, quadratic_solutions, radicand):
+    radical = jnp.sqrt(radicand)
+    sign_quadratic = -1
+    rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
+    residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
+                        
+    #will face issue with dynamically sized arrays
+    jax.lax.cond(jnp.logical_and((rr>0), jnp.abs(residual) < 1e-5) , 
+                                     lambda _: jnp.concatenate([rr], quadratic_solutions), 
+                                     lambda _: None,
+                                     None)
+                        
+    sign_quadratic = 1
+    rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
+    residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
+                        
+    #will face issue with dynamically sized arrays
+    jax.lax.cond(jnp.logical_and((rr>0), jnp.abs(residual) < 1e-5) , 
+                                     lambda _: jnp.concatenate([rr], quadratic_solutions), 
+                                     lambda _: None,
+                                     None)
+                     
+def varsigma_loop(j, state): 
+    get_cos_from_cos2 = state[15] 
+    abs_costheta_or_abs_sintheta = state[16] 
+    sin2theta = state[14]
+    jphi = state[13] 
+    cos2theta = state[17]
+    g2s = state[22]
+    g2c = state[21]
+    g1c = state[19]
+    g0 = state[18]
+    g20 = state[20]
+               
+    varsigma = jax.lax.cond(j==0, 
+                        lambda _: -1, 
+                        lambda _: 1, 
+                        None)
                   
-                    def true_get_cos_from_cos2(): 
-                        costheta = varsigma * abs_costheta_or_abs_sintheta
-                        sintheta = sin2theta / (2 * costheta)
-                        return costheta, sintheta
-                
-                    def false_get_cos_from_cos2():
-                        sintheta = varsigma * abs_costheta_or_abs_sintheta
-                        costheta = sin2theta / (2 * sintheta)
-                        return costheta, sintheta
-              
-                    costheta, sintheta = jax.lax.cond(get_cos_from_cos2,
-                                                  lambda _: true_get_cos_from_cos2(), 
-                                                  lambda _: false_get_cos_from_cos2(), 
-                                                  None)
+             
+    costheta, sintheta = jax.lax.cond(get_cos_from_cos2,
+                                lambda _: true_get_cos_from_cos2(varsigma, abs_costheta_or_abs_sintheta, sin2theta), 
+                                lambda _: false_get_cos_from_cos2(varsigma, abs_costheta_or_abs_sintheta, sin2theta), 
+                                None)
                 
 
-                    # Try to get r using the simpler method, the equation that is linear in r.
-                    linear_solutions = []
-                    denominator = 2 * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
+    # Try to get r using the simpler method, the equation that is linear in r.
+    linear_solutions = []
+    denominator = 2 * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta)
                     
-                    def large_denom_case():
-                        rr = g1c[jphi] * sintheta / denominator
-                        residual = g0[jphi] + rr * g1c[jphi] * costheta + rr * rr * (g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta) # Residual in the equation sqrt(g)=0. 
-                        return rr, residual
+                     
+    rr, residual = jax.lax.cond(jnp.abs(denominator) > 1e-8,
+                            lambda _: large_denom_case(g1c, jphi, sintheta, denominator, g0, costheta, g20, g2s, sin2theta, g2c, cos2theta),
+                            lambda _: small_denom_case(rr, residual),
+                            None)
                     
-                    def small_denom_case(): 
-                        return rr, residual  
-                      
-                    rr, residual = jax.lax.cond(jnp.abs(denominator) > 1e-8,
-                                            lambda _: large_denom_case(),
-                                            lambda _: small_denom_case(),
-                                            None)
-                    
-                    linear_solutions = jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5, jnp.abs(denominator) > 1e-8),
-                                                    lambda _: [rr], 
-                                                    lambda _: [],
-                                                    None)
+    linear_solutions = jax.lax.cond(jnp.logical_and(rr > 0, jnp.abs(residual) < 1e-5, jnp.abs(denominator) > 1e-8),
+                                lambda _: [rr], 
+                                lambda _: [],
+                                None)
                 
                             
-                    # Use the more complicated method to determine rr by solving a quadratic equation.
-                    quadratic_solutions = []
-                    quadratic_A = g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta
-                    quadratic_B = costheta * g1c[jphi]
-                    quadratic_C = g0[jphi]
-                    radicand = quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C
-                    
-                    def small_quadratic_A_case():
-                        rr = -quadratic_C / quadratic_B
-                        residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-                       
-                        #will face issue with dynamically sized arrays
-                        jax.lax.cond(jnp.logical_and((rr>0), jnp.abs(residual) < 1e-5) , 
-                                     lambda _: jnp.concatenate([rr], quadratic_solutions), 
-                                     lambda _: None,
-                                     None)
-                    
-                    def large_quadratic_A_case():
-                        radical = jnp.sqrt(radicand)
-                        sign_quadratic = -1
-                        rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-                        residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-                        
-                        #will face issue with dynamically sized arrays
-                        jax.lax.cond(jnp.logical_and((rr>0), jnp.abs(residual) < 1e-5) , 
-                                     lambda _: jnp.concatenate([rr], quadratic_solutions), 
-                                     lambda _: None,
-                                     None)
-                        
-                        sign_quadratic = 1
-                        rr = (-quadratic_B + sign_quadratic * radical) / (2 * quadratic_A) # This is the quadratic formula.
-                        residual = -g1c[jphi] * sintheta + 2 * rr * (g2s[jphi] * cos2theta - g2c[jphi] * sin2theta) # Residual in the equation d sqrt(g) / d theta = 0.
-                        
-                        #will face issue with dynamically sized arrays
-                        jax.lax.cond(jnp.logical_and((rr>0), jnp.abs(residual) < 1e-5) , 
-                                     lambda _: jnp.concatenate([rr], quadratic_solutions), 
-                                     lambda _: None,
-                                     None)
-                                  
-                    #logic has been inverted to avoid else with if              
-                    rr, residual = jax.lax.cond(jnp.logical_and(jnp.abs(quadratic_A) >= 1e-13, radicand >= 0),
-                                                large_quadratic_A_case, 
-                                                small_quadratic_A_case,
-                                                None)
+    # Use the more complicated method to determine rr by solving a quadratic equation.
+    quadratic_solutions = []
+    quadratic_A = g20[jphi] + g2s[jphi] * sin2theta + g2c[jphi] * cos2theta
+    quadratic_B = costheta * g1c[jphi]
+    quadratic_C = g0[jphi]
+    radicand = quadratic_B * quadratic_B - 4 * quadratic_A * quadratic_C
+                                    
+    #logic has been inverted to avoid else with if              
+    rr, residual = jax.lax.cond(jnp.logical_and(jnp.abs(quadratic_A) >= 1e-13, radicand >= 0),
+                            large_quadratic_A_case(quadratic_A, quadratic_B, g1c, jphi, sintheta, g2s, cos2theta, g2c, sin2theta, quadratic_solutions, radicand), 
+                            small_quadratic_A_case(quadratic_C, quadratic_B, g1c, jphi, sintheta, g2s, cos2theta, g2c, sin2theta, quadratic_solutions),
+                            None)
                                                 
         
-                    quadratic_solutions = [np.min(quadratic_solutions)]
+    quadratic_solutions = [jnp.min(quadratic_solutions)]
                     
-                    # Prefer the quadratic solution
-                    rr = -1
+    # Prefer the quadratic solution
+    rr = -1
                     
-                    rr = jax.lax.cond(quadratic_solutions.size > 0, lambda _: quadratic_solutions[0], lambda _: jax.lax.cond(linear_solutions.size > 0, lambda _: linear_solutions[0], lambda _: -1.0, None), None)
+    rr = jax.lax.cond(quadratic_solutions.size > 0,
+                    lambda _: quadratic_solutions[0], 
+                    lambda _: jax.lax.cond(linear_solutions.size > 0,
+                                        lambda _: linear_solutions[0],
+                                        lambda _: -1.0,
+                                        None),
+                    None)
 
-                    rc = jax.lax.cond(jnp.logical_and(rr > 0, rr < rc),
-                                      lambda _: rr, 
-                                      lambda _: rc, 
-                                      None)
+    rc = jax.lax.cond(jnp.logical_and(rr > 0, rr < rc),
+                lambda _: rr, 
+                lambda _: rc, 
+                None)
                     
-                    return rc
-                
-                jax.lax.fori_loop(0,2, varsigma_loop, None)
-                        
-            def cont(): 
-              return rc
-              
-            sin2theta = real_parts[jr]
-
-            jax.lax.cond(jnp.logical_or(jnp.abs(imag_parts[jr]) > 1e-7, jnp.abs(sin2theta) > 1),
-                         lambda _: compute, 
-                         lambda _: cont, 
-                         None)
-        
-        jax.lax.fori_loop(0, 4, jr_loop, None)   
-                    
-        r_singularity_basic_vs_varphi[jphi] = rc
-        #r_singularity_Newton_solve()
-        r_singularity_vs_varphi[jphi] = rc
-        r_singularity_residual_sqnorm[jphi] = 0 # Newton_residual_sqnorm
-        r_singularity_theta_vs_varphi[jphi] = 0 # theta FIX ME!!
-        
-        state = r_singularity_basic_vs_varphi, r_singularity_vs_varphi, r_singularity_residual_sqnorm, r_singularity_theta_vs_varphi
-    
-    state = r_singularity_basic_vs_varphi, r_singularity_vs_varphi, r_singularity_residual_sqnorm, r_singularity_theta_vs_varphi
-    
-    jax.lax.fori_loop(0, nphi, jphi_loop, state)
-
-    r_singularity_vs_varphi = r_singularity_vs_varphi
-    inv_r_singularity_vs_varphi = 1 / r_singularity_vs_varphi
-    r_singularity_basic_vs_varphi = r_singularity_basic_vs_varphi
-    r_singularity = np.min(r_singularity_vs_varphi)    
-    r_singularity_theta_vs_varphi = r_singularity_theta_vs_varphi
-    r_singularity_residual_sqnorm = r_singularity_residual_sqnorm
-    
-    return r_singularity_vs_varphi, inv_r_singularity_vs_varphi, r_singularity_basic_vs_varphi, r_singularity, r_singularity_theta_vs_varphi, r_singularity_residual_sqnorm
-    
+    return rc
