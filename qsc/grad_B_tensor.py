@@ -28,16 +28,23 @@ def calculate_grad_B_tensor(spsi, B0, d_l_d_varphi, sG, curvature, X1c, d_Y1s_d_
     #tensor = Struct()
     
     factor = spsi * B0 / d_l_d_varphi
+    print(f'factor {factor}')
     tn = sG * B0 * curvature
     nt = tn
     bb = factor * (X1c * d_Y1s_d_varphi - iotaN * X1c * Y1c)
-    nn = factor * (d_X1c_d_varphi * Y1s + iotaN * X1c * Y1c)
+    nn = factor * (d_X1c_d_varphi * Y1s + iotaN * X1c * Y1c) # calling d_X1c_d_varphi
     bn = factor * (-sG * spsi * d_l_d_varphi * torsion \
                           - iotaN * X1c * X1c)
     nb = factor * (d_Y1c_d_varphi * Y1s - d_Y1s_d_varphi * Y1c \
                           + sG * spsi * d_l_d_varphi * torsion \
                           + iotaN * (Y1s * Y1s + Y1c * Y1c))
     
+    print(f'tn {tn}')
+    print(f'nt {nt}')
+    print(f'bb {bb}')
+    print(f'nn {nn}')
+    print(f'bn {bn}')
+    print(f'nb {nb}') 
 
 
     

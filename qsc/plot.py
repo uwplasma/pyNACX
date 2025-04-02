@@ -98,7 +98,7 @@ def plot(self, newfigure=True, show=True):
         subplot('Z2c')
         subplot('Z2s')
         data = self.r_singularity_vs_varphi
-        data[data > 1e20] = np.NAN
+        data = data.at[data > 1e20].set(jnp.nan)
         subplot('r_singularity', data=data, y0=True)
         if self.order != 'r2':
             subplot('X3c1')
@@ -405,9 +405,9 @@ def plot_boundary(self, r=0.1, ntheta=80, nphi=150, ntheta_fourier=20, nsections
     phi2D, theta2D = jnp.meshgrid(phi1D, theta1D)
     # Create a color map similar to viridis 
     Bmag = self.B_mag(r, theta2D, phi2D)
-    logging.basicConfig(level=logging.DEBUG)
+    #logging.basicConfig(level=logging.DEBUG)
     
-    logging.debug(f"Type of Bmag before conversion: {type(Bmag)}")
+    #logging.debug(f"Type of Bmag before conversion: {type(Bmag)}")
 
     Bmag = np.array(Bmag , dtype=float)
     print("Type of Bmag after conversion:", type(Bmag))

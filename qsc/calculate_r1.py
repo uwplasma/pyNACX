@@ -213,11 +213,13 @@ def r1_diagnostics(nfp, etabar, sG, spsi, curvature, sigma, helicity, varphi, X1
     elongation = (p + jnp.sqrt(p * p - 4 * q * q)) / (2 * jnp.abs(q))
     mean_elongation = jnp.sum(elongation * d_l_d_phi) / jnp.sum(d_l_d_phi)
     
-    index = np.argmax(elongation)
     
     max_elongation = -jax_fourier_minimum(-elongation).x
-
+    
+    jnp.save('debug3' , X1c)
+    jnp.save('debug4' , d_d_varphi)
     d_X1c_d_varphi = jnp.matmul(d_d_varphi, X1c)
+    jnp.save('d_X1c_d_varphi_og' , d_X1c_d_varphi)
     d_X1s_d_varphi = jnp.matmul(d_d_varphi, X1s)
     d_Y1s_d_varphi = jnp.matmul(d_d_varphi, Y1s)
     d_Y1c_d_varphi = jnp.matmul(d_d_varphi, Y1c)

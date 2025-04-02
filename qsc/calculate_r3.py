@@ -167,6 +167,36 @@ def calc_r3_new(B0, G0, X20, Y1c, X2c, X2s, B1c, X1c, X1s, Y1s, I2, iotaN, B20, 
         B0**2*abs_G0_over_B0*I2*X1c*Y1s**3*torsion - B0**2*I2*X1c*Y1c*Y1s*d_X1c_d_varphi + \
         B0**2*I2*X1c**2*Y1s*d_Y1c_d_varphi)/(16*B0**2*G0*X1c**2*Y1s**2)
     
+    """
+    print(f'B0 {B0}')
+    print(f'G0 {G0}')
+    print(f'X20 {X20}')
+    print(f'Y1c {Y1c}')
+    print(f'X2c {X2c}')
+    print(f'X2s {X2s}')
+    print(f'B1c {B1c}')
+    print(f'X1c {X1c}')
+    print(f'Y1s {Y1s}')
+    print(f'I2 {I2}')
+    print(f'iotaN {iotaN}')
+    print(f'B20 {B20}')
+    print(f'Y20 {Y20}')
+    print(f'Y2c {Y2c}')
+    print(f'Y2s {Y2s}')
+    print(f'Z20 {Z20}')
+    print(f'Z2c {Z2c}')
+    print(f'abs_G0_over_B0 {abs_G0_over_B0}')
+    print(f'Z2s {Z2s}')
+    print(f'torsion {torsion}')
+    print(f'd_X1c_d_varphi {d_X1c_d_varphi}')
+    print(f'd_Y1c_d_varphi {d_Y1c_d_varphi}')
+    """
+
+
+   
+
+    
+    
     X3c1 = X1c * flux_constraint_coefficient
     Y3c1 = Y1c * flux_constraint_coefficient
     Y3s1 = Y1s * flux_constraint_coefficient
@@ -230,8 +260,7 @@ def calc_r3_new(B0, G0, X20, Y1c, X2c, X2s, B1c, X1c, X1s, Y1s, I2, iotaN, B20, 
     Z3c3_untwisted = Z3s3 * (-sinangle) + Z3c3 * cosangle
     
     r3_results = X3c1, Y3c1, Y3s1, X3s1, Z3c1, Z3s1, X3c3, X3s3, Y3c3, Y3s3, Z3c3, Z3s3, d_X3c1_d_varphi, d_Y3c1_d_varphi, d_Y3s1_d_varphi, flux_constraint_coefficient, B0_order_a_squared_to_cancel, X3c1_untwisted, Y3c1_untwisted, Y3s1_untwisted, X3s1_untwisted, X3s3_untwisted, X3c3_untwisted, Y3c3_untwisted, Y3s3_untwisted, Z3s1_untwisted, Z3s3_untwisted, Z3c1_untwisted, Z3c3_untwisted
-    for obj in r3_results: 
-        print(type(obj))
+    
     return r3_results
 
     
