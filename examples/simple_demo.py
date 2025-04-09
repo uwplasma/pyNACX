@@ -76,5 +76,5 @@ print("pyNACX finished")
 #print(stel.min_L_grad_B) # Scale length associated with the grad grad B tensor
 #print(stel.grad_grad_B_inverse_scale_length) # Scale length associated with the grad grad B tensor Semo: grad_grad_B_inverse_scale_length is not calculted in r1
 #print("plotting...")
-#stel.plot_boundary() # Plot the flux surface shape at the default radius r=1
-#stel.plot() # Plot relevant near axis parameters
+stel.plot_boundary() # Plot the flux surface shape at the default radius r=1
+stel.plot() # Plot relevant near axis parameters

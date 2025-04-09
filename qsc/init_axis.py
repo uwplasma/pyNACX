@@ -193,12 +193,22 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
     Z0_func = self.convert_to_spline(sum([zc[i]*jnp.cos(i*nfp*phi) +\
                                                zs[i]*jnp.sin(i*nfp*phi) \
                                               for i in range(len(zs))]), phi, nfp)
-    lasym = lasym
-    R0_func = R0_func
-    Z0_func = Z0_func
+    self.lasym = lasym
+    self.R0_func = R0_func
+    self.Z0_func = Z0_func
 
     # Spline interpolants for the cylindrical components of the Frenet-Serret frame:
     #got rid of self statments
+    self.normal_R_spline     = self.convert_to_spline(normal_cylindrical[:,0], phi, nfp)
+    self.normal_phi_spline   = self.convert_to_spline(normal_cylindrical[:,1], phi, nfp)
+    self.normal_z_spline     = self.convert_to_spline(normal_cylindrical[:,2], phi, nfp)
+    self.binormal_R_spline   = self.convert_to_spline(binormal_cylindrical[:,0], phi, nfp)
+    self.binormal_phi_spline = self.convert_to_spline(binormal_cylindrical[:,1], phi, nfp)
+    self.binormal_z_spline   = self.convert_to_spline(binormal_cylindrical[:,2], phi, nfp)
+    self.tangent_R_spline    = self.convert_to_spline(tangent_cylindrical[:,0], phi, nfp)
+    self.tangent_phi_spline  = self.convert_to_spline(tangent_cylindrical[:,1], phi, nfp)
+    self.tangent_z_spline    = self.convert_to_spline(tangent_cylindrical[:,2], phi, nfp)
+    
     normal_R_spline     = self.convert_to_spline(normal_cylindrical[:,0], phi, nfp)
     normal_phi_spline   = self.convert_to_spline(normal_cylindrical[:,1], phi, nfp)
     normal_z_spline     = self.convert_to_spline(normal_cylindrical[:,2], phi, nfp)
@@ -210,6 +220,7 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
     tangent_z_spline    = self.convert_to_spline(tangent_cylindrical[:,2], phi, nfp)
     print('after spline')
     # Spline interpolant for nu = varphi - phi, used for plotting
+    self.nu_spline = self.convert_to_spline(varphi - phi, phi, nfp)
     nu_spline = self.convert_to_spline(varphi - phi, phi, nfp)
 
     return helicity,\

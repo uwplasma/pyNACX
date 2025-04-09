@@ -241,6 +241,8 @@ class Qsc():
         self.r_singularity_vs_varphi, self.inv_r_singularity_vs_varphi, self.r_singularity_basic_vs_varphi, self.r_singularity, self.r_singularity_theta_vs_varphi, self.r_singularity_residual_sqnorm = calculation_results[1][3]
         
         self.X3c1, self.Y3c1, self.Y3s1, self.X3s1, self.Z3c1, self.Z3s1, self.X3c3, self.X3s3, self.Y3c3, self.Y3s3, self.Z3c3, self.Z3s3, self.d_X3c1_d_varphi, self.d_Y3c1_d_varphi, self.d_Y3s1_d_varphi, self.flux_constraint_coefficient, self.B0_order_a_squared_to_cancel, self.X3c1_untwisted, self.Y3c1_untwisted, self.Y3s1_untwisted, self.X3s1_untwisted, self.X3s3_untwisted, self.X3c3_untwisted, self.Y3c3_untwisted, self.Y3s3_untwisted, self.Z3s1_untwisted, self.Z3s3_untwisted, self.Z3c1_untwisted, self.Z3c3_untwisted = calculation_results[2] # r3 results
+        
+        """
         print(f'd_d_varphi: {self.d_d_varphi}')
         print(f'X1c: {self.X1c}')
         print(f'shape d_d: {self.d_d_varphi.shape}')
@@ -268,6 +270,7 @@ class Qsc():
 
         print(f'flux constrain coef {self.flux_constraint_coefficient}')
         print(f'd_l_d_varphi {self.d_l_d_varphi}')
+        """
         
     def calculate(nfp, etabar, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_phi, d_d_varphi, sG, spsi, B0, G0, iotaN, torsion, abs_G0_over_B0, B2s, B2c, p2, I2, nphi, order, iota, d_l_d_varphi, tangent_cylindrical, normal_cylindrical, binormal_cylindrical, d_phi, axis_length):
         
