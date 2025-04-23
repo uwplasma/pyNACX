@@ -65,6 +65,7 @@ def newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
 
     return x_best
 
+#@jit(static_argnames=["f", "jac", "niter", "tol", "nlinesearch"])
 def new_new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10): 
     """
     this is  a jax compatable implementatio of newtons method for solving
@@ -81,13 +82,13 @@ def new_new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
     residual = f(x0)
     initial_residual_norm = calc_residual_norm(residual)
     residual_norm = initial_residual_norm
-    logger.info('Beginning Newton method. residual {}'.format(residual_norm))
+    #logger.info('Beginning Newton method. residual {}'.format(residual_norm))
 
     for jnewton in range(niter):
         last_residual_norm = residual_norm
         j = jac(x) # not currently being used: jaccobian of f using reverse mode because im guesing that we have more inputs than outputs 
         x0 = jnp.copy(x)
-        logger.info('Newton iteration {}'.format(jnewton))
+        #logger.info('Newton iteration {}'.format(jnewton))
         step_direction = compute_newton_step_direction(j, residual)
 
         y, residual_norm, residual = new_new_line_search(f, x0, step_direction, last_residual_norm,  nlinesearch=nlinesearch)
