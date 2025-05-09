@@ -1,7 +1,11 @@
 from typing import NamedTuple
 import jax.numpy as jnp
 
+
 class Results(NamedTuple):
+  """
+  results class that stores the results of the calculation for use in plotting software
+  """
   # init acess(pre calc)
   helicity: jnp.ndarray
   normal_cylindrical: jnp.ndarray
