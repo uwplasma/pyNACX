@@ -11,7 +11,7 @@ from .util import fourier_minimum, jax_fourier_minimum
 
 import jax
 import jax.numpy as jnp
-from interpax import CubicSpline #  i found this online very cool opensource
+from interpax import CubicSpline #  i found this online, open source support for cubic splines
 
 # Set default floating-point precision to 64-bit (double precision)
 jax.config.update('jax_enable_x64', True)
@@ -65,7 +65,7 @@ def convert_to_spline(self, array, phi, nfp):
 
 def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0, order, B2s):
     """
-    Initialize the curvature, torsion, differentiation matrix, etc.
+    Initialize the curvature, torsion, differentiation matrix, etc. waiting on interpax support for cubic spline
     """
 
     # Generate phi
@@ -154,9 +154,10 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
 
     torsion = torsion_numerator / torsion_denominator
     etabar_squared_over_curvature_squared = etabar ** 2 / curvature ** 2
-    print('spectral diff matrix')
+    #print('spectral diff matrix')
+   
     d_d_phi = jax_spectral_diff_matrix(nphi, xmax=2 * jnp.pi / nfp)
-    print('after spectral diff matrix')
+    #print('after spectral diff matrix')
     d_varphi_d_phi = B0_over_abs_G0 * d_l_d_phi
 
     # Calculate d_d_varphi

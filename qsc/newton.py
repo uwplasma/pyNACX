@@ -68,7 +68,7 @@ def newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
 #@jit(static_argnames=["f", "jac", "niter", "tol", "nlinesearch"])
 def new_new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10): 
     """
-    this is  a jax compatable implementatio of newtons method for solving
+    this is  a jax compatable implementation of newtons method for solving
     a system of nonlinear equations using Newton's method with a line search.
 
     f = function providing the residual vector.

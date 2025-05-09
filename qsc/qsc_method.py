@@ -58,7 +58,9 @@ def Qsc_method(rc, zs, rs=[], zc=[], nfp=1, etabar=1., sigma0=0., B0=1., I2=0., 
 
 
 def pre_calculations(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2, order, nfourier):
-  
+  """
+    calculates init_axis_results, solve_sigma_equation_results
+  """
   
   init_axis_results = init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0, order, B2s)
   print("\nInit axis completed...")
@@ -93,16 +95,14 @@ def calculate(nfp, etabar, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_p
         
         #calc_r2_new(X1c, Y1c, Y1s, B0 / jnp.abs(G0), d_d_varphi, iotaN, torsion, abs_G0_over_B0, B2s, B0, curvature, etabar, B2c, spsi, sG, p2, sigma, I2/B0, nphi, d_l_d_phi, helicity, nfp, G0, iota, I2, varphi, d_X1c_d_varphi, d_Y1c_d_varphi, d_Y1s_d_varphi, d_phi, axis_length)
         
+  dummy_r2 = jax.eval_shape(calc_r2_new, X1c, Y1c, Y1s, B0 / jnp.abs(G0), d_d_varphi, iotaN, torsion, abs_G0_over_B0, B2s, B0, curvature, etabar, B2c, spsi, sG, p2, sigma, I2/B0, nphi, d_l_d_phi, helicity, nfp, G0, iota, I2, varphi, d_X1c_d_varphi, d_Y1c_d_varphi, d_Y1s_d_varphi, d_phi, axis_length)
+  
+  zero_r3 = jax.tree_util.tree_map(jnp.zeros_like, dummy_r2)
+
+  
   r2_results = jax.lax.cond(order != 'r1',
                       lambda _:  calc_r2_new(X1c, Y1c, Y1s, B0 / jnp.abs(G0), d_d_varphi, iotaN, torsion, abs_G0_over_B0, B2s, B0, curvature, etabar, B2c, spsi, sG, p2, sigma, I2/B0, nphi, d_l_d_phi, helicity, nfp, G0, iota, I2, varphi, d_X1c_d_varphi, d_Y1c_d_varphi, d_Y1s_d_varphi, d_phi, axis_length),
-                      lambda _: tuple(
-                        tuple(jax.numpy.zeros_like(r) for r in inner_tuple)  # Apply zeros_like to each element of the inner tuple
-                        for inner_tuple in calc_r2_new(
-                            X1c, Y1c, Y1s, B0 / jnp.abs(G0), d_d_varphi, iotaN, torsion, abs_G0_over_B0, 
-                            B2s, B0, curvature, etabar, B2c, spsi, sG, p2, sigma, I2 / B0, nphi, 
-                            d_l_d_phi, helicity, nfp, G0, iota, I2, varphi, d_X1c_d_varphi, 
-                            d_Y1c_d_varphi, d_Y1s_d_varphi, d_phi, axis_length)
-                        ),
+                      lambda _: zero_r3,
                       operand=None)
         
  
