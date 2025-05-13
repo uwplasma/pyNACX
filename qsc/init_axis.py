@@ -59,7 +59,7 @@ def calculate_helicity(nphi, normal_cylindrical, spsi, sG):
     return helicity
 
 # Define periodic spline interpolant conversion used in several scripts and plotting
-def convert_to_spline(self, array, phi, nfp):
+def convert_to_spline(array, phi, nfp):
     sp = spline(jnp.append(phi,2*jnp.pi/nfp), jnp.append(array,array[0]), bc_type='periodic') #need to get open source to work here
     return sp
 

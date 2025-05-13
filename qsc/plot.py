@@ -3,6 +3,7 @@ This module contains a function to plot a near-axis surface.
 """
 
 import numpy as np
+from examples.results_class import Results
 import jax.numpy as jnp
 from scipy.interpolate import interp2d, interp1d
 import matplotlib.pyplot as plt
@@ -10,7 +11,9 @@ from matplotlib import cm
 import matplotlib.colors as clr
 from matplotlib.colors import LightSource
 import matplotlib.ticker as tck
-from .util import to_Fourier
+
+from qsc import Frenet_to_cylindrical
+from .util import B_mag, to_Fourier
 import logging 
 
 def plot(self, newfigure=True, show=True):
@@ -163,7 +166,7 @@ def create_subplot(ax, x_2D_plot, y_2D_plot, z_2D_plot, colormap, elev=90, azim=
     ax.elev = elev
     ax.azim = azim
 
-def create_field_lines(qsc, alphas, X_2D, Y_2D, Z_2D, phimax=2*jnp.pi, nphi=500):
+def create_field_lines(qsc: Results, alphas, X_2D, Y_2D, Z_2D, phimax=2*jnp.pi, nphi=500):
     '''
     Function to compute the (X, Y, Z) coordinates of field lines at
     several alphas, where alpha = theta-iota*varphi with (theta,varphi)
@@ -251,7 +254,7 @@ def create_subplot_mayavi(mlab, R, alphas, x_2D_plot, y_2D_plot, z_2D_plot,
         for j in range(len(alphas)):
             mlab.plot3d(fieldline_X_rotated[j], fieldline_Y_rotated[j]-shift_array[i], fieldline_Z_rotated[j], color=(0,0,0), line_width=0.001, tube_radius=0.005)
 
-def get_boundary(self, r=0.1, ntheta=40, nphi=130, ntheta_fourier=20, mpol=13, ntor=25):
+def get_boundary(result: Results, r=0.1, ntheta=40, nphi=130, ntheta_fourier=20, mpol=13, ntor=25):
     '''
     Function that, for a given near-axis radial coordinate r, outputs
     the [X,Y,Z,R] components of the boundary. The resolution along the toroidal
@@ -267,10 +270,10 @@ def get_boundary(self, r=0.1, ntheta=40, nphi=130, ntheta_fourier=20, mpol=13, n
       ntor: resolution in toroidal Fourier space
     '''
     # Get surface shape at fixed off-axis toroidal angle phi
-    R_2D, Z_2D, _ = self.Frenet_to_cylindrical(r, ntheta=ntheta_fourier)
+    R_2D, Z_2D, _ = Frenet_to_cylindrical.Frenet_to_cylindrical(result, r, ntheta=ntheta_fourier) # this doesnt yet work off results class 
     # Get Fourier coefficients in order to plot with arbitrary resolution
-    RBC, RBS, ZBC, ZBS = to_Fourier(R_2D, Z_2D, self.nfp, mpol=mpol, ntor=ntor, lasym=self.lasym)
-    if not self.lasym:
+    RBC, RBS, ZBC, ZBS = to_Fourier(R_2D, Z_2D, result.nfp, mpol=mpol, ntor=ntor, lasym=result.lasym)
+    if not result.lasym:
         RBS = jnp.zeros((int(2*ntor+1),int(mpol+1)))
         ZBC = jnp.zeros((int(2*ntor+1),int(mpol+1)))
 
@@ -281,7 +284,7 @@ def get_boundary(self, r=0.1, ntheta=40, nphi=130, ntheta_fourier=20, mpol=13, n
     Z_2Dnew = jnp.zeros((ntheta, nphi))
     for m in range(mpol + 1):
         for n in range(-ntor, ntor + 1):
-            angle = m * theta2D - n * self.nfp * phi2D
+            angle = m * theta2D - n * result.nfp * phi2D
             R_2Dnew += RBC[n+ntor,m] * jnp.cos(angle) + RBS[n+ntor,m] * jnp.sin(angle)
             Z_2Dnew += ZBC[n+ntor,m] * jnp.cos(angle) + ZBS[n+ntor,m] * jnp.sin(angle)
 
@@ -292,7 +295,7 @@ def get_boundary(self, r=0.1, ntheta=40, nphi=130, ntheta_fourier=20, mpol=13, n
 
     return x_2D_plot, y_2D_plot, z_2D_plot, R_2Dnew
 
-def plot_boundary(self, r=0.1, ntheta=80, nphi=150, ntheta_fourier=20, nsections=8,
+def plot_boundary(results: Results, r=0.1, ntheta=80, nphi=150, ntheta_fourier=20, nsections=8,
          fieldlines=False, savefig=None, colormap=None, azim_default=None,
          show=True, **kwargs):
     """
@@ -342,7 +345,7 @@ def plot_boundary(self, r=0.1, ntheta=80, nphi=150, ntheta_fourier=20, nsections
     .. image:: poloidalplot.png
        :width: 200
     """
-    x_2D_plot, y_2D_plot, z_2D_plot, R_2D_plot = self.get_boundary(r=r, ntheta=ntheta, nphi=nphi, ntheta_fourier=ntheta_fourier)
+    x_2D_plot, y_2D_plot, z_2D_plot, R_2D_plot = self.get_boundary(r=r, ntheta=ntheta, nphi=nphi, ntheta_fourier=ntheta_fourier) 
     phi = jnp.linspace(0, 2 * np.pi, nphi)  # Endpoint = true and no nfp factor, because this is what is used in get_boundary()
     R_2D_spline = interp1d(phi, R_2D_plot, axis=1)
     z_2D_spline = interp1d(phi, z_2D_plot, axis=1)
@@ -361,24 +364,24 @@ def plot_boundary(self, r=0.1, ntheta=80, nphi=150, ntheta_fourier=20, nsections
         return color
     
     ## Poloidal plot
-    phi1dplot_RZ = jnp.linspace(0, 2 * np.pi / self.nfp, nsections, endpoint=False)
+    phi1dplot_RZ = jnp.linspace(0, 2 * np.pi / results.nfp, nsections, endpoint=False)
     fig = plt.figure(figsize=(6, 6), dpi=80)
     ax  = plt.gca()
     for i, phi in enumerate(phi1dplot_RZ):
-        phinorm = phi * self.nfp / (2 * np.pi)
+        phinorm = phi * results.nfp / (2 * np.pi)
         if phinorm == 0:
             label = r'$\phi$=0'
         elif phinorm == 0.25:
-            label = r'$\phi={\pi}/$' + str(2 * self.nfp)
+            label = r'$\phi={\pi}/$' + str(2 * results.nfp)
         elif phinorm == 0.5:
-            label = r'$\phi=\pi/$' + str(self.nfp)
+            label = r'$\phi=\pi/$' + str(results.nfp)
         elif phinorm == 0.75:
-            label = r'$\phi={3\pi}/$' + str(2 * self.nfp)
+            label = r'$\phi={3\pi}/$' + str(2 * results.nfp)
         else:
             label = '_nolegend_'
         color = get_next_color()
         # Plot location of the axis
-        plt.plot(self.R0_func(phi), self.Z0_func(phi), marker="x", linewidth=2, label=label, color=color)
+        plt.plot(results.R0_func(phi), results.Z0_func(phi), marker="x", linewidth=2, label=label, color=color)
         # Plot poloidal cross-section
         plt.plot(R_2D_spline(phi), z_2D_spline(phi), color=color)
     plt.xlabel('R (meters)')
@@ -394,7 +397,7 @@ def plot_boundary(self, r=0.1, ntheta=80, nphi=150, ntheta_fourier=20, nsections
     # QH stellarators look rotated in the phi direction when
     # azim_default = 0
     if azim_default == None:
-        if self.helicity == 0:
+        if results.helicity == 0:
             azim_default = 0
         else:
             azim_default = 45
@@ -404,7 +407,7 @@ def plot_boundary(self, r=0.1, ntheta=80, nphi=150, ntheta_fourier=20, nsections
     phi1D = jnp.linspace(0, 2 * np.pi, nphi)
     phi2D, theta2D = jnp.meshgrid(phi1D, theta1D)
     # Create a color map similar to viridis 
-    Bmag = self.B_mag(r, theta2D, phi2D)
+    Bmag = B_mag(results, r, theta2D, phi2D) # not in results class !!! -> changed taking results in as a argument 
     #logging.basicConfig(level=logging.DEBUG)
     
     #logging.debug(f"Type of Bmag before conversion: {type(Bmag)}")
@@ -455,7 +458,7 @@ def plot_boundary(self, r=0.1, ntheta=80, nphi=150, ntheta_fourier=20, nsections
         #alphas = [0, np.pi/4, np.pi/2, 3*np.pi/4, np.pi, 5*np.pi/4, 3*np.pi/2, 7*np.pi/4]
         alphas = jnp.linspace(0, 2 * np.pi, 8, endpoint=False)
         # Create the field line arrays
-        fieldline_X, fieldline_Y, fieldline_Z = create_field_lines(self, alphas, x_2D_plot, y_2D_plot, z_2D_plot)
+        fieldline_X, fieldline_Y, fieldline_Z = create_field_lines(results, alphas, x_2D_plot, y_2D_plot, z_2D_plot)
         # Define the rotation arrays for the subplots
         degrees_array_x = [0., -66., 81.] # degrees for rotation in x
         degrees_array_z = [azim_default, azim_default, azim_default] # degrees for rotation in z

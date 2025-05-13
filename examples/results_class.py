@@ -6,6 +6,8 @@ class Results(NamedTuple):
   """
   results class that stores the results of the calculation for use in plotting software
   """
+  #inputs ... need to add
+  
   # init acess(pre calc)
   helicity: jnp.ndarray
   normal_cylindrical: jnp.ndarray

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import sys
+
+from qsc.plot import plot_boundary
 sys.path.append('/Users/z/Documents/GitHub/pyNACX')
 
 
@@ -20,7 +22,7 @@ stel = Qsc(rc=[1, 0.09], zs=[0, -0.09], nfp=2, etabar=0.95, I2=0.9, order='r2', 
 
 
 
-#this holds all the results of the calculation ans will called by the plotting code
+#this holds all the results of the calculation ans will called by the plotting code, to minimize flattening and unflattening
 res = Results(
   # init axis(pre calc)
   helicity = ans[0][0][0],
@@ -179,7 +181,7 @@ res = Results(
   Z3s3_untwisted= ans[1][0][26],
   Z3c1_untwisted= ans[1][0][27],
   Z3c3_untwisted= ans[1][0][28],
-  )
+)
   
 
 
@@ -191,5 +193,5 @@ print("pyNACX finished")
 #print(stel.min_L_grad_B) # Scale length associated with the grad grad B tensor
 #print(stel.grad_grad_B_inverse_scale_length) # Scale length associated with the grad grad B tensor Semo: grad_grad_B_inverse_scale_length is not calculted in r1
 #print("plotting...")
-stel.plot_boundary() # Plot the flux surface shape at the default radius r=1
+plot_boundary(res) # Plot the flux surface shape at the default radius r=1
 stel.plot() # Plot relevant near axis parameters

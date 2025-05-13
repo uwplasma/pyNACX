@@ -7,6 +7,7 @@ Various utility functions
 import logging
 import numpy as np
 import scipy.optimize
+from examples.results_class import Results
 from qsc.fourier_interpolation import fourier_interpolation
 from scipy.interpolate import CubicSpline as spline
 
@@ -14,6 +15,7 @@ import jax
 import jax.scipy.optimize as jso
 import jax.numpy as jnp
 from jaxopt import ScipyMinimize
+from qsc.init_axis import convert_to_spline
 
 
 #logging.basicConfig(level=logging.INFO)
@@ -180,7 +182,7 @@ def to_Fourier(R_2D, Z_2D, nfp, mpol, ntor, lasym):
 
     return RBC, RBS, ZBC, ZBS
 
-def B_mag(self, r, theta, phi, Boozer_toroidal = False):
+def B_mag(results: Results, r, theta, phi, Boozer_toroidal = False):
     '''
     Function to calculate the modulus of the magnetic field B for a given
     near-axis radius r, a Boozer poloidal angle theta (not vartheta) and
@@ -194,21 +196,21 @@ def B_mag(self, r, theta, phi, Boozer_toroidal = False):
       Boozer_toroidal: False if phi is the cylindrical toroidal angle, True for the Boozer one
     '''
     if Boozer_toroidal == False:
-        thetaN = theta - (self.iota - self.iotaN) * (phi + self.nu_spline(phi))
+        thetaN = theta - (results.iota - results.iotaN) * (phi + results.nu_spline(phi))
     else:
-        thetaN = theta - (self.iota - self.iotaN) * phi
+        thetaN = theta - (results.iota - results.iotaN) * phi
 
-    B = self.B0*(1 + r * self.etabar * jnp.cos(thetaN))
+    B = results.B0*(1 + r * results.etabar * jnp.cos(thetaN))
 
     # Add O(r^2) terms if necessary:
-    if self.order != 'r1':
+    if results.order != 'r1':
         if Boozer_toroidal == False:
-            self.B20_spline = self.convert_to_spline(self.B20, self.phi, self.nfp)
+            B20_spline = convert_to_spline(results.B20, results.phi, results.nfp)
         else:
-            self.B20_spline = spline(jnp.append(self.varphi, 2 * jnp.pi / self.nfp),
-                                     jnp.append(self.B20, self.B20[0]),
+            B20_spline = spline(jnp.append(results.varphi, 2 * jnp.pi / results.nfp),
+                                     jnp.append(results.B20, results.B20[0]),
                                      bc_type='periodic')
 
-        B += (r**2) * (self.B20_spline(phi) + self.B2c * jnp.cos(2 * thetaN) + self.B2s * jnp.sin(2 * thetaN))
+        B += (r**2) * (B20_spline(phi) + results.B2c * jnp.cos(2 * thetaN) + results.B2s * jnp.sin(2 * thetaN))
 
     return B
