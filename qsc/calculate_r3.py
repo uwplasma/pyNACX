@@ -6,11 +6,14 @@ import logging
 import numpy as np
 from scipy import integrate as integ
 from .util import mu0
+import jax.numpy as jnp
+from .derive_r3 import * 
+
 
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-def calculate_r3(self):
+def calculate_r3(self, _residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2):
     """
     Compute the O(r**3) contributions to X and Y needed for full
     consistency of B through O(r**2), as detailed in section 3 of
@@ -70,10 +73,10 @@ def calculate_r3(self):
         B0**2*abs_G0_over_B0*I2*X1c*Y1s**3*torsion - B0**2*I2*X1c*Y1c*Y1s*d_X1c_d_varphi + \
         B0**2*I2*X1c**2*Y1s*d_Y1c_d_varphi)/(16*B0**2*G0*X1c**2*Y1s**2)
 
-    self.X3c1 = self.X1c * flux_constraint_coefficient
-    self.Y3c1 = self.Y1c * flux_constraint_coefficient
-    self.Y3s1 = self.Y1s * flux_constraint_coefficient
-    self.X3s1 = self.X1s * flux_constraint_coefficient
+    self.X3c1 = derive_X3c1(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.Y3c1 = derive_Y3c1(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.Y3s1 = derive_Y3s1(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.X3s1 = derive_X3s1(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
     self.Z3c1 = 0
     self.Z3s1 = 0
 
@@ -84,9 +87,9 @@ def calculate_r3(self):
     self.Z3c3 = 0
     self.Z3s3 = 0
 
-    self.d_X3c1_d_varphi = self.d_d_varphi @ self.X3c1
-    self.d_Y3c1_d_varphi = self.d_d_varphi @ self.Y3c1
-    self.d_Y3s1_d_varphi = self.d_d_varphi @ self.Y3s1
+    self.d_X3c1_d_varphi = derive_d_X3c1_d_varphi(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.d_Y3c1_d_varphi = derive_d_Y3c1_d_varphi(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.d_Y3s1_d_varphi = derive_d_Y3s1_d_varphi(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
 
     # The expression below is derived in the O(r**2) paper, and in "20190318-01 Wrick's streamlined Garren-Boozer method, MHD.nb" in the section "Not assuming quasisymmetry".
     # Note Q = (1/2) * (XYEquation0 without X3 and Y3 terms) where XYEquation0 is the quantity in the above notebook.
@@ -101,16 +104,16 @@ def calculate_r3(self):
         -sign_G * sign_psi * B0 * I2 / (4*G0) * (-abs_G0_over_B0 * torsion * (X1c*X1c + Y1c*Y1c + Y1s*Y1s) + Y1c * d_X1c_d_varphi - X1c * d_Y1c_d_varphi)
 
     logger.debug('max|flux_constraint_coefficient - predicted_flux_constraint_coefficient|: '
-                 f'{np.max(abs(flux_constraint_coefficient - predicted_flux_constraint_coefficient))}')
+                 f'{jnp.max(abs(flux_constraint_coefficient - predicted_flux_constraint_coefficient))}')
     logger.debug('max|flux_constraint_coefficient - B0_order_a_squared_to_cancel/(2*B0)|: '
-                 f'{np.max(abs(flux_constraint_coefficient - B0_order_a_squared_to_cancel/(2*B0)))}')
+                 f'{jnp.max(abs(flux_constraint_coefficient - B0_order_a_squared_to_cancel/(2*B0)))}')
 
-    if np.max(abs(flux_constraint_coefficient - predicted_flux_constraint_coefficient)) > 1e-7 \
-    or np.max(abs(flux_constraint_coefficient - B0_order_a_squared_to_cancel/(2*B0))) > 1e-7:
+    if jnp.max(abs(flux_constraint_coefficient - predicted_flux_constraint_coefficient)) > 1e-7 \
+    or jnp.max(abs(flux_constraint_coefficient - B0_order_a_squared_to_cancel/(2*B0))) > 1e-7:
         logger.warning("Methods of computing lambda disagree!! Higher nphi resolution might be needed.")
 
-    self.flux_constraint_coefficient = flux_constraint_coefficient
-    self.B0_order_a_squared_to_cancel = B0_order_a_squared_to_cancel
+    self.flux_constraint_coefficient = derive_predicted_flux_constraint_coefficient(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+    self.B0_order_a_squared_to_cancel = derive_B0_order_a_squared_to_cancel(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
 
     if self.helicity == 0:
         self.X3c1_untwisted = self.X3c1
@@ -127,23 +130,142 @@ def calculate_r3(self):
         self.Z3c3_untwisted = self.Z3c3
     else:
         angle = -self.helicity * self.nfp * self.varphi
-        sinangle = np.sin(angle)
-        cosangle = np.cos(angle)
-        self.X3s1_untwisted = self.X3s1 *   cosangle  + self.X3c1 * sinangle
-        self.X3c1_untwisted = self.X3s1 * (-sinangle) + self.X3c1 * cosangle
-        self.Y3s1_untwisted = self.Y3s1 *   cosangle  + self.Y3c1 * sinangle
-        self.Y3c1_untwisted = self.Y3s1 * (-sinangle) + self.Y3c1 * cosangle
-        self.Z3s1_untwisted = self.Z3s1 *   cosangle  + self.Z3c1 * sinangle
-        self.Z3c1_untwisted = self.Z3s1 * (-sinangle) + self.Z3c1 * cosangle
-        sinangle = np.sin(3*angle)
-        cosangle = np.cos(3*angle)
-        self.X3s3_untwisted = self.X3s3 *   cosangle  + self.X3c3 * sinangle
-        self.X3c3_untwisted = self.X3s3 * (-sinangle) + self.X3c3 * cosangle
-        self.Y3s3_untwisted = self.Y3s3 *   cosangle  + self.Y3c3 * sinangle
-        self.Y3c3_untwisted = self.Y3s3 * (-sinangle) + self.Y3c3 * cosangle
-        self.Z3s3_untwisted = self.Z3s3 *   cosangle  + self.Z3c3 * sinangle
-        self.Z3c3_untwisted = self.Z3s3 * (-sinangle) + self.Z3c3 * cosangle
+        sinangle = jnp.sin(angle)
+        cosangle = jnp.cos(angle)
+        self.X3s1_untwisted = derive_X3s1_untwisted(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+        self.X3c1_untwisted = derive_X3c1_untwisted (_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+        self.Y3s1_untwisted = derive_Y3s1_untwisted(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+        self.Y3c1_untwisted = derive_Y3c1_untwisted(_residual, _jacobian, rc, zs, rs, zc, nfp, etabar, sigma0, I2, B0, sG, spsi, nphi, B2s, p2, B2c)
+        self.Z3s1_untwisted = derive_Z3s1_untwisted(_residual, _jacobian, rc, nfp, zs, rs, zc, nphi, sG, spsi)
+        self.Z3c1_untwisted = derive_Z3c1_untwisted(_residual, _jacobian, rc, nfp, zs, rs, zc, nphi, sG, spsi)
+        sinangle = jnp.sin(3*angle)
+        cosangle = jnp.cos(3*angle)
+        self.X3s3_untwisted = derive_X3s3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+        self.X3c3_untwisted = derive_X3c3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+        self.Y3s3_untwisted = derive_Y3s3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+        self.Y3c3_untwisted = derive_Y3c3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+        self.Z3s3_untwisted = derive_Z3s3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
+        self.Z3c3_untwisted = derive_Z3c3_untwisted(rc, nfp, zs, rs, zc, nphi, sG, spsi)
 
+def calc_r3_new(B0, G0, X20, Y1c, X2c, X2s, B1c, X1c, X1s, Y1s, I2, iotaN, B20, Y20, Y2c, Y2s, Z20, abs_G0_over_B0, Z2c, Z2s, torsion, d_X1c_d_varphi, d_Y1c_d_varphi, d_d_varphi, spsi, p2, curvature, d_Z20_d_varphi, sG, G2, N_helicity, helicity, nfp, varphi): 
+    flux_constraint_coefficient = (-4*B0**2*G0*X20**2*Y1c**2 + 8*B0**2*G0*X20*X2c*Y1c**2 - 4*B0**2*G0*X2c**2*Y1c**2 - \
+        4*B0**2*G0*X2s**2*Y1c**2 + 8*B0*G0*B1c*X1c*X2s*Y1c*Y1s + 16*B0**2*G0*X20*X2s*Y1c*Y1s + \
+        2*B0**2*I2*iotaN*X1c**2*Y1s**2 - G0*B1c**2*X1c**2*Y1s**2 - 4*B0*G0*B20*X1c**2*Y1s**2 - \
+        8*B0*G0*B1c*X1c*X20*Y1s**2 - 4*B0**2*G0*X20**2*Y1s**2 - 8*B0*G0*B1c*X1c*X2c*Y1s**2 - \
+        8*B0**2*G0*X20*X2c*Y1s**2 - 4*B0**2*G0*X2c**2*Y1s**2 - 4*B0**2*G0*X2s**2*Y1s**2 + \
+        8*B0**2*G0*X1c*X20*Y1c*Y20 - 8*B0**2*G0*X1c*X2c*Y1c*Y20 - 8*B0**2*G0*X1c*X2s*Y1s*Y20 - \
+        4*B0**2*G0*X1c**2*Y20**2 - 8*B0**2*G0*X1c*X20*Y1c*Y2c + 8*B0**2*G0*X1c*X2c*Y1c*Y2c + \
+        24*B0**2*G0*X1c*X2s*Y1s*Y2c + 8*B0**2*G0*X1c**2*Y20*Y2c - 4*B0**2*G0*X1c**2*Y2c**2 + \
+        8*B0**2*G0*X1c*X2s*Y1c*Y2s - 8*B0*G0*B1c*X1c**2*Y1s*Y2s - 8*B0**2*G0*X1c*X20*Y1s*Y2s - \
+        24*B0**2*G0*X1c*X2c*Y1s*Y2s - 4*B0**2*G0*X1c**2*Y2s**2 - 4*B0**2*G0*X1c**2*Z20**2 - \
+        4*B0**2*G0*Y1c**2*Z20**2 - 4*B0**2*G0*Y1s**2*Z20**2 - 4*B0**2*abs_G0_over_B0*I2*Y1c*Y1s*Z2c + \
+        8*B0**2*G0*X1c**2*Z20*Z2c + 8*B0**2*G0*Y1c**2*Z20*Z2c - 8*B0**2*G0*Y1s**2*Z20*Z2c - \
+        4*B0**2*G0*X1c**2*Z2c**2 - 4*B0**2*G0*Y1c**2*Z2c**2 - 4*B0**2*G0*Y1s**2*Z2c**2 + \
+        2*B0**2*abs_G0_over_B0*I2*X1c**2*Z2s + 2*B0**2*abs_G0_over_B0*I2*Y1c**2*Z2s - 2*B0**2*abs_G0_over_B0*I2*Y1s**2*Z2s + \
+        16*B0**2*G0*Y1c*Y1s*Z20*Z2s - 4*B0**2*G0*X1c**2*Z2s**2 - 4*B0**2*G0*Y1c**2*Z2s**2 - \
+        4*B0**2*G0*Y1s**2*Z2s**2 + B0**2*abs_G0_over_B0*I2*X1c**3*Y1s*torsion + B0**2*abs_G0_over_B0*I2*X1c*Y1c**2*Y1s*torsion + \
+        B0**2*abs_G0_over_B0*I2*X1c*Y1s**3*torsion - B0**2*I2*X1c*Y1c*Y1s*d_X1c_d_varphi + \
+        B0**2*I2*X1c**2*Y1s*d_Y1c_d_varphi)/(16*B0**2*G0*X1c**2*Y1s**2)
+    
+    """
+    print(f'B0 {B0}')
+    print(f'G0 {G0}')
+    print(f'X20 {X20}')
+    print(f'Y1c {Y1c}')
+    print(f'X2c {X2c}')
+    print(f'X2s {X2s}')
+    print(f'B1c {B1c}')
+    print(f'X1c {X1c}')
+    print(f'Y1s {Y1s}')
+    print(f'I2 {I2}')
+    print(f'iotaN {iotaN}')
+    print(f'B20 {B20}')
+    print(f'Y20 {Y20}')
+    print(f'Y2c {Y2c}')
+    print(f'Y2s {Y2s}')
+    print(f'Z20 {Z20}')
+    print(f'Z2c {Z2c}')
+    print(f'abs_G0_over_B0 {abs_G0_over_B0}')
+    print(f'Z2s {Z2s}')
+    print(f'torsion {torsion}')
+    print(f'd_X1c_d_varphi {d_X1c_d_varphi}')
+    print(f'd_Y1c_d_varphi {d_Y1c_d_varphi}')
+    """
+
+
+   
+
+    
+    
+    X3c1 = X1c * flux_constraint_coefficient
+    Y3c1 = Y1c * flux_constraint_coefficient
+    Y3s1 = Y1s * flux_constraint_coefficient
+    X3s1 = X1s * flux_constraint_coefficient
+    Z3c1 = 0
+    Z3s1 = 0
+   
+    X3c3 = 0
+    X3s3 = 0
+    Y3c3 = 0
+    Y3s3 = 0
+    Z3c3 = 0
+    Z3s3 = 0
+    
+    d_X3c1_d_varphi = d_d_varphi @ X3c1
+    d_Y3c1_d_varphi = d_d_varphi @ Y3c1
+    d_Y3s1_d_varphi = d_d_varphi @ Y3s1
+    
+    # The expression below is derived in the O(r**2) paper, and in "20190318-01 Wrick's streamlined Garren-Boozer method, MHD.nb" in the section "Not assuming quasisymmetry".
+    # Note Q = (1/2) * (XYEquation0 without X3 and Y3 terms) where XYEquation0 is the quantity in the above notebook.
+    Q = -spsi * B0 * abs_G0_over_B0 / (2*G0*G0) * (iotaN * I2 + mu0 * p2 * G0 / (B0 * B0)) + 2 * (X2c * Y2s - X2s * Y2c) \
+            + spsi * B0 / (2*G0) * (abs_G0_over_B0 * X20 * curvature - d_Z20_d_varphi) \
+            + I2 / (4 * G0) * (-abs_G0_over_B0 * torsion * (X1c*X1c + Y1s*Y1s + Y1c*Y1c) + Y1c * d_X1c_d_varphi - X1c * d_Y1c_d_varphi)
+    predicted_flux_constraint_coefficient = - Q / (2 * sG * spsi)
+    
+    B0_order_a_squared_to_cancel = -sG * B0 * B0 * (G2 + I2 * N_helicity) * abs_G0_over_B0 / (2*G0*G0) \
+        -spsi * spsi * B0 * 2 * (X2c * Y2s - X2s * Y2c) \
+        -spsi * B0 * B0 / (2*G0) * (abs_G0_over_B0 * X20 * curvature - d_Z20_d_varphi) \
+        -spsi * spsi * B0 * I2 / (4*G0) * (-abs_G0_over_B0 * torsion * (X1c*X1c + Y1c*Y1c + Y1s*Y1s) + Y1c * d_X1c_d_varphi - X1c * d_Y1c_d_varphi)
+    
+    #if helicity == 0:
+    X3c1_untwisted = X3c1
+    Y3c1_untwisted = Y3c1
+    Y3s1_untwisted = Y3s1
+    X3s1_untwisted = X3s1
+    X3s3_untwisted = X3s3
+    X3c3_untwisted = X3c3
+    Y3c3_untwisted = Y3c3
+    Y3s3_untwisted = Y3s3
+    Z3s1_untwisted = Z3s1
+    Z3s3_untwisted = Z3s3
+    Z3c1_untwisted = Z3c1
+    Z3c3_untwisted = Z3c3
+    #else:
+    angle = -helicity * nfp * varphi
+    sinangle = jnp.sin(angle)
+    cosangle = jnp.cos(angle)
+    X3s1_untwisted = X3s1 *   cosangle  + X3c1 * sinangle
+    X3c1_untwisted = X3s1 * (-sinangle) + X3c1 * cosangle
+    Y3s1_untwisted = Y3s1 *   cosangle  + Y3c1 * sinangle
+    Y3c1_untwisted = Y3s1 * (-sinangle) + Y3c1 * cosangle
+    Z3s1_untwisted = Z3s1 *   cosangle  + Z3c1 * sinangle
+    Z3c1_untwisted = Z3s1 * (-sinangle) + Z3c1 * cosangle
+    sinangle = jnp.sin(3*angle)
+    cosangle = jnp.cos(3*angle)
+    X3s3_untwisted = X3s3 *   cosangle  + X3c3 * sinangle
+    X3c3_untwisted = X3s3 * (-sinangle) + X3c3 * cosangle
+    Y3s3_untwisted = Y3s3 *   cosangle  + Y3c3 * sinangle
+    Y3c3_untwisted = Y3s3 * (-sinangle) + Y3c3 * cosangle
+    Z3s3_untwisted = Z3s3 *   cosangle  + Z3c3 * sinangle
+    Z3c3_untwisted = Z3s3 * (-sinangle) + Z3c3 * cosangle
+    
+    r3_results = X3c1, Y3c1, Y3s1, X3s1, Z3c1, Z3s1, X3c3, X3s3, Y3c3, Y3s3, Z3c3, Z3s3, d_X3c1_d_varphi, d_Y3c1_d_varphi, d_Y3s1_d_varphi, flux_constraint_coefficient, B0_order_a_squared_to_cancel, X3c1_untwisted, Y3c1_untwisted, Y3s1_untwisted, X3s1_untwisted, X3s3_untwisted, X3c3_untwisted, Y3c3_untwisted, Y3s3_untwisted, Z3s1_untwisted, Z3s3_untwisted, Z3c1_untwisted, Z3c3_untwisted
+    
+    return r3_results
+
+    
+
+    
 def calculate_shear(self,B31c = 0):
     """
     Compute the magnetic shear iota_2 (so iota=iota0+r^2*iota2) which comes
@@ -161,7 +283,7 @@ def calculate_shear(self,B31c = 0):
     # J. Plasma Physics (2019) it is defined r=\sqrt(2*psi/B0). Need to transform between the
     # two.
 
-    eps_scale = np.sqrt(2/self.B0) 
+    eps_scale = jnp.sqrt(2/self.B0) 
 
     # sign_psi = self.spsi
     # sign_G   = self.sG  # Sign is taken to be positive for simplicity. To include this, need to track expressions
@@ -203,7 +325,7 @@ def calculate_shear(self,B31c = 0):
     Ba1 = G2 + self.iotaN*I2
     eta = self.etabar*np.sqrt(2)*B0**0.25
     B1c = -2*B0*eta
-    B20 = (0.75*self.etabar**2/np.sqrt(B0) - self.B20)*4*B0**2
+    B20 = (0.75*self.etabar**2/jnp.sqrt(B0) - self.B20)*4*B0**2
     B31s = 0 # To preserve stellarator symmetry
     I4 = 0 # Take current variations at this order to be 0
             
@@ -217,7 +339,7 @@ def calculate_shear(self,B31c = 0):
         2*Ba0*X1c*Y20*Z2s - 4*Ba0*X1c*Y2c*Z2s + 2*X1c*dX20dp + X1c*dX2cdp+2*Y1c*dY20dp +
         Y1c*dY2cdp + Y1s*dY2sdp)
          
-    dZ31cdp = np.matmul(d_d_varphi, Z31c)
+    dZ31cdp = jnp.matmul(d_d_varphi, Z31c)
             
     Z31s = 1/3/Ba0/X1c/Y1s*(2*iota*(X1c*X2c + Y1c*Y2c + Y1s*Y2s) - 2*Ba0*X2c*Y1c*Z20 + 
         2*Ba0*X1c*Y2c*Z20 - 2*Ba0*X2s*Y1s*Z20 + 2*Ba0*X20*Y1c*Z2c - 2*Ba0*X1c*Y20*Z2c +
@@ -225,7 +347,7 @@ def calculate_shear(self,B31c = 0):
         2*I2*X20*Y1s - I2*X2c*Y1s - I2*X1c*Y2s + torsion*(X2s*Y1c + 2*X20*Y1s - X2c*Y1s -
         X1c*Y2s) - curvature*X1c*Z2s) - X1c*dX2sdp - 2*Y1s*dY20dp + Y1s*dY2cdp - Y1c*dY2sdp)
             
-    dZ31sdp = np.matmul(d_d_varphi, Z31s)
+    dZ31sdp = jnp.matmul(d_d_varphi, Z31s)
 
             
     # Equation J3: expression for X31c/s
@@ -276,25 +398,25 @@ def calculate_shear(self,B31c = 0):
 
     # Distinguish between the stellarator symmetric case and the non-symmetric one at order r^1.
     # Distinction leads to the expSig function being periodic (stell. sym.) or not.
-    if self.sigma0 == 0 and np.max(np.abs(self.rs)) == 0 and np.max(np.abs(self.zc)) == 0:
+    if self.sigma0 == 0 and jnp.max(jnp.abs(self.rs)) == 0 and jnp.max(jnp.abs(self.zc)) == 0:
         # Case in which sigma is stellarator-symmetric:
-        integSig = np.linalg.solve(DMred,self.sigma[1:])   # Invert differentiation matrix: as if first entry a zero, need to add it later
-        integSig = np.insert(integSig,0,0)  # Add the first entry 0
-        expSig = np.exp(2*iota*integSig)
+        integSig = jnp.linalg.solve(DMred,self.sigma[1:])   # Invert differentiation matrix: as if first entry a zero, need to add it later
+        integSig = jnp.insert(integSig,0,0)  # Add the first entry 0
+        expSig = jnp.exp(2*iota*integSig)
         # d_phi_d_varphi = 1 + np.matmul(d_d_varphi,self.phi-self.varphi)
         self.iota2 = self.B0/2*sum(expSig*LamTilde*self.d_varphi_d_phi)/sum(expSig*(X1c**2 + Y1c**2 + Y1s**2)/Y1s**2*self.d_varphi_d_phi) 
     else:
         # Case in which sigma is not stellarator-symmetric:
         # d_phi_d_varphi = 1 + np.matmul(d_d_varphi,self.phi-self.varphi)
         avSig = sum(self.sigma*self.d_varphi_d_phi)/len(self.sigma)     # Separate the piece that gives secular part, so all things periodic
-        integSigPer = np.linalg.solve(DMred,self.sigma[1:]-avSig)   # Invert differentiation matrix: as if first entry a zero, need to add it later
+        integSigPer = jnp.linalg.solve(DMred,self.sigma[1:]-avSig)   # Invert differentiation matrix: as if first entry a zero, need to add it later
         integSig = integSigPer + avSig*self.varphi[1:]  # Include the secular piece
-        integSig = np.insert(integSig,0,0)  # Add the first entry 0
-        expSig_ext = np.append(np.exp(2*iota*integSig),np.exp(2*iota*(avSig*2*np.pi/self.nfp))) # Add endpoint at 2*pi for better integration
-        LamTilde_ext = np.append(LamTilde,LamTilde[0])
+        integSig = jnp.insert(integSig,0,0)  # Add the first entry 0
+        expSig_ext = jnp.append(jnp.exp(2*iota*integSig),jnp.exp(2*iota*(avSig*2*jnp.pi/self.nfp))) # Add endpoint at 2*pi for better integration
+        LamTilde_ext = jnp.append(LamTilde,LamTilde[0])
         fac_denom = (X1c**2 + Y1c**2 + Y1s**2) / Y1s**2
-        fac_denom_ext = np.append(fac_denom, fac_denom[0])
-        varphi_ext = np.append(self.varphi, 2 * np.pi / self.nfp)
+        fac_denom_ext = jnp.append(fac_denom, fac_denom[0])
+        varphi_ext = jnp.append(self.varphi, 2 * jnp.pi / self.nfp)
         self.iota2 = self.B0 / 2 \
             * integ.trapezoid(expSig_ext * LamTilde_ext, varphi_ext) \
             / integ.trapezoid(expSig_ext * fac_denom_ext, varphi_ext)

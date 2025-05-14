@@ -6,11 +6,12 @@ curvature and torsion from the magnetix axis shape.
 import logging
 import numpy as np
 from scipy.interpolate import CubicSpline as spline
-from .spectral_diff_matrix import spectral_diff_matrix
-from .util import fourier_minimum
+from .spectral_diff_matrix import jax_spectral_diff_matrix, spectral_diff_matrix
+from .util import fourier_minimum, jax_fourier_minimum
 
 import jax
 import jax.numpy as jnp
+from interpax import CubicSpline #  i found this online, open source support for cubic splines
 
 # Set default floating-point precision to 64-bit (double precision)
 jax.config.update('jax_enable_x64', True)
@@ -24,58 +25,64 @@ def calculate_helicity(nphi, normal_cylindrical, spsi, sG):
     by counting the number of times the normal vector rotates
     poloidally as you follow the axis around toroidally.
     """
-    quadrant = np.zeros(nphi + 1)
-    for j in range(nphi):
-        if normal_cylindrical[j,0] >= 0:
-            if normal_cylindrical[j,2] >= 0:
-                quadrant[j] = 1
-            else:
-                quadrant[j] = 4
-        else:
-            if normal_cylindrical[j,2] >= 0:
-                quadrant[j] = 2
-            else:
-                quadrant[j] = 3
-    quadrant[nphi] = quadrant[0]
 
-    counter = 0
-    for j in range(nphi):
-        if quadrant[j] == 4 and quadrant[j+1] == 1:
-            counter += 1
-        elif quadrant[j] == 1 and quadrant[j+1] == 4:
-            counter -= 1
-        else:
-            counter += quadrant[j+1] - quadrant[j]
+    def classify_quadrant(j):
+        x, _, z = normal_cylindrical[j]
 
-    # It is necessary to flip the sign of axis_helicity in order
-    # to maintain "iota_N = iota + axis_helicity" under the parity
-    # transformations.
+        def case_1(): return 1  # x >= 0, z >= 0
+        def case_2(): return 4  # x >= 0, z < 0
+        def case_3(): return 2  # x < 0, z >= 0
+        def case_4(): return 3  # x < 0, z < 0
+
+        return jax.lax.cond(x >= 0,
+                        lambda: jax.lax.cond(z >= 0, case_1, case_2),
+                        lambda: jax.lax.cond(z >= 0, case_3, case_4))
+
+    quadrant = jnp.array([classify_quadrant(j) for j in range(nphi)])
+    quadrant = jnp.append(quadrant, quadrant[0])
+
+    def count_step(j, counter):
+        counter = jax.lax.cond(
+            (quadrant[j] == 4) & (quadrant[j+1] == 1),
+            lambda: counter + 1,
+            lambda: jax.lax.cond(
+                (quadrant[j] == 1) & (quadrant[j+1] == 4),
+                lambda: counter - 1,
+                lambda: counter + (quadrant[j+1] - quadrant[j])
+            )
+        )
+        return counter
+
+    counter = jax.lax.fori_loop(0, nphi, count_step, 0)
     counter *= spsi * sG
     helicity = counter / 4
     return helicity
 
 # Define periodic spline interpolant conversion used in several scripts and plotting
-def convert_to_spline(self,array, phi, nfp):
-    sp=spline(np.append(phi,2*np.pi/nfp), np.append(array,array[0]), bc_type='periodic')
+def convert_to_spline(array, phi, nfp):
+    sp = spline(jnp.append(phi,2*jnp.pi/nfp), jnp.append(array,array[0]), bc_type='periodic') #need to get open source to work here
     return sp
 
 def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0, order, B2s):
     """
-    Initialize the curvature, torsion, differentiation matrix, etc.
+    Initialize the curvature, torsion, differentiation matrix, etc. waiting on interpax support for cubic spline
     """
 
     # Generate phi
+    
     phi = jnp.linspace(0, 2 * jnp.pi / nfp, nphi, endpoint=False)
     d_phi = phi[1] - phi[0]
+    
 
     # Compute n and the angles
     n = jnp.arange(0, nfourier) * nfp
     angles = jnp.outer(n, phi)
     sinangles = jnp.sin(angles)
     cosangles = jnp.cos(angles)
-
+    
     # Compute R0, Z0, R0p, Z0p, R0pp, Z0pp, R0ppp, Z0ppp
     R0 = jnp.dot(rc, cosangles) + jnp.dot(rs, sinangles)
+    
     Z0 = jnp.dot(zc, cosangles) + jnp.dot(zs, sinangles)
     R0p = jnp.dot(rc, -n[:, jnp.newaxis] * sinangles) + jnp.dot(rs, n[:, jnp.newaxis] * cosangles)
     Z0p = jnp.dot(zc, -n[:, jnp.newaxis] * sinangles) + jnp.dot(zs, n[:, jnp.newaxis] * cosangles)
@@ -92,9 +99,14 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
     G0 = sG * abs_G0_over_B0 * B0
 
     # For these next arrays, the first dimension is phi, and the 2nd dimension is (R, phi, Z).
-    d_r_d_phi_cylindrical = jnp.array([R0p, R0, Z0p]).transpose()
-    d2_r_d_phi2_cylindrical = jnp.array([R0pp - R0, 2 * R0p, Z0pp]).transpose()
-    d3_r_d_phi3_cylindrical = jnp.array([R0ppp - 3 * R0p, 3 * R0pp - R0, Z0ppp]).transpose()
+    d_r_d_phi_cylindrical = jnp.array([R0p, R0, Z0p])  #.transpose()
+    d_r_d_phi_cylindrical = jnp.transpose(d_r_d_phi_cylindrical)
+    
+    d2_r_d_phi2_cylindrical = jnp.array([R0pp - R0, 2 * R0p, Z0pp])  #.transpose()
+    d2_r_d_phi2_cylindrical = jnp.transpose(d2_r_d_phi2_cylindrical)
+    
+    d3_r_d_phi3_cylindrical = jnp.array([R0ppp - 3 * R0p, 3 * R0pp - R0, Z0ppp]) #.transpose()
+    d3_r_d_phi3_cylindrical = jnp.transpose(d3_r_d_phi3_cylindrical)
 
     # Calculate tangent_cylindrical and d_tangent_d_l_cylindrical
     tangent_cylindrical = d_r_d_phi_cylindrical / d_l_d_phi[:, jnp.newaxis]
@@ -106,17 +118,17 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
                         d_tangent_d_l_cylindrical[:,2] * d_tangent_d_l_cylindrical[:,2])
 
     axis_length = jnp.sum(d_l_d_phi) * d_phi * nfp
-    rms_curvature = jnp.sqrt((jnp.sum(curvature * curvature * d_l_d_phi) * d_phi * nfp) / axis_length)
-    mean_of_R = jnp.sum(R0 * d_l_d_phi) * d_phi * nfp / axis_length
-    mean_of_Z = jnp.sum(Z0 * d_l_d_phi) * d_phi * nfp / axis_length
-    standard_deviation_of_R = jnp.sqrt(jnp.sum((R0 - mean_of_R) ** 2 * d_l_d_phi) * d_phi * nfp / axis_length)
-    standard_deviation_of_Z = jnp.sqrt(jnp.sum((Z0 - mean_of_Z) ** 2 * d_l_d_phi) * d_phi * nfp / axis_length)
+    #rms_curvature = jnp.sqrt((jnp.sum(curvature * curvature * d_l_d_phi) * d_phi * nfp) / axis_length)
+    #mean_of_R = jnp.sum(R0 * d_l_d_phi) * d_phi * nfp / axis_length
+    #mean_of_Z = jnp.sum(Z0 * d_l_d_phi) * d_phi * nfp / axis_length
+    #standard_deviation_of_R = jnp.sqrt(jnp.sum((R0 - mean_of_R) ** 2 * d_l_d_phi) * d_phi * nfp / axis_length)
+    #tandard_deviation_of_Z = jnp.sqrt(jnp.sum((Z0 - mean_of_Z) ** 2 * d_l_d_phi) * d_phi * nfp / axis_length)
 
     # Calculate normal_cylindrical
     normal_cylindrical = d_tangent_d_l_cylindrical / curvature[:, jnp.newaxis]
-
+    print('before helicity')
     helicity = calculate_helicity(nphi, normal_cylindrical, spsi, sG)
-
+    print('after helicity')
     # b = t x n
     binormal_cylindrical = jnp.zeros((nphi, 3))
     binormal_cylindrical = binormal_cylindrical.at[:,0].set(tangent_cylindrical[:,1] * normal_cylindrical[:,2] - tangent_cylindrical[:,2] * normal_cylindrical[:,1])
@@ -142,45 +154,52 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
 
     torsion = torsion_numerator / torsion_denominator
     etabar_squared_over_curvature_squared = etabar ** 2 / curvature ** 2
-
-    d_d_phi = spectral_diff_matrix(nphi, xmax=2 * np.pi / nfp)
+    #print('spectral diff matrix')
+   
+    d_d_phi = jax_spectral_diff_matrix(nphi, xmax=2 * jnp.pi / nfp)
+    #print('after spectral diff matrix')
     d_varphi_d_phi = B0_over_abs_G0 * d_l_d_phi
 
     # Calculate d_d_varphi
-    d_d_varphi = d_d_phi / d_varphi_d_phi[:, np.newaxis]
+    d_d_varphi = d_d_phi / d_varphi_d_phi[:, jnp.newaxis]
     
     # Compute the Boozer toroidal angle:
-    varphi = np.zeros(nphi)
+    varphi = jnp.zeros(nphi)
     for j in range(1, nphi):
         # To get toroidal angle on the full mesh, we need d_l_d_phi on the half mesh.
-        varphi[j] = varphi[j-1] + (d_l_d_phi[j-1] + d_l_d_phi[j])
+        varphi = varphi.at[j].set(varphi[j-1] + (d_l_d_phi[j-1] + d_l_d_phi[j]))
     varphi = varphi * (0.5 * d_phi * 2 * np.pi / axis_length)
 
 
     # Add all results to self:
-    X1s = np.zeros(nphi)
+    X1s = jnp.zeros(nphi)
     X1c = etabar / curvature
-    min_R0 = fourier_minimum(R0)
+    print('before fourier min')
+    min_R0 = jax_fourier_minimum(R0)
+    print('after fourier min')
     Bbar = spsi * B0
 
     # The output is not stellarator-symmetric if (1) R0s is nonzero,
     # (2) Z0c is nonzero, (3) sigma_initial is nonzero, or (B2s is
     # nonzero and order != 'r1')
-    lasym = np.max(np.abs(rs)) > 0 or np.max(np.abs(zc)) > 0 \
+    lasym = jnp.max(jnp.abs(rs)) > 0 or jnp.max(jnp.abs(zc)) > 0 \
         or sigma0 != 0 or (order != 'r1' and B2s != 0)
+    
+    print('before spline')
 
     # Functions that converts a toroidal angle phi0 on the axis to the axis radial and vertical coordinates
-    R0_func = self.convert_to_spline(sum([rc[i]*np.cos(i*nfp*phi) +\
-                                               rs[i]*np.sin(i*nfp*phi) \
+    R0_func = self.convert_to_spline(sum([rc[i]*jnp.cos(i*nfp*phi) +\
+                                               rs[i]*jnp.sin(i*nfp*phi) \
                                               for i in range(len(rc))]), phi, nfp)
-    Z0_func = self.convert_to_spline(sum([zc[i]*np.cos(i*nfp*phi) +\
-                                               zs[i]*np.sin(i*nfp*phi) \
+    Z0_func = self.convert_to_spline(sum([zc[i]*jnp.cos(i*nfp*phi) +\
+                                               zs[i]*jnp.sin(i*nfp*phi) \
                                               for i in range(len(zs))]), phi, nfp)
     self.lasym = lasym
     self.R0_func = R0_func
     self.Z0_func = Z0_func
 
     # Spline interpolants for the cylindrical components of the Frenet-Serret frame:
+    #got rid of self statments
     self.normal_R_spline     = self.convert_to_spline(normal_cylindrical[:,0], phi, nfp)
     self.normal_phi_spline   = self.convert_to_spline(normal_cylindrical[:,1], phi, nfp)
     self.normal_z_spline     = self.convert_to_spline(normal_cylindrical[:,2], phi, nfp)
@@ -190,9 +209,20 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
     self.tangent_R_spline    = self.convert_to_spline(tangent_cylindrical[:,0], phi, nfp)
     self.tangent_phi_spline  = self.convert_to_spline(tangent_cylindrical[:,1], phi, nfp)
     self.tangent_z_spline    = self.convert_to_spline(tangent_cylindrical[:,2], phi, nfp)
-
+    
+    normal_R_spline     = self.convert_to_spline(normal_cylindrical[:,0], phi, nfp)
+    normal_phi_spline   = self.convert_to_spline(normal_cylindrical[:,1], phi, nfp)
+    normal_z_spline     = self.convert_to_spline(normal_cylindrical[:,2], phi, nfp)
+    binormal_R_spline   = self.convert_to_spline(binormal_cylindrical[:,0], phi, nfp)
+    binormal_phi_spline = self.convert_to_spline(binormal_cylindrical[:,1], phi, nfp)
+    binormal_z_spline   = self.convert_to_spline(binormal_cylindrical[:,2], phi, nfp)
+    tangent_R_spline    = self.convert_to_spline(tangent_cylindrical[:,0], phi, nfp)
+    tangent_phi_spline  = self.convert_to_spline(tangent_cylindrical[:,1], phi, nfp)
+    tangent_z_spline    = self.convert_to_spline(tangent_cylindrical[:,2], phi, nfp)
+    print('after spline')
     # Spline interpolant for nu = varphi - phi, used for plotting
     self.nu_spline = self.convert_to_spline(varphi - phi, phi, nfp)
+    nu_spline = self.convert_to_spline(varphi - phi, phi, nfp)
 
     return helicity,\
     normal_cylindrical, \
@@ -224,4 +254,22 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
     normal_cylindrical, \
     binormal_cylindrical, \
     Bbar, \
-    abs_G0_over_B0
+    abs_G0_over_B0, \
+    lasym, \
+    R0_func, \
+    Z0_func, \
+    normal_R_spline, \
+    normal_phi_spline, \
+    normal_z_spline, \
+    binormal_R_spline, \
+    binormal_phi_spline, \
+    binormal_z_spline, \
+    tangent_R_spline, \
+    tangent_phi_spline, \
+    tangent_z_spline, \
+    nu_spline
+    
+    
+    
+    
+    

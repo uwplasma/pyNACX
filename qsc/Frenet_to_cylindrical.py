@@ -5,9 +5,13 @@ off-axis cylindrical toroidal angle
 """
 
 import numpy as np
+from examples.results_class import Results
+import jax.numpy as jnp
 from scipy.optimize import root_scalar
 
-def Frenet_to_cylindrical_residual_func(phi0, phi_target, qsc):
+from qsc.init_axis import convert_to_spline
+
+def Frenet_to_cylindrical_residual_func(phi0, phi_target, qsc, X_spline, Y_spline, Z_spline):
     """
     This function takes a point on the magnetic axis with a given
     toroidal angle phi0, computes the actual toroidal angle phi
@@ -18,11 +22,11 @@ def Frenet_to_cylindrical_residual_func(phi0, phi_target, qsc):
         phi0 (float): toroidal angle on the axis
         phi_target (float): standard cylindrical toroidal angle
     """
-    sinphi0 = np.sin(phi0)
-    cosphi0 = np.cos(phi0)
+    sinphi0 = jnp.sin(phi0)
+    cosphi0 = jnp.cos(phi0)
     R0_at_phi0   = qsc.R0_func(phi0)
-    X_at_phi0    = qsc.X_spline(phi0)
-    Y_at_phi0    = qsc.Y_spline(phi0)
+    X_at_phi0    = X_spline(phi0)
+    Y_at_phi0    = Y_spline(phi0)
     normal_R     = qsc.normal_R_spline(phi0)
     normal_phi   = qsc.normal_phi_spline(phi0)
     binormal_R   = qsc.binormal_R_spline(phi0)
@@ -37,7 +41,7 @@ def Frenet_to_cylindrical_residual_func(phi0, phi_target, qsc):
     total_y = R0_at_phi0 * sinphi0 + X_at_phi0 * normal_y + Y_at_phi0 * binormal_y
 
     if qsc.order != 'r1':
-        Z_at_phi0    = qsc.Z_spline(phi0)
+        Z_at_phi0    = Z_spline(phi0)
         tangent_R    = qsc.tangent_R_spline(phi0)
         tangent_phi  = qsc.tangent_phi_spline(phi0)
 
@@ -47,13 +51,13 @@ def Frenet_to_cylindrical_residual_func(phi0, phi_target, qsc):
         total_x = total_x + Z_at_phi0 * tangent_x
         total_y = total_y + Z_at_phi0 * tangent_y
 
-    Frenet_to_cylindrical_residual = np.arctan2(total_y, total_x) - phi_target
+    Frenet_to_cylindrical_residual = jnp.arctan2(total_y, total_x) - phi_target
     # We expect the residual to be less than pi in absolute value, so if it is not, the reason must be the branch cut:
-    if (Frenet_to_cylindrical_residual >  np.pi): Frenet_to_cylindrical_residual = Frenet_to_cylindrical_residual - 2*np.pi
-    if (Frenet_to_cylindrical_residual < -np.pi): Frenet_to_cylindrical_residual = Frenet_to_cylindrical_residual + 2*np.pi
+    if (Frenet_to_cylindrical_residual >  jnp.pi): Frenet_to_cylindrical_residual = Frenet_to_cylindrical_residual - 2*np.pi
+    if (Frenet_to_cylindrical_residual < -jnp.pi): Frenet_to_cylindrical_residual = Frenet_to_cylindrical_residual + 2*np.pi
     return Frenet_to_cylindrical_residual
 
-def Frenet_to_cylindrical_1_point(phi0, qsc):
+def Frenet_to_cylindrical_1_point(phi0, qsc, X_spline, Y_spline, Z_spline):
     """
     This function takes a point on the magnetic axis with a given
     toroidal angle phi0 and computes the cylindrical coordinate
@@ -62,17 +66,17 @@ def Frenet_to_cylindrical_1_point(phi0, qsc):
     Args:
         phi0: toroidal angle on the axis
     """
-    sinphi0 = np.sin(phi0)
-    cosphi0 = np.cos(phi0)
-    R0_at_phi0   = qsc.R0_func(phi0)
-    z0_at_phi0   = qsc.Z0_func(phi0)
-    X_at_phi0    = qsc.X_spline(phi0)
-    Y_at_phi0    = qsc.Y_spline(phi0)
-    Z_at_phi0    = qsc.Z_spline(phi0)
-    normal_R     = qsc.normal_R_spline(phi0)
-    normal_phi   = qsc.normal_phi_spline(phi0)
-    normal_z     = qsc.normal_z_spline(phi0)
-    binormal_R   = qsc.binormal_R_spline(phi0)
+    sinphi0 = jnp.sin(phi0)
+    cosphi0 = jnp.cos(phi0)
+    R0_at_phi0  = qsc.R0_func(phi0)
+    z0_at_phi0  = qsc.Z0_func(phi0)
+    X_at_phi0   = X_spline(phi0)#
+    Y_at_phi0   = Y_spline(phi0)#
+    Z_at_phi0   = Z_spline(phi0)#
+    normal_R    = qsc.normal_R_spline(phi0)
+    normal_phi  = qsc.normal_phi_spline(phi0)
+    normal_z    = qsc.normal_z_spline(phi0)
+    binormal_R  = qsc.binormal_R_spline(phi0)
     binormal_phi = qsc.binormal_phi_spline(phi0)
     binormal_z   = qsc.binormal_z_spline(phi0)
 
@@ -98,12 +102,12 @@ def Frenet_to_cylindrical_1_point(phi0, qsc):
         total_y = total_y + Z_at_phi0 * tangent_y
         total_z = total_z + Z_at_phi0 * tangent_z
 
-    total_R = np.sqrt(total_x * total_x + total_y * total_y)
-    total_phi=np.arctan2(total_y, total_x)
+    total_R = jnp.sqrt(total_x * total_x + total_y * total_y)
+    total_phi=jnp.arctan2(total_y, total_x)
 
     return total_R, total_z, total_phi
 
-def Frenet_to_cylindrical(self, r, ntheta=20):
+def Frenet_to_cylindrical(results: Results, r, ntheta=20): # changed to use results class -> to_vmec will no longer work
     r"""
     For a given minor radius coordinate :math:`r`, compute the
     shape of the flux surface in standard cylindrical coordinates
@@ -123,53 +127,53 @@ def Frenet_to_cylindrical(self, r, ntheta=20):
     Returns: 3 element tuple containing ``(R, Z, phi0)``. Each entry has shape ``(ntheta, nphi)``.
 
     """
-    nphi_conversion = self.nphi
-    theta = np.linspace(0,2*np.pi,ntheta,endpoint=False)
-    phi_conversion = np.linspace(0,2*np.pi/self.nfp,nphi_conversion,endpoint=False)
-    R_2D = np.zeros((ntheta,nphi_conversion))
-    Z_2D = np.zeros((ntheta,nphi_conversion))
-    phi0_2D = np.zeros((ntheta,nphi_conversion))
+    nphi_conversion = results.nphi
+    theta = jnp.linspace(0,2*np.pi,ntheta,endpoint=False)
+    phi_conversion = jnp.linspace(0,2*np.pi/results.nfp,nphi_conversion,endpoint=False)
+    R_2D = jnp.zeros((ntheta,nphi_conversion))
+    Z_2D = jnp.zeros((ntheta,nphi_conversion))
+    phi0_2D = jnp.zeros((ntheta,nphi_conversion))
     for j_theta in range(ntheta):
-        costheta = np.cos(theta[j_theta])
-        sintheta = np.sin(theta[j_theta])
-        X_at_this_theta = r * (self.X1c_untwisted * costheta + self.X1s_untwisted * sintheta)
-        Y_at_this_theta = r * (self.Y1c_untwisted * costheta + self.Y1s_untwisted * sintheta)
+        costheta = jnp.cos(theta[j_theta])
+        sintheta = jnp.sin(theta[j_theta])
+        X_at_this_theta = r * (results.X1c_untwisted * costheta + results.X1s_untwisted * sintheta)
+        Y_at_this_theta = r * (results.Y1c_untwisted * costheta + results.Y1s_untwisted * sintheta)
         Z_at_this_theta = 0 * X_at_this_theta
-        if self.order != 'r1':
+        if results.order != 'r1':
             # We need O(r^2) terms:
-            cos2theta = np.cos(2 * theta[j_theta])
-            sin2theta = np.sin(2 * theta[j_theta])
-            X_at_this_theta += r * r * (self.X20_untwisted + self.X2c_untwisted * cos2theta + self.X2s_untwisted * sin2theta)
-            Y_at_this_theta += r * r * (self.Y20_untwisted + self.Y2c_untwisted * cos2theta + self.Y2s_untwisted * sin2theta)
-            Z_at_this_theta += r * r * (self.Z20_untwisted + self.Z2c_untwisted * cos2theta + self.Z2s_untwisted * sin2theta)
-            if self.order == 'r3':
+            cos2theta = jnp.cos(2 * theta[j_theta])
+            sin2theta = jnp.sin(2 * theta[j_theta])
+            X_at_this_theta += r * r * (results.X20_untwisted + results.X2c_untwisted * cos2theta + results.X2s_untwisted * sin2theta)
+            Y_at_this_theta += r * r * (results.Y20_untwisted + results.Y2c_untwisted * cos2theta + results.Y2s_untwisted * sin2theta)
+            Z_at_this_theta += r * r * (results.Z20_untwisted + results.Z2c_untwisted * cos2theta + results.Z2s_untwisted * sin2theta)
+            if results.order == 'r3':
                 # We need O(r^3) terms:
-                costheta  = np.cos(theta[j_theta])
-                sintheta  = np.sin(theta[j_theta])
-                cos3theta = np.cos(3 * theta[j_theta])
-                sin3theta = np.sin(3 * theta[j_theta])
+                costheta  = jnp.cos(theta[j_theta])
+                sintheta  = jnp.sin(theta[j_theta])
+                cos3theta = jnp.cos(3 * theta[j_theta])
+                sin3theta = jnp.sin(3 * theta[j_theta])
                 r3 = r * r * r
-                X_at_this_theta += r3 * (self.X3c1_untwisted * costheta + self.X3s1_untwisted * sintheta
-                                         + self.X3c3_untwisted * cos3theta + self.X3s3_untwisted * sin3theta)
-                Y_at_this_theta += r3 * (self.Y3c1_untwisted * costheta + self.Y3s1_untwisted * sintheta
-                                         + self.Y3c3_untwisted * cos3theta + self.Y3s3_untwisted * sin3theta)
-                Z_at_this_theta += r3 * (self.Z3c1_untwisted * costheta + self.Z3s1_untwisted * sintheta
-                                         + self.Z3c3_untwisted * cos3theta + self.Z3s3_untwisted * sin3theta)
-        self.X_spline = self.convert_to_spline(X_at_this_theta, self.phi, self.nfp)
-        self.Y_spline = self.convert_to_spline(Y_at_this_theta, self.phi, self.nfp)
-        self.Z_spline = self.convert_to_spline(Z_at_this_theta, self.phi, self.nfp)
+                X_at_this_theta += r3 * (results.X3c1_untwisted * costheta + results.X3s1_untwisted * sintheta
+                                         + results.X3c3_untwisted * cos3theta + results.X3s3_untwisted * sin3theta)
+                Y_at_this_theta += r3 * (results.Y3c1_untwisted * costheta + results.Y3s1_untwisted * sintheta
+                                         + results.Y3c3_untwisted * cos3theta + results.Y3s3_untwisted * sin3theta)
+                Z_at_this_theta += r3 * (results.Z3c1_untwisted * costheta + results.Z3s1_untwisted * sintheta
+                                         + results.Z3c3_untwisted * cos3theta + results.Z3s3_untwisted * sin3theta)
+        X_spline = convert_to_spline(X_at_this_theta, results.phi, results.nfp) # these splines will need to be passed in manually to the Frenet_to_cylindrical_residual_func
+        Y_spline = convert_to_spline(Y_at_this_theta, results.phi, results.nfp)
+        Z_spline = convert_to_spline(Z_at_this_theta, results.phi, results.nfp)
         for j_phi in range(nphi_conversion):
             # Solve for the phi0 such that r0 + X1 n + Y1 b has the desired phi
             phi_target = phi_conversion[j_phi]
-            phi0_rootSolve_min = phi_target - 1.0 / self.nfp
-            phi0_rootSolve_max = phi_target + 1.0 / self.nfp
+            phi0_rootSolve_min = phi_target - 1.0 / results.nfp
+            phi0_rootSolve_max = phi_target + 1.0 / results.nfp
             res = root_scalar(Frenet_to_cylindrical_residual_func, xtol=1e-15, rtol=1e-15, maxiter=1000,\
-                              args=(phi_target, self), bracket=[phi0_rootSolve_min, phi0_rootSolve_max], x0=phi_target)
+                              args=(phi_target, results, X_spline, Y_spline, Z_spline), bracket=[phi0_rootSolve_min, phi0_rootSolve_max], x0=phi_target) # shouldnt x0 be phi_0
             phi0_solution = res.root
-            final_R, final_z, _ = Frenet_to_cylindrical_1_point(phi0_solution, self)
-            R_2D[j_theta,j_phi] = final_R
-            Z_2D[j_theta,j_phi] = final_z
-            phi0_2D[j_theta,j_phi] = phi0_solution
+            final_R, final_z, _ = Frenet_to_cylindrical_1_point(phi0_solution, results, X_spline, Y_spline, Z_spline) # requires some of the splines made in root Frenet_to_cylindrical_residual_func 
+            R_2D = R_2D.at[j_theta,j_phi].set(final_R)
+            Z_2D = Z_2D.at[j_theta,j_phi].set(final_z)
+            phi0_2D = phi0_2D.at[j_theta,j_phi].set(phi0_solution)
             
     return R_2D, Z_2D, phi0_2D
 
@@ -192,12 +196,12 @@ def to_RZ(self,points):
         r      = point[0]
         theta  = point[1]
         phi0   = point[2]
-        costheta = np.cos(theta)
-        sintheta = np.sin(theta)
-        cos2theta = np.cos(2*theta)
-        sin2theta = np.sin(2*theta)
-        cos3theta = np.cos(3*theta)
-        sin3theta = np.sin(3*theta)
+        costheta = jnp.cos(theta)
+        sintheta = jnp.sin(theta)
+        cos2theta = jnp.cos(2*theta)
+        sin2theta = jnp.sin(2*theta)
+        cos3theta = jnp.cos(3*theta)
+        sin3theta = jnp.sin(3*theta)
         X_at_this_theta = r * (self.X1c_untwisted * costheta + self.X1s_untwisted * sintheta)
         Y_at_this_theta = r * (self.Y1c_untwisted * costheta + self.Y1s_untwisted * sintheta)
         Z_at_this_theta = 0 * X_at_this_theta

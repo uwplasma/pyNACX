@@ -7,13 +7,21 @@ Various utility functions
 import logging
 import numpy as np
 import scipy.optimize
+from examples.results_class import Results
 from qsc.fourier_interpolation import fourier_interpolation
 from scipy.interpolate import CubicSpline as spline
+
+import jax
+import jax.scipy.optimize as jso
+import jax.numpy as jnp
+from jaxopt import ScipyMinimize
+from qsc.init_axis import convert_to_spline
+
 
 #logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-mu0 = 4 * np.pi * 1e-7
+mu0 = 4 * jnp.pi * 1e-7
 
 class Struct():
     """
@@ -22,23 +30,80 @@ class Struct():
     """
     pass
 
+def jax_fourier_minimum(y):
+    """
+    Given uniformly spaced data y on a periodic domain, find the
+    minimum of the spectral interpolant.
+    """
+    y = jnp.array(y)  # Ensure correct argument
+
+    # Handle the case of a constant
+    def handle_constant_case(y):
+        return jnp.repeat(y[0], 3)
+
+    def func(x):
+            interp = fourier_interpolation(y, jnp.array([x]))
+            return interp[0]
+        
+    def handle_non_constant_case(y):
+        n = len(y)
+        dx = 2 * jnp.pi / n
+        
+        index = jnp.argmin(y)
+        
+        
+    
+        f0 = func(index * dx)
+        
+        #look for bracket 
+        def body(j, carry): 
+            fm = func(carry[0])
+            fp = func(carry[2])
+            
+            #cond = f0 < fm and f0 < fp
+
+            carry = jax.lax.cond(jnp.logical_and(f0 < fm, f0 < fp),
+                                 lambda _: jnp.array([index - j, index, index + j]) * dx,
+                                 lambda _: carry,
+                                 None)        
+            
+            return carry
+        
+        carry = jnp.array([index, index, index]) * dx 
+        
+        bracket = jax.lax.fori_loop(1, 4, body, carry)
+        
+        return bracket
+
+    
+    max_min_diff = jnp.max(y) - jnp.min(y)
+    mean_y_abs = jnp.abs(jnp.mean(y))
+    
+    is_constant = (max_min_diff / jnp.maximum(1e-14, mean_y_abs) < 1e-14)
+    
+    result = jax.lax.cond(is_constant, handle_constant_case, handle_non_constant_case, y)
+    
+    
+    return jso.minimize(func, result, method = 'BFGS')
+
 def fourier_minimum(y):
     """
     Given uniformly spaced data y on a periodic domain, find the
     minimum of the spectral interpolant.
     """
     # Handle the case of a constant:
-    if (np.max(y) - np.min(y)) / np.max([1e-14, np.abs(np.mean(y))]) < 1e-14:
+    y = jnp.array(y) # ensure correct argument
+    print(y)
+    if (jnp.max(y) - jnp.min(y)) / jnp.max(jnp.array([1e-14, jnp.abs(jnp.mean(y))])) < 1e-14:
         return y[0]
     
     n = len(y)
-    dx = 2 * np.pi / n
+    dx = 2 * jnp.pi / n
     # Compute a rough guess for the minimum, given by the minimum of
     # the discrete data:
-    index = np.argmin(y)
-
+    index = jnp.argmin(y)
     def func(x):
-        interp = fourier_interpolation(y, np.array([x]))
+        interp = fourier_interpolation(y, jnp.array([x]))
         logger.debug('fourier_minimum.func called at x={}, y={}'.format(x, interp[0]))
         return interp[0]
 
@@ -47,9 +112,10 @@ def fourier_minimum(y):
     f0 = func(index * dx)
     found_bracket = False
     for j in range(1, 4):
-        bracket = np.array([index - j, index, index + j]) * dx
+        bracket = jnp.array([index - j, index, index + j]) * dx
         fm = func(bracket[0])
         fp = func(bracket[2])
+        
         if f0 < fm and f0 < fp:
             found_bracket = True
             break
@@ -81,34 +147,34 @@ def to_Fourier(R_2D, Z_2D, nfp, mpol, ntor, lasym):
         ntor: resolution in toroidal Fourier space
         lasym: False if stellarator-symmetric, True if not
     """
-    shape = np.array(R_2D).shape
+    shape = jnp.array(R_2D).shape
     ntheta = shape[0]
     nphi_conversion = shape[1]
-    theta = np.linspace(0, 2 * np.pi, ntheta, endpoint=False)
-    phi_conversion = np.linspace(0, 2 * np.pi / nfp, nphi_conversion, endpoint=False)
-    RBC = np.zeros((int(2 * ntor + 1), int(mpol + 1)))
-    RBS = np.zeros((int(2 * ntor + 1), int(mpol + 1)))
-    ZBC = np.zeros((int(2 * ntor + 1), int(mpol + 1)))
-    ZBS = np.zeros((int(2 * ntor + 1), int(mpol + 1)))
+    theta = jnp.linspace(0, 2 * jnp.pi, ntheta, endpoint=False)
+    phi_conversion = jnp.linspace(0, 2 * jnp.pi / nfp, nphi_conversion, endpoint=False)
+    RBC = jnp.zeros((int(2 * ntor + 1), int(mpol + 1)))
+    RBS = jnp.zeros((int(2 * ntor + 1) , int(mpol + 1)))
+    ZBC = jnp.zeros((int(2 * ntor + 1), int(mpol + 1)))
+    ZBS = jnp.zeros((int(2 * ntor + 1), int(mpol + 1)))
     factor = 2 / (ntheta * nphi_conversion)
-    phi2d, theta2d = np.meshgrid(phi_conversion, theta)
+    phi2d, theta2d = jnp.meshgrid(phi_conversion, theta)
     for m in range(mpol+1):
         nmin = -ntor
         if m==0: nmin = 1
         for n in range(nmin, ntor+1):
             angle = m * theta2d - n * nfp * phi2d
-            sinangle = np.sin(angle)
-            cosangle = np.cos(angle)
+            sinangle = jnp.sin(angle)
+            cosangle = jnp.cos(angle)
             factor2 = factor
             # The next 2 lines ensure inverse Fourier transform(Fourier transform) = identity
-            if np.mod(ntheta,2) == 0 and m  == (ntheta/2): factor2 = factor2 / 2
-            if np.mod(nphi_conversion,2) == 0 and abs(n) == (nphi_conversion/2): factor2 = factor2 / 2
-            RBC[n + ntor, m] = np.sum(R_2D * cosangle * factor2)
-            RBS[n + ntor, m] = np.sum(R_2D * sinangle * factor2)
-            ZBC[n + ntor, m] = np.sum(Z_2D * cosangle * factor2)
-            ZBS[n + ntor, m] = np.sum(Z_2D * sinangle * factor2)
-    RBC[ntor,0] = np.sum(R_2D) / (ntheta * nphi_conversion)
-    ZBC[ntor,0] = np.sum(Z_2D) / (ntheta * nphi_conversion)
+            if jnp.mod(ntheta,2) == 0 and m  == (ntheta/2): factor2 = factor2 / 2
+            if jnp.mod(nphi_conversion,2) == 0 and abs(n) == (nphi_conversion/2): factor2 = factor2 / 2
+            RBC = RBC.at[n + ntor, m].set(jnp.sum(R_2D * cosangle * factor2))
+            RBS = RBS.at[n + ntor, m].set(jnp.sum(R_2D * sinangle * factor2))
+            ZBC = ZBC.at[n + ntor, m].set(jnp.sum(Z_2D * cosangle * factor2))
+            ZBS = ZBS.at[n + ntor, m].set(jnp.sum(Z_2D * sinangle * factor2))
+    RBC = RBC.at[ntor,0].set(jnp.sum(R_2D) / (ntheta * nphi_conversion))
+    ZBC = ZBC.at[ntor,0].set(jnp.sum(Z_2D) / (ntheta * nphi_conversion))
 
     if not lasym:
         RBS = 0
@@ -116,7 +182,7 @@ def to_Fourier(R_2D, Z_2D, nfp, mpol, ntor, lasym):
 
     return RBC, RBS, ZBC, ZBS
 
-def B_mag(self, r, theta, phi, Boozer_toroidal = False):
+def B_mag(results: Results, r, theta, phi, Boozer_toroidal = False):
     '''
     Function to calculate the modulus of the magnetic field B for a given
     near-axis radius r, a Boozer poloidal angle theta (not vartheta) and
@@ -130,21 +196,21 @@ def B_mag(self, r, theta, phi, Boozer_toroidal = False):
       Boozer_toroidal: False if phi is the cylindrical toroidal angle, True for the Boozer one
     '''
     if Boozer_toroidal == False:
-        thetaN = theta - (self.iota - self.iotaN) * (phi + self.nu_spline(phi))
+        thetaN = theta - (results.iota - results.iotaN) * (phi + results.nu_spline(phi))
     else:
-        thetaN = theta - (self.iota - self.iotaN) * phi
+        thetaN = theta - (results.iota - results.iotaN) * phi
 
-    B = self.B0*(1 + r * self.etabar * np.cos(thetaN))
+    B = results.B0*(1 + r * results.etabar * jnp.cos(thetaN))
 
     # Add O(r^2) terms if necessary:
-    if self.order != 'r1':
+    if results.order != 'r1':
         if Boozer_toroidal == False:
-            self.B20_spline = self.convert_to_spline(self.B20, self.phi, self.nfp)
+            B20_spline = convert_to_spline(results.B20, results.phi, results.nfp)
         else:
-            self.B20_spline = spline(np.append(self.varphi, 2 * np.pi / self.nfp),
-                                     np.append(self.B20, self.B20[0]),
+            B20_spline = spline(jnp.append(results.varphi, 2 * jnp.pi / results.nfp),
+                                     jnp.append(results.B20, results.B20[0]),
                                      bc_type='periodic')
 
-        B += (r**2) * (self.B20_spline(phi) + self.B2c * np.cos(2 * thetaN) + self.B2s * np.sin(2 * thetaN))
+        B += (r**2) * (B20_spline(phi) + results.B2c * jnp.cos(2 * thetaN) + results.B2s * jnp.sin(2 * thetaN))
 
     return B

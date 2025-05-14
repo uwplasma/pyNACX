@@ -6,6 +6,14 @@ stellarator construction.
 import logging
 import numpy as np
 from scipy.io import netcdf
+import jax.numpy as jnp
+import jax
+from qsc.calculate_r3 import calc_r3_new
+from qsc.init_axis import init_axis
+from qsc.calculate_r1 import new_solve_sigma_equation, r1_diagnostics
+from qsc.calculate_r2 import calc_r2_new
+from qsc.grad_B_tensor import calculate_grad_B_tensor
+
 #from numba import jit
 
 #logging.basicConfig(level=logging.DEBUG)
@@ -26,7 +34,7 @@ class Qsc():
         grad_grad_B_tensor_cylindrical, grad_grad_B_tensor_cartesian
     from .calculate_r2 import calculate_r2
     from .calculate_r3 import calculate_r3, calculate_shear
-    from .mercier import mercier
+    # import mercier
     from .r_singularity import calculate_r_singularity
     from .plot import plot, plot_boundary, get_boundary, B_fieldline, B_contour, plot_axis, flux_tube
     from .Frenet_to_cylindrical import Frenet_to_cylindrical, to_RZ
@@ -41,19 +49,30 @@ class Qsc():
         """
         # First, force {rc, zs, rs, zc} to have the same length, for
         # simplicity.
-        nfourier = np.max([len(rc), len(zs), len(rs), len(zc)])
+        
+        
+        find_max = jnp.array([len(rc), len(zs), len(rs), len(zc)])
+        nfourier = jnp.max(find_max)
+        print(f"nfourier: {nfourier}")
         self.nfourier = nfourier
-        self.rc = np.zeros(nfourier)
-        self.zs = np.zeros(nfourier)
-        self.rs = np.zeros(nfourier)
-        self.zc = np.zeros(nfourier)
-        self.rc[:len(rc)] = rc
-        self.zs[:len(zs)] = zs
-        self.rs[:len(rs)] = rs
-        self.zc[:len(zc)] = zc
+        nfourier = nfourier 
+        self.rc = jnp.zeros(nfourier)
+        self.zs = jnp.zeros(nfourier)
+        self.rs = jnp.zeros(nfourier)
+        self.zc = jnp.zeros(nfourier)
 
+        self.rc = self.rc.at[:len(rc)].set(rc)
+        self.zs = self.zs.at[:len(zs)].set(zs)
+        self.rs = self.rs.at[:len(rs)].set(rs)
+        self.zc = self.zc.at[:len(zc)].set(zc)
+        
+        rc = self.rc
+        zs = self.zs
+        rs = self.rs
+        zc = self.zc
+        
         # Force nphi to be odd:
-        if np.mod(nphi, 2) == 0:
+        if jnp.mod(nphi, 2) == 0:
             nphi += 1
 
         if sG != 1 and sG != -1:
@@ -75,10 +94,12 @@ class Qsc():
         self.p2 = p2
         self.order = order
         self.min_R0_threshold = 0.3
-        self._set_names()
-
-        self.calculate()
-
+        #self._set_names()
+      
+        self.pre_calculations() #run initial calculations that rely on self 
+        
+        self.initialize()
+        
     def change_nfourier(self, nfourier_new):
         """
         Resize the arrays of Fourier amplitudes. You can either increase
@@ -88,27 +109,26 @@ class Qsc():
         rs_old = self.rs
         zc_old = self.zc
         zs_old = self.zs
-        index = np.min((self.nfourier, nfourier_new))
-        self.rc = np.zeros(nfourier_new)
-        self.rs = np.zeros(nfourier_new)
-        self.zc = np.zeros(nfourier_new)
-        self.zs = np.zeros(nfourier_new)
-        self.rc[:index] = rc_old[:index]
-        self.rs[:index] = rs_old[:index]
-        self.zc[:index] = zc_old[:index]
-        self.zs[:index] = zs_old[:index]
+        index = jnp.min((self.nfourier, nfourier_new))
+        self.rc = jnp.zeros(nfourier_new)
+        self.rs = jnp.zeros(nfourier_new)
+        self.zc = jnp.zeros(nfourier_new)
+        self.zs = jnp.zeros(nfourier_new)
+        
+        self.rc = self.rc.at[:index].set(rc_old[:index])
+        self.rs = self.rs.at[:index].set(rs_old[:index])
+        self.zc = self.zc.at[:index].set(zc_old[:index])
+        self.zs = self.zs.ad[:index].set(zs_old[:index])
+       
         nfourier_old = self.nfourier
-        self.nfourier = nfourier_new
+        self.nfourier = nfourier_new 
         self._set_names()
         # No need to recalculate if we increased the Fourier
         # resolution, only if we decreased it.
         if nfourier_new < nfourier_old:
             self.calculate()
-
-    def calculate(self):
-        """
-        Driver for the main calculations.
-        """
+            
+    def pre_calculations(self):
         helicity,\
         normal_cylindrical, \
         etabar_squared_over_curvature_squared, \
@@ -139,8 +159,21 @@ class Qsc():
         normal_cylindrical, \
         binormal_cylindrical, \
         Bbar, \
-        abs_G0_over_B0 = self.init_axis(self.nphi, self.nfp, self.rc, self.rs, self.zc, self.zs, self.nfourier, self.sG, self.B0, self.etabar,
-                        self.spsi, self.sigma0, self.order, self.B2s)
+        abs_G0_over_B0, \
+        lasym, \
+        R0_func, \
+        Z0_func, \
+        normal_R_spline, \
+        normal_phi_spline, \
+        normal_z_spline, \
+        binormal_R_spline, \
+        binormal_phi_spline, \
+        binormal_z_spline, \
+        tangent_R_spline, \
+        tangent_phi_spline, \
+        tangent_z_spline, \
+        nu_spline = self.init_axis(self.nphi, self.nfp, self.rc, self.rs, self.zc, self.zs, self.nfourier, self.sG, self.B0, self.etabar, self.spsi, self.sigma0, self.order, self.B2s)
+            
         self.helicity = helicity
         self.normal_cylindrical = normal_cylindrical
         self.etabar_squared_over_curvature_squared = etabar_squared_over_curvature_squared
@@ -155,7 +188,7 @@ class Qsc():
         self.Z0 = Z0
         self.R0p = R0p
         self.Z0p = Z0p
-        self.R0pp = R0pp
+        self.R0pp = R0pp    
         self.Z0pp = Z0pp
         self.R0ppp = R0ppp
         self.Z0ppp = Z0ppp
@@ -172,26 +205,136 @@ class Qsc():
         self.binormal_cylindrical = binormal_cylindrical
         self.Bbar = Bbar
         self.d_l_d_varphi = abs_G0_over_B0
-        sigma, iota, iotaN = self.solve_sigma_equation(nphi=self.nphi,
-                                                        sigma0=self.sigma0,
-                                                        helicity=self.helicity,
-                                                        nfp=self.nfp)
+        
+        
+        print("\nInit axis completed...")
+        
+        sigma, iota, iotaN = new_solve_sigma_equation(self.nphi, self.sigma0, self.helicity, self.nfp, self.d_d_varphi, self.etabar_squared_over_curvature_squared, self.spsi, self.torsion, self.I2, self.B0, self.G0)
         self.sigma = sigma
         self.iota = iota
         self.iotaN = iotaN
-        self.r1_diagnostics()
-        if self.order != 'r1':
-            self.calculate_r2()
-            if self.order == 'r3':
-                self.calculate_r3()
+        print("\nSigma equation solved...")
+        
+    def initialize(self): 
+        
+      
+
+        
+        #jited_funtion = jax.jit(Qsc.calculate, static_argnames= ['order', 'nphi'])
+        
+        #calculation_results = jited_funtion(nfp = self.nfp, etabar = self.etabar, curvature = self.curvature, sigma = self.sigma, helicity = self.helicity, varphi = self.varphi, X1s = self.X1s, X1c = self.X1c, d_l_d_phi = self.d_l_d_phi, d_d_varphi = self.d_d_varphi, sG = self.sG, spsi = self.spsi, B0 = self.B0, G0 = self.G0, iotaN = self.iotaN, torsion = self.torsion, abs_G0_over_B0 = self.abs_G0_over_B0, B2s = self.B2s, B2c = self.B2c, p2 = self.p2, I2 = self.I2, nphi = self.nphi, order = self.order, iota = self.iota, d_l_d_varphi = self.d_l_d_varphi, tangent_cylindrical = self.tangent_cylindrical, normal_cylindrical = self.normal_cylindrical, binormal_cylindrical = self.binormal_cylindrical, d_phi = self.d_phi, axis_length = self.axis_length)
+        
+        calculation_results = Qsc.calculate(self.nfp, self.etabar, self.curvature, self.sigma, self.helicity, self.varphi, self.X1s, self.X1c, self.d_l_d_phi, self.d_d_varphi, self.sG, self.spsi, self.B0, self.G0, self.iotaN, self.torsion, self.abs_G0_over_B0, self.B2s, self.B2c, self.p2, self.I2, self.nphi, self.order, self.iota, self.d_l_d_varphi, self.tangent_cylindrical, self.normal_cylindrical, self.binormal_cylindrical, self.d_phi, self.axis_length)
+        
+        #calc r1 results - in r1
+        self.Y1s, self.Y1c, self.X1s_untwisted, self.X1c_untwisted, self.Y1s_untwisted, self.Y1c_untwisted, self.elongation, self.mean_elongation, self.max_elongation, self.d_X1c_d_varphi, self.d_X1s_d_varphi, self.d_Y1s_d_varphi, self.d_Y1c_d_varphi = calculation_results[0][0]
+        
+        #grad_b results - in r1
+        self.grad_B_tensor, self.grad_B_tensor_cylindrical, self.grad_B_colon_grad_B, self.L_grad_B, self.inv_L_grad_B, self.min_L_grad_B = calculation_results[0][1]
+        
+        self.N_helicity, self.G2, self.d_curvature_d_varphi, self.d_torsion_d_varphi, self.d_X20_d_varphi, self.d_X2s_d_varphi, self.d_X2c_d_varphi, self.d_Y20_d_varphi, self.d_Y2s_d_varphi, self.d_Y2c_d_varphi, self.d_Z20_d_varphi, self.d_Z2s_d_varphi, self.d_Z2c_d_varphi, self.d2_X1c_d_varphi2, self.d2_Y1c_d_varphi2, self.d2_Y1s_d_varphi2, self.V1, self.V2, self.V3, self.X20, self.X2s, self.X2c, self.Y20, self.Y2s, self.Y2c, self.Z20, self.Z2s, self.Z2c, self.beta_1s, self.B20, self.X20_untwisted, self.X2s_untwisted, self.X2c_untwisted, self.Y20_untwisted, self.Y2s_untwisted, self.Y2c_untwisted, self.Z20_untwisted, self.Z2s_untwisted, self.Z2c_untwisted = calculation_results[1][2]
+        
+        self.DGeod_times_r2, self.d2_volume_d_psi2, self.DWell_times_r2, self.DMerc_times_r2 = calculation_results[1][0]
+        
+        self.grad_grad_B, self.grad_grad_B_inverse_scale_length_vs_varphi, self.L_grad_grad_B, self.grad_grad_B_inverse_scale_length = calculation_results[1][1]
+        
+        self.r_singularity_vs_varphi, self.inv_r_singularity_vs_varphi, self.r_singularity_basic_vs_varphi, self.r_singularity, self.r_singularity_theta_vs_varphi, self.r_singularity_residual_sqnorm = calculation_results[1][3]
+        
+        self.X3c1, self.Y3c1, self.Y3s1, self.X3s1, self.Z3c1, self.Z3s1, self.X3c3, self.X3s3, self.Y3c3, self.Y3s3, self.Z3c3, self.Z3s3, self.d_X3c1_d_varphi, self.d_Y3c1_d_varphi, self.d_Y3s1_d_varphi, self.flux_constraint_coefficient, self.B0_order_a_squared_to_cancel, self.X3c1_untwisted, self.Y3c1_untwisted, self.Y3s1_untwisted, self.X3s1_untwisted, self.X3s3_untwisted, self.X3c3_untwisted, self.Y3c3_untwisted, self.Y3s3_untwisted, self.Z3s1_untwisted, self.Z3s3_untwisted, self.Z3c1_untwisted, self.Z3c3_untwisted = calculation_results[2] # r3 results
+        
+        """
+        print(f'd_d_varphi: {self.d_d_varphi}')
+        print(f'X1c: {self.X1c}')
+        print(f'shape d_d: {self.d_d_varphi.shape}')
+        print(f'shape X1c: {self.X1c.shape}')
+        print(f'shape Y1c: {self.Y1c.shape}')
+        print(f'X20: {self.X20}')
+        print(f'X2c: {self.X2c}')
+        print(f'X2s: {self.X2s}')
+        print(f'B20: {self.B20}')
+        print(f'Y20: {self.Y20}')
+        print(f'Y2c: {self.Y2c}')
+        print(f'Y2s: {self.Y2s}')
+        print(f'Z20: {self.Z20}')
+        print(f'Z2c: {self.Z2c}')
+        print(f'Z2s: {self.Z2s}')
+        print(f'd_X1c_d_varphi:  {self.d_X1c_d_varphi}')
+        print(f'd_X1s_d_varphi: {self.d_X1s_d_varphi}')
+        print(f'd_Y1s_d_varphi: {self.d_Y1s_d_varphi}')
+        print(f'd_Y1c_d_varphi: {self.d_Y1c_d_varphi}')
+        
+        jnp.save('debug.txt', self.X1c)
+        jnp.save('debug2.txt', self.d_d_varphi)
+        jnp.save('d_X1c_d_varphi_res', self.d_X1c_d_varphi)
+
+
+        print(f'flux constrain coef {self.flux_constraint_coefficient}')
+        print(f'd_l_d_varphi {self.d_l_d_varphi}')
+        """
+        
+    def calculate(nfp, etabar, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_phi, d_d_varphi, sG, spsi, B0, G0, iotaN, torsion, abs_G0_over_B0, B2s, B2c, p2, I2, nphi, order, iota, d_l_d_varphi, tangent_cylindrical, normal_cylindrical, binormal_cylindrical, d_phi, axis_length):
+        
+        """
+        A jax compatible driver of main calculations.
+        """
+        print("\nCalculating R1...")
+        r1_results = r1_diagnostics(nfp, etabar, sG, spsi, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_phi, d_d_varphi, B0, d_l_d_varphi, tangent_cylindrical, normal_cylindrical, binormal_cylindrical, iotaN, torsion)
+
+        
+
+        Y1s = r1_results[0][0]
+        Y1c = r1_results[0][1]
+        d_X1c_d_varphi = r1_results[0][9]
+        d_Y1s_d_varphi = r1_results[0][11]
+        d_Y1c_d_varphi = r1_results[0][12]
+        
+        #calc_r2_new(X1c, Y1c, Y1s, B0 / jnp.abs(G0), d_d_varphi, iotaN, torsion, abs_G0_over_B0, B2s, B0, curvature, etabar, B2c, spsi, sG, p2, sigma, I2/B0, nphi, d_l_d_phi, helicity, nfp, G0, iota, I2, varphi, d_X1c_d_varphi, d_Y1c_d_varphi, d_Y1s_d_varphi, d_phi, axis_length)
+        
+        r2_results = jax.lax.cond(order != 'r1',
+                          lambda _:  calc_r2_new(X1c, Y1c, Y1s, B0 / jnp.abs(G0), d_d_varphi, iotaN, torsion, abs_G0_over_B0, B2s, B0, curvature, etabar, B2c, spsi, sG, p2, sigma, I2/B0, nphi, d_l_d_phi, helicity, nfp, G0, iota, I2, varphi, d_X1c_d_varphi, d_Y1c_d_varphi, d_Y1s_d_varphi, d_phi, axis_length),
+                          lambda _: tuple(
+                            tuple(jax.numpy.zeros_like(r) for r in inner_tuple)  # Apply zeros_like to each element of the inner tuple
+                            for inner_tuple in calc_r2_new(
+                                X1c, Y1c, Y1s, B0 / jnp.abs(G0), d_d_varphi, iotaN, torsion, abs_G0_over_B0, 
+                                B2s, B0, curvature, etabar, B2c, spsi, sG, p2, sigma, I2 / B0, nphi, 
+                                d_l_d_phi, helicity, nfp, G0, iota, I2, varphi, d_X1c_d_varphi, 
+                                d_Y1c_d_varphi, d_Y1s_d_varphi, d_phi, axis_length)
+                            ),
+                          operand=None)
+        
+ 
+        print("\nCalculating R2...")
+
+        X20 = r2_results[2][20]
+        X2c = r2_results[2][22]
+        X2s = r2_results[2][21]
+        B20 = r2_results[2][30]
+        Y20 = r2_results[2][23]
+        Y2c = r2_results[2][25]
+        Y2s = r2_results[2][24]
+        Z20 = r2_results[2][26]
+        Z2c = r2_results[2][28]
+        Z2s = r2_results[2][27]
+        d_Z20_d_varphi = r2_results[2][10]
+        G2 = r2_results[2][1]
+        N_helicity  = r2_results[2][0]
+        
+        print("\nCalculating R3...")
+
+        r3_result = jax.lax.cond(order == 'r3',
+                         lambda _: calc_r3_new(B0, G0, X20, Y1c, X2c, X2s, etabar*B0, X1c, X1s, Y1s, I2, iotaN, B20, Y20, Y2c, Y2s, Z20, abs_G0_over_B0, Z2c, Z2s, torsion, d_X1c_d_varphi, d_Y1c_d_varphi, d_d_varphi, spsi, p2, curvature, d_Z20_d_varphi, sG, G2, N_helicity, helicity, nfp, varphi),
+                         lambda _: tuple(jnp.zeros_like(r) for r in calc_r3_new(B0, G0, X20, Y1c, X2c, X2s, etabar*B0, X1c, X1s, Y1s, I2, iotaN, B20, Y20, Y2c, Y2s, Z20, abs_G0_over_B0, Z2c, Z2s, torsion, d_X1c_d_varphi, d_Y1c_d_varphi, d_d_varphi, spsi, p2, curvature, d_Z20_d_varphi, sG, G2, N_helicity, helicity, nfp, varphi)),
+                         operand=None)
+        
+        return r1_results, r2_results, r3_result
     
     def get_dofs(self):
         """
         Return a 1D numpy vector of all possible optimizable
         degrees-of-freedom, for simsopt.
         """
-        return np.concatenate((self.rc, self.zs, self.rs, self.zc,
-                               np.array([self.etabar, self.sigma0, self.B2s, self.B2c, self.p2, self.I2, self.B0])))
+        return jnp.concatenate((self.rc, self.zs, self.rs, self.zc,
+                               jnp.array([self.etabar, self.sigma0, self.B2s, self.B2c, self.p2, self.I2, self.B0])))
 
     def set_dofs(self, x):
         """
@@ -199,10 +342,12 @@ class Qsc():
         freedom from a 1D numpy vector.
         """
         assert len(x) == self.nfourier * 4 + 7
-        self.rc = x[self.nfourier * 0 : self.nfourier * 1]
-        self.zs = x[self.nfourier * 1 : self.nfourier * 2]
-        self.rs = x[self.nfourier * 2 : self.nfourier * 3]
-        self.zc = x[self.nfourier * 3 : self.nfourier * 4]
+        
+        self.rc = jnp.array(x[self.nfourier * 0 : self.nfourier * 1])
+        self.zs = jnp.array(x[self.nfourier * 1 : self.nfourier * 2])
+        self.rs = jnp.array(x[self.nfourier * 2 : self.nfourier * 3])
+        self.zc = jnp.array(x[self.nfourier * 3 : self.nfourier * 4])
+    
         self.etabar = x[self.nfourier * 4 + 0]
         self.sigma0 = x[self.nfourier * 4 + 1]
         self.B2s = x[self.nfourier * 4 + 2]
@@ -287,5 +432,5 @@ class Qsc():
         This function can be used in optimization to penalize situations
         in which min(R0) < min_R0_constraint.
         """
-        return np.max((0, self.min_R0_threshold - self.min_R0)) ** 2
+        return jnp.max((0, self.min_R0_threshold - self.min_R0)) ** 2
         
