@@ -5,8 +5,13 @@ and computing diagnostics of the O(r^1) solution.
 
 import logging
 import numpy as np
-from .util import fourier_minimum
-from .newton import newton
+
+from qsc.grad_B_tensor import calculate_grad_B_tensor
+from .util import fourier_minimum, jax_fourier_minimum
+from .newton import new_new_newton, newton
+import jax.numpy as jnp
+from jax import jacobian
+from .calculate_r1_helpers import *
 
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -18,14 +23,32 @@ def _residual(self, x):
     except that the first element of x is actually iota.
     """
     sigma = np.copy(x)
-    sigma[0] = self.sigma0
+    sigma[0] = (self.sigma0) # somthing is not right here
+
+    #sigma[0] = self.sigma0
     iota = x[0]
     r = np.matmul(self.d_d_varphi, sigma) \
         + (iota + self.helicity * self.nfp) * \
         (self.etabar_squared_over_curvature_squared * self.etabar_squared_over_curvature_squared + 1 + sigma * sigma) \
         - 2 * self.etabar_squared_over_curvature_squared * (-self.spsi * self.torsion + self.I2 / self.B0) * self.G0 / self.B0
     #logger.debug("_residual called with x={}, r={}".format(x, r))
+    
     return r
+
+def _new_residual(x, sigma0, d_d_varphi, helicity, nfp, etabar_squared_over_curvature_squared, spsi, torsion, I2, B0, G0):
+    sigma = np.copy(x)
+    sigma[0] = (sigma0) # somthing is not right here
+
+    #sigma[0] = self.sigma0
+    iota = x[0]
+    r = np.matmul(d_d_varphi, sigma) \
+        + (iota + helicity * nfp) * \
+        (etabar_squared_over_curvature_squared * etabar_squared_over_curvature_squared + 1 + sigma * sigma) \
+        - 2 * etabar_squared_over_curvature_squared * (-spsi * torsion + I2 / B0) * G0 / B0
+    #logger.debug("_residual called with x={}, r={}".format(x, r))
+    
+    return r
+    
 
 def _jacobian(self, x):
     """
@@ -49,7 +72,62 @@ def _jacobian(self, x):
     #logger.debug("_jacobian called with x={}, jac={}".format(x, jac))
     return jac
 
-def solve_sigma_equation(self, nphi, sigma0, helicity, nfp):
+def new_solve_sigma_equation(nphi, sigma0, helicity, nfp, d_d_varphi, etabar_squared_over_curvature_squared, spsi, torsion, I2, B0, G0):
+    """
+    in progress solve sigma to equation that is unreliant on self
+    """
+    x0 = jnp.full(nphi, sigma0)
+    x0.at[0].set(0) # Initial guess for iota
+    
+    def _residual(x):
+        """
+        Residual in the sigma equation, used for Newton's method.  x is
+        the state vector, corresponding to sigma on the phi grid,
+        except that the first element of x is actually iota.
+        """
+        sigma = jnp.copy(x)
+        sigma = sigma.at[0].set(sigma0) # somthing is not right here
+
+    
+        iota = x[0]
+        r = jnp.matmul(d_d_varphi, sigma) \
+            + (iota + helicity * nfp) * \
+            (etabar_squared_over_curvature_squared * etabar_squared_over_curvature_squared + 1 + sigma * sigma) \
+            - 2 * etabar_squared_over_curvature_squared * (-spsi * torsion + I2 / B0) * G0 / B0
+    
+        return r
+    
+    def _jacobian(x):
+        """
+        Compute the Jacobian matrix for solving the sigma equation. x is
+        the state vector, corresponding to sigma on the phi grid,
+        except that the first element of x is actually iota.
+        """
+        sigma = jnp.copy(x)
+        sigma.at[0].set(sigma0)
+        iota = x[0]
+
+        # d (Riccati equation) / d sigma:
+        # For convenience we will fill all the columns now, and re-write the first column in a moment.
+        jac = jnp.copy(d_d_varphi)
+        for j in range(nphi):
+            jac.at[j, j].add((iota + helicity * nfp) * 2 * sigma[j])
+
+        # d (Riccati equation) / d iota:
+        jac.at[:, 0].set(etabar_squared_over_curvature_squared * etabar_squared_over_curvature_squared + 1 + sigma * sigma)
+
+        
+        return jac
+    
+    jitted_new_new_newton = jax.jit(new_new_newton, static_argnames=["f", "jac", "niter", "tol", "nlinesearch"])
+    
+    sigma = jitted_new_new_newton(_residual, x0, _jacobian) # helper residual is a functon that runs without self but still returns r  
+    iota = sigma[0]
+    iotaN = calc_iotaN(iota, helicity, nfp)
+    sigma = sigma.at[0].set(sigma0)
+    return sigma, iota, iotaN
+
+def solve_sigma_equation( self, nphi, sigma0, helicity, nfp):
     """
     Solve the sigma equation.
     """
@@ -61,16 +139,17 @@ def solve_sigma_equation(self, nphi, sigma0, helicity, nfp):
     self.sigma = np.copy(soln.x)
     self.sigma[0] = self.sigma0
     """
-    sigma = newton(self._residual, x0, jac=self._jacobian)
+    sigma = newton(self._residual, x0, jac= self._jacobian)
     iota = sigma[0]
     iotaN = iota + helicity * nfp
-    sigma[0] = sigma0
+    sigma = sigma.at[0].set(sigma0)
     return sigma, iota, iotaN
 
 def _determine_helicity(self):
     """
     Determine the integer N associated with the type of quasisymmetry
-    by counting the number of times the normal vector rotates
+    by counting the number
+    of times the normal vector rotates
     poloidally as you follow the axis around toroidally.
     """
     quadrant = np.zeros(self.nphi + 1)
@@ -102,44 +181,52 @@ def _determine_helicity(self):
     counter *= self.spsi * self.sG
     self.helicity = counter / 4
 
-def r1_diagnostics(self):
+def r1_diagnostics(nfp, etabar, sG, spsi, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_phi, d_d_varphi, B0, d_l_d_varphi, tangent_cylindrical, normal_cylindrical, binormal_cylindrical, iotaN, torsion):
     """
     Compute various properties of the O(r^1) solution, once sigma and
     iota are solved for.
     """
-    self.Y1s = self.sG * self.spsi * self.curvature / self.etabar
-    self.Y1c = self.sG * self.spsi * self.curvature * self.sigma / self.etabar
-
+    Y1s = sG * spsi * curvature / etabar
+    Y1c = sG * spsi * curvature * sigma / etabar
+    
     # If helicity is nonzero, then the original X1s/X1c/Y1s/Y1c variables are defined with respect to a "poloidal" angle that
     # is actually helical, with the theta=0 curve wrapping around the magnetic axis as you follow phi around toroidally. Therefore
     # here we convert to an untwisted poloidal angle, such that the theta=0 curve does not wrap around the axis.
-    if self.helicity == 0:
-        self.X1s_untwisted = self.X1s
-        self.X1c_untwisted = self.X1c
-        self.Y1s_untwisted = self.Y1s
-        self.Y1c_untwisted = self.Y1c
-    else:
-        angle = -self.helicity * self.nfp * self.varphi
-        sinangle = np.sin(angle)
-        cosangle = np.cos(angle)
-        self.X1s_untwisted = self.X1s *   cosangle  + self.X1c * sinangle
-        self.X1c_untwisted = self.X1s * (-sinangle) + self.X1c * cosangle
-        self.Y1s_untwisted = self.Y1s *   cosangle  + self.Y1c * sinangle
-        self.Y1c_untwisted = self.Y1s * (-sinangle) + self.Y1c * cosangle
+   
+    
+    angle = calc_angle(helicity, nfp, varphi)
+    sinangle = calc_sinangle(angle)
+    cosangle = calc_cosangle(angle)
+    
+    X1s_untwisted = calc_X1s_untwisted(X1s, cosangle, X1c, sinangle)
+        
+    X1c_untwisted = calc_X1c_untwisted(X1s, sinangle, X1c, cosangle)
+        
+    Y1s_untwisted = calc_X1s_untwisted(Y1s, cosangle, Y1c, sinangle)
+        
+    Y1c_untwisted = calc_Y1c_untwisted(Y1s, sinangle, Y1c, cosangle)
 
     # Use (R,Z) for elongation in the (R,Z) plane,
     # or use (X,Y) for elongation in the plane perpendicular to the magnetic axis.
-    p = self.X1s * self.X1s + self.X1c * self.X1c + self.Y1s * self.Y1s + self.Y1c * self.Y1c
-    q = self.X1s * self.Y1c - self.X1c * self.Y1s
-    self.elongation = (p + np.sqrt(p * p - 4 * q * q)) / (2 * np.abs(q))
-    self.mean_elongation = np.sum(self.elongation * self.d_l_d_phi) / np.sum(self.d_l_d_phi)
-    index = np.argmax(self.elongation)
-    self.max_elongation = -fourier_minimum(-self.elongation)
+    
+    p = calc_p(X1s, X1c, Y1s, Y1c)
+    q = calc_q(X1s, Y1c, X1c, Y1s)
 
-    self.d_X1c_d_varphi = np.matmul(self.d_d_varphi, self.X1c)
-    self.d_X1s_d_varphi = np.matmul(self.d_d_varphi, self.X1s)
-    self.d_Y1s_d_varphi = np.matmul(self.d_d_varphi, self.Y1s)
-    self.d_Y1c_d_varphi = np.matmul(self.d_d_varphi, self.Y1c)
+    elongation = (p + jnp.sqrt(p * p - 4 * q * q)) / (2 * jnp.abs(q))
+    mean_elongation = jnp.sum(elongation * d_l_d_phi) / jnp.sum(d_l_d_phi)
+    
+    
+    max_elongation = -jax_fourier_minimum(-elongation).x
+    
+    jnp.save('debug3' , X1c)
+    jnp.save('debug4' , d_d_varphi)
+    d_X1c_d_varphi = jnp.matmul(d_d_varphi, X1c)
+    jnp.save('d_X1c_d_varphi_og' , d_X1c_d_varphi)
+    d_X1s_d_varphi = jnp.matmul(d_d_varphi, X1s)
+    d_Y1s_d_varphi = jnp.matmul(d_d_varphi, Y1s)
+    d_Y1c_d_varphi = jnp.matmul(d_d_varphi, Y1c)
+    
+    grad_b_tensor_results = calculate_grad_B_tensor(spsi, B0, d_l_d_varphi, sG, curvature, X1c, d_Y1s_d_varphi, iotaN, Y1c, d_X1c_d_varphi, Y1s, torsion, d_Y1c_d_varphi, d_d_varphi, tangent_cylindrical, normal_cylindrical, binormal_cylindrical )
 
-    self.calculate_grad_B_tensor()
-
+    r1_results = Y1s, Y1c, X1s_untwisted, X1c_untwisted, Y1s_untwisted, Y1c_untwisted, elongation, mean_elongation, max_elongation, d_X1c_d_varphi, d_X1s_d_varphi, d_Y1s_d_varphi, d_Y1c_d_varphi
+    return r1_results, grad_b_tensor_results

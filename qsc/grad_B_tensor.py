@@ -6,12 +6,14 @@ Functions for computing the grad B tensor and grad grad B tensor.
 
 import logging
 import numpy as np
-from .util import Struct, fourier_minimum
+import jax
+import jax.numpy as jnp
+from .util import Struct, fourier_minimum, jax_fourier_minimum
 
 #logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def calculate_grad_B_tensor(self):
+def calculate_grad_B_tensor(spsi, B0, d_l_d_varphi, sG, curvature, X1c, d_Y1s_d_varphi, iotaN, Y1c, d_X1c_d_varphi, Y1s, torsion, d_Y1c_d_varphi, d_d_varphi, tangent_cylindrical, normal_cylindrical, binormal_cylindrical):
     """
     Compute the components of the grad B tensor, and the scale
     length L grad B associated with the Frobenius norm of this
@@ -22,47 +24,67 @@ def calculate_grad_B_tensor(self):
     self should be an instance of Qsc with X1c, Y1s etc populated.
     """
 
-    s = self # Shorthand
-    tensor = Struct()
+    #s = self # Shorthand
+    #tensor = Struct()
     
-    factor = s.spsi * s.B0 / s.d_l_d_varphi
-    tensor.tn = s.sG * s.B0 * s.curvature
-    tensor.nt = tensor.tn
-    tensor.bb = factor * (s.X1c * s.d_Y1s_d_varphi - s.iotaN * s.X1c * s.Y1c)
-    tensor.nn = factor * (s.d_X1c_d_varphi * s.Y1s + s.iotaN * s.X1c * s.Y1c)
-    tensor.bn = factor * (-s.sG * s.spsi * s.d_l_d_varphi * s.torsion \
-                          - s.iotaN * s.X1c * s.X1c)
-    tensor.nb = factor * (s.d_Y1c_d_varphi * s.Y1s - s.d_Y1s_d_varphi * s.Y1c \
-                          + s.sG * s.spsi * s.d_l_d_varphi * s.torsion \
-                          + s.iotaN * (s.Y1s * s.Y1s + s.Y1c * s.Y1c))
-    if hasattr(s.B0, "__len__"): # if B0 is an array (in quasisymmetry B0 is a scalar)
-        tensor.tt = s.sG * np.matmul(s.d_d_varphi, s.B0) / s.d_l_d_varphi
-    else:
-        tensor.tt = 0
+    factor = spsi * B0 / d_l_d_varphi
+    print(f'factor {factor}')
+    tn = sG * B0 * curvature
+    nt = tn
+    bb = factor * (X1c * d_Y1s_d_varphi - iotaN * X1c * Y1c)
+    nn = factor * (d_X1c_d_varphi * Y1s + iotaN * X1c * Y1c) # calling d_X1c_d_varphi
+    bn = factor * (-sG * spsi * d_l_d_varphi * torsion \
+                          - iotaN * X1c * X1c)
+    nb = factor * (d_Y1c_d_varphi * Y1s - d_Y1s_d_varphi * Y1c \
+                          + sG * spsi * d_l_d_varphi * torsion \
+                          + iotaN * (Y1s * Y1s + Y1c * Y1c))
+    
+    print(f'tn {tn}')
+    print(f'nt {nt}')
+    print(f'bb {bb}')
+    print(f'nn {nn}')
+    print(f'bn {bn}')
+    print(f'nb {nb}') 
 
-    self.grad_B_tensor = tensor
+
     
-    t = s.tangent_cylindrical.transpose()
-    n = s.normal_cylindrical.transpose()
-    b = s.binormal_cylindrical.transpose()
-    self.grad_B_tensor_cylindrical = np.array([[
-                              tensor.nn * n[i] * n[j] \
-                            + tensor.bn * b[i] * n[j] + tensor.nb * n[i] * b[j] \
-                            + tensor.bb * b[i] * b[j] \
-                            + tensor.tn * t[i] * n[j] + tensor.nt * n[i] * t[j] \
-                            + tensor.tt * t[i] * t[j]
+    cond = jnp.ndim(B0) > 1
+    
+    B0 = jnp.broadcast_to(B0, (61,))
+    
+    tt = jax.lax.cond(cond,  
+                        lambda _: sG * jnp.matmul(d_d_varphi, B0) / d_l_d_varphi, 
+                        lambda _: B0,
+                        None)
+    
+    grad_B_tensor = (tn, nt, bb, nn, bn, nb, tt)
+    
+    t = tangent_cylindrical.transpose()
+    n = normal_cylindrical.transpose()
+    b = binormal_cylindrical.transpose()
+    
+    grad_B_tensor_cylindrical = jnp.array([[
+                              nn * n[i] * n[j] \
+                            + bn * b[i] * n[j] + nb * n[i] * b[j] \
+                            + bb * b[i] * b[j] \
+                            + tn * t[i] * n[j] + nt * n[i] * t[j] \
+                            + tt * t[i] * t[j]
                         for i in range(3)] for j in range(3)])
 
-    self.grad_B_colon_grad_B = tensor.tn * tensor.tn + tensor.nt * tensor.nt \
-        + tensor.bb * tensor.bb + tensor.nn * tensor.nn \
-        + tensor.nb * tensor.nb + tensor.bn * tensor.bn \
-        + tensor.tt * tensor.tt
+    grad_B_colon_grad_B = tn * tn + nt * nt \
+        + bb * bb + nn * nn \
+        + nb * nb + bn * bn \
+        + tt * tt
 
-    self.L_grad_B = s.B0 * np.sqrt(2 / self.grad_B_colon_grad_B)
-    self.inv_L_grad_B = 1.0 / self.L_grad_B
-    self.min_L_grad_B = fourier_minimum(self.L_grad_B)
+    L_grad_B = B0 * jnp.sqrt(2 / grad_B_colon_grad_B)
+    inv_L_grad_B = 1.0 / L_grad_B
+    min_L_grad_B = jax_fourier_minimum(L_grad_B).x
     
-def calculate_grad_grad_B_tensor(self, two_ways=False):
+    return grad_B_tensor, grad_B_tensor_cylindrical, grad_B_colon_grad_B, L_grad_B, inv_L_grad_B, min_L_grad_B
+    
+    
+    
+def calculate_grad_grad_B_tensor(X1c, Y1s, Y1c, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2s, Z2c, iotaN, iota, curvature, torsion, G0, B0, sG, spsi, I2, G2, p2, B20, B2s, B2c, d_X1c_d_varphi, d_Y1s_d_varphi, d_Y1c_d_varphi, d_X20_d_varphi, d_X2s_d_varphi, d_X2c_d_varphi, d_Y20_d_varphi, d_Y2s_d_varphi, d_Y2c_d_varphi, d_Z20_d_varphi, d_Z2s_d_varphi, d_Z2c_d_varphi, d2_X1c_d_varphi2, d2_Y1s_d_varphi2, d2_Y1c_d_varphi2, d_curvature_d_varphi, d_torsion_d_varphi, nphi):
     """
     Compute the components of the grad grad B tensor, and the scale
     length L grad grad B associated with the Frobenius norm of this
@@ -77,8 +99,9 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
     """
 
     # Shortcuts
-    s = self
+    #s = self
     
+    """
     X1c = s.X1c
     Y1s = s.Y1s
     Y1c = s.Y1c
@@ -94,11 +117,13 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
     Z20 = s.Z20
     Z2s = s.Z2s
     Z2c = s.Z2c
-
-    iota_N0 = s.iotaN
-    iota = s.iota
-    lp = np.abs(s.G0) / s.B0
-
+    """
+    
+    iota_N0 = iotaN
+    #iota = s.iota
+    lp = jnp.abs(G0) / B0
+    
+    """
     curvature = s.curvature
     torsion = s.torsion
 
@@ -135,9 +160,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
     d2_Y1c_d_varphi2 = s.d2_Y1c_d_varphi2
     d_curvature_d_varphi = s.d_curvature_d_varphi
     d_torsion_d_varphi = s.d_torsion_d_varphi
+    """
 
-    grad_grad_B = np.zeros((s.nphi, 3, 3, 3))
-    grad_grad_B_alt = np.zeros((s.nphi, 3, 3, 3))
+    grad_grad_B = jnp.zeros((nphi, 3, 3, 3))
+    #grad_grad_B_alt = jnp.zeros((s.nphi, 3, 3, 3))
 
     # The elements that follow are computed in the Mathematica notebook "20200407-01 Grad grad B tensor near axis"
     # and then formatted for fortran by the python script process_grad_grad_B_tensor_code
@@ -145,7 +171,7 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
     # The order is (normal, binormal, tangent). So element 123 means nbt.
 
     # Element 111
-    grad_grad_B[:,0,0,0] =(B0*B0*B0*B0*lp*lp*(8*iota_N0*X2c*Y1c*\
+    grad_grad_B = grad_grad_B.at[:,0,0,0].set((B0*B0*B0*B0*lp*lp*(8*iota_N0*X2c*Y1c*\
                                               Y1s + 4*iota_N0*X2s*\
                                               (-Y1c*Y1c + Y1s*Y1s) + \
                                               2*iota_N0*X1c*Y1s*Y20 + \
@@ -163,10 +189,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                               2*Y1c*Y1c*d_X2c_d_varphi + \
                                               2*Y1s*Y1s*d_X2c_d_varphi - \
                                               4*Y1c*Y1s*d_X2s_d_varphi))/\
-                                              (G0*G0*G0)
+                                              (G0*G0*G0))
 
     # Element 112
-    grad_grad_B[:,0,0,1] =(B0*B0*B0*B0*lp*lp*(Y1c*Y1c*\
+    grad_grad_B = grad_grad_B.at[:,0,0,1].set((B0*B0*B0*B0*lp*lp*(Y1c*Y1c*\
                                               (-6*iota_N0*Y2s + \
                                                5*iota_N0*X1c*Y1s*\
                                                curvature + \
@@ -198,10 +224,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                                         4*lp*X2s*torsion - \
                                                         5*X1c*curvature*\
                                                         d_Y1s_d_varphi - \
-                                                        4*d_Y2s_d_varphi))))/(G0*G0*G0)
+                                                        4*d_Y2s_d_varphi))))/(G0*G0*G0))
 
     # Element 113
-    grad_grad_B[:,0,0,2] =-((B0*B0*B0*lp*lp*(2*Y1c*Y1c*\
+    grad_grad_B = grad_grad_B.at[:,0,0,2].set(-((B0*B0*B0*lp*lp*(2*Y1c*Y1c*\
                                              (2*B2c*G0*lp + B0*G2*lp + B0*I2*lp*iota - \
                                               2*G0*lp*B20 + 2*B0*G0*iota_N0*Z2s + \
                                               B0*G0*lp*X20*curvature - \
@@ -222,10 +248,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                                        (Y20 - Y2c)*curvature + \
                                                        2*Y1s*(2*B2s*lp - 2*B0*iota_N0*Z2c - \
                                                               B0*lp*X2s*curvature + \
-                                                              B0*d_Z2s_d_varphi))))/(G0*G0*G0*G0))
+                                                              B0*d_Z2s_d_varphi))))/(G0*G0*G0*G0)))
 
     # Element 121
-    grad_grad_B[:,0,1,0] =-((B0*B0*B0*B0*lp*lp*(3*iota_N0*X1c*X1c*X1c*Y1s*\
+    grad_grad_B = grad_grad_B.at[:,0,1,0].set(-((B0*B0*B0*B0*lp*lp*(3*iota_N0*X1c*X1c*X1c*Y1s*\
                                                 curvature + \
                                                 3*lp*X1c*X1c*Y1s*Y1s*curvature*\
                                                 torsion + \
@@ -248,10 +274,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                                        Y1c*d_X20_d_varphi + \
                                                        Y1c*d_X2c_d_varphi + \
                                                        Y1s*d_X2s_d_varphi)))/\
-                            (G0*G0*G0))
+                            (G0*G0*G0)))
 
     # Element 122
-    grad_grad_B[:,0,1,1] =(B0*B0*B0*B0*lp*lp*(-4*iota_N0*X1c*Y1s*\
+    grad_grad_B = grad_grad_B.at[:,0,1,1].set((B0*B0*B0*B0*lp*lp*(-4*iota_N0*X1c*Y1s*\
                                               Y2c + 4*iota_N0*X1c*Y1c*\
                                               Y2s - 3*iota_N0*X1c*X1c*Y1c*\
                                               Y1s*curvature + \
@@ -269,11 +295,11 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                               2*X1c*Y1c*d_Y20_d_varphi + \
                                               2*X1c*Y1c*d_Y2c_d_varphi + \
                                               2*X1c*Y1s*d_Y2s_d_varphi))/\
-                                              (G0*G0*G0)
+                                              (G0*G0*G0))
     #       (2*iota_N0*Y1s + d_Y1c_d_varphi) \\
 
     # Element 123
-    grad_grad_B[:,0,1,2] =(2*B0*B0*B0*lp*lp*X1c*\
+    grad_grad_B = grad_grad_B.at[:,0,1,2].set((2*B0*B0*B0*lp*lp*X1c*\
                            (Y1c*(2*B2c*G0*lp + B0*G2*lp + B0*I2*lp*iota - \
                                  2*G0*lp*B20 + 2*B0*G0*iota_N0*Z2s + \
                                  2*B0*G0*lp*X20*curvature - \
@@ -282,10 +308,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                  B0*G0*d_Z2c_d_varphi) + \
                             G0*Y1s*(2*B2s*lp - 2*B0*iota_N0*Z2c - \
                                     2*B0*lp*X2s*curvature + \
-                                    B0*d_Z2s_d_varphi)))/(G0*G0*G0*G0)
+                                    B0*d_Z2s_d_varphi)))/(G0*G0*G0*G0))
 
     # Element 131
-    grad_grad_B[:,0,2,0] =(B0*B0*B0*B0*lp*(-4*lp*lp*X2s*Y1c*Y1s*\
+    grad_grad_B = grad_grad_B.at[:,0,2,0].set((B0*B0*B0*B0*lp*(-4*lp*lp*X2s*Y1c*Y1s*\
                                            curvature + \
                                            2*lp*lp*X2c*(-Y1c*Y1c + Y1s*Y1s)*\
                                            curvature + \
@@ -314,10 +340,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                            lp*X1c*Y1c*Y1s*\
                                            torsion*d_Y1s_d_varphi + \
                                            X1c*Y1s*Y1s*d2_X1c_d_varphi2))/\
-                                           (G0*G0*G0)
+                                           (G0*G0*G0))
 
     # Element 132
-    grad_grad_B[:,0,2,1] =(B0*B0*B0*B0*lp*(-(Y1s*d_X1c_d_varphi*\
+    grad_grad_B = grad_grad_B.at[:,0,2,1].set((B0*B0*B0*B0*lp*(-(Y1s*d_X1c_d_varphi*\
                                              (iota_N0*Y1c*Y1c + \
                                               Y1s*(iota_N0*Y1s + \
                                                    d_Y1c_d_varphi) - \
@@ -335,20 +361,20 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                                 Y1s*(d_Y1c_d_varphi*\
                                                      d_Y1s_d_varphi + \
                                                      Y1c*(-2*iota_N0*d_Y1c_d_varphi + \
-                                                          d2_Y1s_d_varphi2)))))/(G0*G0*G0)
+                                                          d2_Y1s_d_varphi2)))))/(G0*G0*G0))
     #       (-(iota_N0*Y1c) + d_Y1s_d_varphi) \\
 
     # Element 133
-    grad_grad_B[:,0,2,2] =(B0*B0*B0*B0*lp*lp*X1c*Y1s*\
+    grad_grad_B = grad_grad_B.at[:,0,2,2].set((B0*B0*B0*B0*lp*lp*X1c*Y1s*\
                            (-(Y1s*curvature*\
                               d_X1c_d_varphi) + \
                             X1c*(-(iota_N0*Y1c*\
                                    curvature) + \
                                  Y1s*d_curvature_d_varphi)))/\
-                                 (G0*G0*G0)
+                                 (G0*G0*G0))
 
     # Element 211
-    grad_grad_B[:,1,0,0] =(-2*B0*B0*B0*B0*lp*lp*X1c*\
+    grad_grad_B = grad_grad_B.at[:,1,0,0].set((-2*B0*B0*B0*B0*lp*lp*X1c*\
                            (-2*iota_N0*X2s*Y1c + \
                             2*iota_N0*X2c*Y1s - \
                             iota_N0*X1c*Y2s + \
@@ -359,10 +385,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                             Y2c*d_X1c_d_varphi + \
                             Y1c*d_X20_d_varphi - \
                             Y1c*d_X2c_d_varphi - \
-                            Y1s*d_X2s_d_varphi))/(G0*G0*G0)
+                            Y1s*d_X2s_d_varphi))/(G0*G0*G0))
 
     # Element 212
-    grad_grad_B[:,1,0,1] =(2*B0*B0*B0*B0*lp*lp*X1c*\
+    grad_grad_B = grad_grad_B.at[:,1,0,1].set((2*B0*B0*B0*B0*lp*lp*X1c*\
                            (lp*X1c*Y20*torsion - \
                             lp*X1c*Y2c*torsion + \
                             Y20*d_Y1c_d_varphi - \
@@ -378,12 +404,12 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                    lp*X2s*torsion + \
                                    X1c*curvature*\
                                    d_Y1s_d_varphi + d_Y2s_d_varphi))\
-                           )/(G0*G0*G0)
+                           )/(G0*G0*G0))
     #       d_Y20_d_varphi + d_Y2c_d_varphi) \\
     #       d_Y1s_d_varphi + d_Y2s_d_varphi))\\
 
     # Element 213
-    grad_grad_B[:,1,0,2] =(2*B0*B0*B0*lp*lp*X1c*\
+    grad_grad_B = grad_grad_B.at[:,1,0,2].set((2*B0*B0*B0*lp*lp*X1c*\
                            (Y1c*(2*B2c*G0*lp + B0*G2*lp + B0*I2*lp*iota - \
                                  2*G0*lp*B20 + 2*B0*G0*iota_N0*Z2s + \
                                  B0*G0*lp*X20*curvature - \
@@ -394,10 +420,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                 curvature + \
                                 Y1s*(2*B2s*lp - 2*B0*iota_N0*Z2c - \
                                      B0*lp*X2s*curvature + \
-                                     B0*d_Z2s_d_varphi))))/(G0*G0*G0*G0)
+                                     B0*d_Z2s_d_varphi))))/(G0*G0*G0*G0))
 
     # Element 221
-    grad_grad_B[:,1,1,0] =(-2*B0*B0*B0*B0*lp*lp*X1c*\
+    grad_grad_B =  grad_grad_B.at[:,1,1,0].set((-2*B0*B0*B0*B0*lp*lp*X1c*\
                            (lp*X2c*Y1c*torsion + \
                             lp*X2s*Y1s*torsion - \
                             X2c*d_X1c_d_varphi + \
@@ -407,10 +433,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                  lp*Y20*torsion - \
                                  lp*Y2c*torsion - \
                                  d_X20_d_varphi + d_X2c_d_varphi)))/\
-                                 (G0*G0*G0)
+                                 (G0*G0*G0))
 
     # Element 222
-    grad_grad_B[:,1,1,1] =(-2*B0*B0*B0*B0*lp*lp*X1c*\
+    grad_grad_B = grad_grad_B.at[:,1,1,1].set((-2*B0*B0*B0*B0*lp*lp*X1c*\
                            (-(iota_N0*X2c*Y1s) + \
                             2*iota_N0*X1c*Y2s - \
                             X2c*d_Y1c_d_varphi + \
@@ -419,19 +445,19 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                             X2s*(iota_N0*Y1c - \
                                  d_Y1s_d_varphi) - \
                             X1c*d_Y20_d_varphi + \
-                            X1c*d_Y2c_d_varphi))/(G0*G0*G0)
+                            X1c*d_Y2c_d_varphi))/(G0*G0*G0))
 
     # Element 223
-    grad_grad_B[:,1,1,2] =(-2*B0*B0*B0*lp*lp*X1c*X1c*\
+    grad_grad_B = grad_grad_B.at[:,1,1,2].set((-2*B0*B0*B0*lp*lp*X1c*X1c*\
                            (2*B2c*G0*lp + B0*G2*lp + B0*I2*lp*iota - 2*G0*lp*B20 + \
                             2*B0*G0*iota_N0*Z2s + \
                             2*B0*G0*lp*X20*curvature - \
                             2*B0*G0*lp*X2c*curvature - \
                             B0*G0*d_Z20_d_varphi + \
-                            B0*G0*d_Z2c_d_varphi))/(G0*G0*G0*G0)
+                            B0*G0*d_Z2c_d_varphi))/(G0*G0*G0*G0))
 
     # Element 231
-    grad_grad_B[:,1,2,0] =(B0*B0*B0*B0*lp*X1c*(-2*lp*lp*X20*Y1c*\
+    grad_grad_B = grad_grad_B.at[:,1,2,0].set((B0*B0*B0*B0*lp*X1c*(-2*lp*lp*X20*Y1c*\
                                                curvature + \
                                                2*lp*lp*X2c*Y1c*curvature + \
                                                2*lp*lp*X2s*Y1s*curvature + \
@@ -446,10 +472,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                                lp*X1c*Y1s*torsion*\
                                                d_Y1s_d_varphi - \
                                                lp*X1c*Y1s*Y1s*\
-                                               d_torsion_d_varphi))/(G0*G0*G0)
+                                               d_torsion_d_varphi))/(G0*G0*G0))
 
     # Element 232
-    grad_grad_B[:,1,2,1] =(B0*B0*B0*B0*lp*X1c*(-(lp*iota_N0*X1c*X1c*\
+    grad_grad_B = grad_grad_B.at[:,1,2,1].set((B0*B0*B0*B0*lp*X1c*(-(lp*iota_N0*X1c*X1c*\
                                                  Y1s*torsion) + \
                                                lp*Y1s*torsion*\
                                                (iota_N0*Y1c*Y1c + \
@@ -459,16 +485,16 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                                X1c*((iota_N0*Y1c - \
                                                      d_Y1s_d_varphi)*d_Y1s_d_varphi \
                                                     + Y1s*(-(iota_N0*d_Y1c_d_varphi) + \
-                                                           d2_Y1s_d_varphi2))))/(G0*G0*G0)
+                                                           d2_Y1s_d_varphi2))))/(G0*G0*G0))
     #       d_Y1s_d_varphi)*d_Y1s_d_varphi \\
 
     # Element 233
-    grad_grad_B[:,1,2,2] =(B0*B0*B0*B0*lp*lp*X1c*X1c*Y1s*curvature*\
+    grad_grad_B = grad_grad_B.at[:,1,2,2].set((B0*B0*B0*B0*lp*lp*X1c*X1c*Y1s*curvature*\
                            (iota_N0*X1c + 2*lp*Y1s*torsion))/\
-                           (G0*G0*G0)
+                           (G0*G0*G0))
 
     # Element 311
-    grad_grad_B[:,2,0,0] =(B0*B0*B0*B0*lp*X1c*Y1s*\
+    grad_grad_B = grad_grad_B.at[:,2,0,0].set((B0*B0*B0*B0*lp*X1c*Y1s*\
                            (lp*iota_N0*X1c*X1c*torsion - \
                             lp*iota_N0*Y1c*Y1c*torsion - \
                             lp*iota_N0*Y1s*Y1s*torsion - \
@@ -479,10 +505,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                             d_X1c_d_varphi*d_Y1s_d_varphi + \
                             Y1c*(iota_N0*d_X1c_d_varphi + \
                                  lp*torsion*d_Y1s_d_varphi) + \
-                            Y1s*d2_X1c_d_varphi2))/(G0*G0*G0)
+                            Y1s*d2_X1c_d_varphi2))/(G0*G0*G0))
 
     # Element 312
-    grad_grad_B[:,2,0,1] =(B0*B0*B0*B0*lp*X1c*Y1s*\
+    grad_grad_B = grad_grad_B.at[:,2,0,1].set((B0*B0*B0*B0*lp*X1c*Y1s*\
                            (lp*X1c*(2*iota_N0*Y1c*\
                                     torsion + \
                                     Y1s*d_torsion_d_varphi) + \
@@ -491,25 +517,25 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                  2*iota_N0*d_Y1s_d_varphi + \
                                  d2_Y1c_d_varphi2) + \
                             Y1c*(2*iota_N0*d_Y1c_d_varphi - \
-                                 d2_Y1s_d_varphi2)))/(G0*G0*G0)
+                                 d2_Y1s_d_varphi2)))/(G0*G0*G0))
 
     # Element 313
-    grad_grad_B[:,2,0,2] =(B0*B0*B0*B0*lp*lp*X1c*X1c*Y1s*\
+    grad_grad_B = grad_grad_B.at[:,2,0,2].set((B0*B0*B0*B0*lp*lp*X1c*X1c*Y1s*\
                            (-(iota_N0*Y1c*curvature) + \
                             curvature*d_Y1s_d_varphi + \
                             Y1s*d_curvature_d_varphi))/\
-                            (G0*G0*G0)
+                            (G0*G0*G0))
 
     # Element 321
-    grad_grad_B[:,2,1,0] =-((B0*B0*B0*B0*lp*X1c*X1c*Y1s*\
+    grad_grad_B = grad_grad_B.at[:,2,1,0].set(-((B0*B0*B0*B0*lp*X1c*X1c*Y1s*\
                              (-2*lp*iota_N0*Y1c*torsion + \
                               2*iota_N0*d_X1c_d_varphi + \
                               2*lp*torsion*d_Y1s_d_varphi + \
                               lp*Y1s*d_torsion_d_varphi))/\
-                            (G0*G0*G0))
+                            (G0*G0*G0)))
 
     # Element 322
-    grad_grad_B[:,2,1,1] =-((B0*B0*B0*B0*lp*X1c*Y1s*\
+    grad_grad_B = grad_grad_B.at[:,2,1,1].set(-((B0*B0*B0*B0*lp*X1c*Y1s*\
                              (lp*iota_N0*X1c*X1c*torsion - \
                               lp*iota_N0*Y1c*Y1c*torsion - \
                               lp*iota_N0*Y1s*Y1s*torsion - \
@@ -519,41 +545,44 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                               Y1c*(iota_N0*d_X1c_d_varphi + \
                                    lp*torsion*d_Y1s_d_varphi) + \
                               X1c*(iota_N0*d_Y1c_d_varphi - \
-                                   d2_Y1s_d_varphi2)))/(G0*G0*G0))
+                                   d2_Y1s_d_varphi2)))/(G0*G0*G0)))
 
     # Element 323
-    grad_grad_B[:,2,1,2] =(B0*B0*B0*B0*lp*lp*X1c*X1c*Y1s*curvature*\
+    grad_grad_B = grad_grad_B.at[:,2,1,2].set((B0*B0*B0*B0*lp*lp*X1c*X1c*Y1s*curvature*\
                            (iota_N0*X1c + 2*lp*Y1s*torsion))/\
-                           (G0*G0*G0)
+                           (G0*G0*G0))
 
     # Element 331
-    grad_grad_B[:,2,2,0] =(B0*B0*B0*B0*lp*lp*X1c*X1c*Y1s*\
+    grad_grad_B = grad_grad_B.at[:,2,2,0].set((B0*B0*B0*B0*lp*lp*X1c*X1c*Y1s*\
                            (-(iota_N0*Y1c*curvature) + \
                             curvature*d_Y1s_d_varphi + \
                             Y1s*d_curvature_d_varphi))/\
-                            (G0*G0*G0)
+                            (G0*G0*G0))
 
     # Element 332
-    grad_grad_B[:,2,2,1] =-((B0*B0*B0*B0*lp*lp*X1c*Y1s*curvature*\
+    grad_grad_B = grad_grad_B.at[:,2,2,1].set(-((B0*B0*B0*B0*lp*lp*X1c*Y1s*curvature*\
                              (iota_N0*Y1c*Y1c + \
                               Y1s*(iota_N0*Y1s + \
                                    d_Y1c_d_varphi) - \
-                              Y1c*d_Y1s_d_varphi))/(G0*G0*G0))
+                              Y1c*d_Y1s_d_varphi))/(G0*G0*G0)))
 
     # Element 333
-    grad_grad_B[:,2,2,2] =(-2*B0*B0*B0*B0*lp*lp*lp*X1c*X1c*Y1s*Y1s*\
-                           curvature*curvature)/(G0*G0*G0)
+    grad_grad_B = grad_grad_B.at[:,2,2,2].set((-2*B0*B0*B0*B0*lp*lp*lp*X1c*X1c*Y1s*Y1s*\
+                           curvature*curvature)/(G0*G0*G0))
 
 
-    self.grad_grad_B = grad_grad_B
+    grad_grad_B = grad_grad_B
 
     # Compute the (inverse) scale length
     squared = grad_grad_B * grad_grad_B
-    norm_squared = np.sum(squared, axis=(1,2,3))
-    self.grad_grad_B_inverse_scale_length_vs_varphi = np.sqrt(np.sqrt(norm_squared) / (4*B0))
-    self.L_grad_grad_B = 1 / self.grad_grad_B_inverse_scale_length_vs_varphi
-    self.grad_grad_B_inverse_scale_length = np.max(self.grad_grad_B_inverse_scale_length_vs_varphi)
-
+    norm_squared = jnp.sum(squared, axis=(1,2,3))
+    grad_grad_B_inverse_scale_length_vs_varphi = jnp.sqrt(jnp.sqrt(norm_squared) / (4*B0))
+    L_grad_grad_B = 1 / grad_grad_B_inverse_scale_length_vs_varphi
+    grad_grad_B_inverse_scale_length = jnp.max(grad_grad_B_inverse_scale_length_vs_varphi)
+    
+    return grad_grad_B, grad_grad_B_inverse_scale_length_vs_varphi, L_grad_grad_B, grad_grad_B_inverse_scale_length
+    #two way is not used because default called with two_way = False
+    """
     if not two_ways:
         return
 
@@ -562,7 +591,7 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
     # and verify the two calculations match.
 
     # Element 111
-    grad_grad_B_alt[:,0,0,0] =(-2*B0*(-4*sign_G*sign_psi*iota_N0*X2c*Y1c*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,0,0,0].set((-2*B0*(-4*sign_G*sign_psi*iota_N0*X2c*Y1c*\
                                       Y1s + iota_N0*X1c*X1c*\
                                       Y1c*(Y1c*\
                                            (-Y20 + Y2c) + \
@@ -608,10 +637,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                       sign_G*sign_psi*Y1c*Y1c*d_X2c_d_varphi - \
                                       sign_G*sign_psi*Y1s*Y1s*d_X2c_d_varphi + \
                                       2*sign_G*sign_psi*Y1c*Y1s*\
-                                      d_X2s_d_varphi))/(lp*sign_psi)
+                                      d_X2s_d_varphi))/(lp*sign_psi))
 
     # Element 112
-    grad_grad_B_alt[:,0,0,1] =(2*B0*(2*iota_N0*X2s*Y1c*Y1c*Y1c*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,0,0,1].set((2*B0*(2*iota_N0*X2s*Y1c*Y1c*Y1c*\
                                      Y1s + 2*iota_N0*X2s*\
                                      Y1c*Y1s*Y1s*Y1s + \
                                      iota_N0*X1c*Y1c*Y1c*Y1c*\
@@ -697,10 +726,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                      sign_G*sign_psi*Y1c*Y1c*d_Y2c_d_varphi + \
                                      sign_G*sign_psi*Y1s*Y1s*d_Y2c_d_varphi - \
                                      2*sign_G*sign_psi*Y1c*Y1s*\
-                                     d_Y2s_d_varphi))/(lp*sign_psi)
+                                     d_Y2s_d_varphi))/(lp*sign_psi))
 
     # Element 113
-    grad_grad_B_alt[:,0,0,2] =(-2*(Y1c*Y1c*(G2*sign_psi + I2*sign_psi*iota - \
+    grad_grad_B_alt = grad_grad_B_alt.at[:,0,0,2].set((-2*(Y1c*Y1c*(G2*sign_psi + I2*sign_psi*iota - \
                                             2*lp*sign_G*sign_psi*B20 + \
                                             2*lp*sign_G*sign_psi*B2c + \
                                             2*B0*sign_G*sign_psi*iota_N0*Z2s + \
@@ -744,10 +773,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                              lp*X1c*X1c*Y2c*\
                                              curvature - \
                                              2*sign_G*sign_psi*d_Z2s_d_varphi)))))/\
-                                             (lp*sign_psi)
+                                             (lp*sign_psi))
 
     # Element 121
-    grad_grad_B_alt[:,0,1,0] =(-2*B0*(iota_N0*X1c*X1c*X1c*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,0,1,0].set((-2*B0*(iota_N0*X1c*X1c*X1c*\
                                       (Y1c*(Y20 - Y2c) + \
                                        Y1s*(-Y2s + \
                                             sign_G*sign_psi*curvature)) - \
@@ -795,10 +824,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                            sign_G*sign_psi*Y1c*d_X20_d_varphi - \
                                            sign_G*sign_psi*Y1c*d_X2c_d_varphi - \
                                            sign_G*sign_psi*Y1s*d_X2s_d_varphi)))/\
-                                           (lp*sign_psi)
+                                           (lp*sign_psi))
 
     # Element 122
-    grad_grad_B_alt[:,0,1,1] =(2*B0*(-(X1c*X1c*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,0,1,1].set((2*B0*(-(X1c*X1c*\
                                        (Y1c*(Y20 - Y2c) + \
                                         Y1s*(-Y2s + \
                                              sign_G*sign_psi*curvature))*\
@@ -830,10 +859,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                                               d_Y2c_d_varphi) + \
                                                              Y1s*\
                                                              (-2*iota_N0*Y2c + \
-                                                              d_Y2s_d_varphi)))))/(lp*sign_psi)
+                                                              d_Y2s_d_varphi)))))/(lp*sign_psi))
 
     # Element 123
-    grad_grad_B_alt[:,0,1,2] =(2*X1c*(Y1c*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,0,1,2].set((2*X1c*(Y1c*\
                                       (G2 + I2*iota - 2*lp*sign_G*B20 + \
                                        2*lp*sign_G*B2c + \
                                        2*B0*sign_G*iota_N0*Z2s + \
@@ -844,10 +873,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                       sign_G*Y1s*(2*lp*B2s + \
                                                   B0*(-2*iota_N0*Z2c - \
                                                       2*lp*X2s*curvature + \
-                                                      d_Z2s_d_varphi))))/(lp)
+                                                      d_Z2s_d_varphi))))/(lp))
 
     # Element 131
-    grad_grad_B_alt[:,0,2,0] =(B0*(-(lp*sign_G*sign_psi*iota_N0*Y1c*Y1c*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,0,2,0].set((B0*(-(lp*sign_G*sign_psi*iota_N0*Y1c*Y1c*\
                                      torsion) + \
                                    lp*iota_N0*X1c*X1c*X1c*Y1s*\
                                    torsion + \
@@ -870,10 +899,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                          d_X1c_d_varphi*d_X1c_d_varphi) + \
                                         sign_G*sign_psi*(2*lp*torsion*\
                                                          d_Y1c_d_varphi - \
-                                                         d2_X1c_d_varphi2))))/(lp*lp*sign_G)
+                                                         d2_X1c_d_varphi2))))/(lp*lp*sign_G))
 
     # Element 132
-    grad_grad_B_alt[:,0,2,1] =(B0*(-(iota_N0*Y1c*Y1c*Y1s*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,0,2,1].set((B0*(-(iota_N0*Y1c*Y1c*Y1s*\
                                      d_X1c_d_varphi) + \
                                    lp*X1c*X1c*Y1s*torsion*\
                                    (iota_N0*Y1c - d_Y1s_d_varphi) + \
@@ -902,18 +931,18 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                         Y1s*d_X1c_d_varphi*\
                                         d_Y1s_d_varphi - \
                                         sign_G*sign_psi*d2_Y1s_d_varphi2)))/\
-                                        (lp*lp*sign_G)
+                                        (lp*lp*sign_G))
 
     # Element 133
-    grad_grad_B_alt[:,0,2,2] =-((B0*(Y1s*curvature*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,0,2,2].set(-((B0*(Y1s*curvature*\
                                      d_X1c_d_varphi + \
                                      X1c*(iota_N0*Y1c*\
                                           curvature - \
                                           Y1s*d_curvature_d_varphi)))/\
-                                (lp*sign_psi))
+                                (lp*sign_psi)))
 
     # Element 211
-    grad_grad_B_alt[:,1,0,0] =(-2*B0*X1c*(2*sign_G*sign_psi*iota_N0*X2c*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,1,0,0].set((-2*B0*X1c*(2*sign_G*sign_psi*iota_N0*X2c*\
                                           Y1s + iota_N0*X1c*X1c*\
                                           (Y1c*(Y20 - Y2c) + \
                                            sign_G*sign_psi*Y1s*curvature) - \
@@ -940,10 +969,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                           sign_G*sign_psi*Y1c*d_X20_d_varphi - \
                                           sign_G*sign_psi*Y1c*d_X2c_d_varphi - \
                                           sign_G*sign_psi*Y1s*d_X2s_d_varphi))/\
-                                          (lp*sign_psi)
+                                          (lp*sign_psi))
 
     # Element 212
-    grad_grad_B_alt[:,1,0,1] =(-2*B0*X1c*(iota_N0*X2s*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,1,0,1].set((-2*B0*X1c*(iota_N0*X2s*\
                                           Y1c*Y1c*Y1s + \
                                           iota_N0*X2s*Y1s*Y1s*Y1s + \
                                           iota_N0*X1c*Y1c*Y1c*\
@@ -1001,10 +1030,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                           sign_G*sign_psi*Y1c*d_Y20_d_varphi - \
                                           sign_G*sign_psi*Y1c*d_Y2c_d_varphi - \
                                           sign_G*sign_psi*Y1s*d_Y2s_d_varphi))/\
-                                          (lp*sign_psi)
+                                          (lp*sign_psi))
 
     # Element 213
-    grad_grad_B_alt[:,1,0,2] =(2*X1c*(2*lp*sign_G*sign_psi*B2s*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,1,0,2].set((2*X1c*(2*lp*sign_G*sign_psi*B2s*\
                                       Y1s + Y1c*\
                                       (G2*sign_psi + I2*sign_psi*iota - \
                                        2*lp*sign_G*sign_psi*B20 + \
@@ -1030,10 +1059,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                                lp*X1c*X1c*Y2c*\
                                                curvature - \
                                                sign_G*sign_psi*d_Z2s_d_varphi))))/\
-                                               (lp*sign_psi)
+                                               (lp*sign_psi))
 
     # Element 221
-    grad_grad_B_alt[:,1,1,0] =(2*B0*X1c*(iota_N0*X1c*X1c*X1c*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,1,1,0].set((2*B0*X1c*(iota_N0*X1c*X1c*X1c*\
                                          (Y20 - Y2c) + \
                                          X1c*X1c*(-(iota_N0*X20*\
                                                     Y1c) + \
@@ -1057,10 +1086,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                                      lp*Y1s*Y1s*torsion) + \
                                                 sign_G*sign_psi*d_X20_d_varphi - \
                                                 sign_G*sign_psi*d_X2c_d_varphi)))/\
-                                                (lp*sign_psi)
+                                                (lp*sign_psi))
 
     # Element 222
-    grad_grad_B_alt[:,1,1,1] =(-2*B0*X1c*(sign_G*sign_psi*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,1,1,1].set((-2*B0*X1c*(sign_G*sign_psi*\
                                           (X20 - X2c)*\
                                           (iota_N0*Y1s + d_Y1c_d_varphi) + \
                                           X2s*(sign_G*sign_psi - \
@@ -1075,18 +1104,18 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                                 d_Y1s_d_varphi) + \
                                                sign_G*sign_psi*(2*iota_N0*Y2s - \
                                                                 d_Y20_d_varphi + \
-                                                                d_Y2c_d_varphi))))/(lp*sign_psi)
+                                                                d_Y2c_d_varphi))))/(lp*sign_psi))
 
     # Element 223
-    grad_grad_B_alt[:,1,1,2] =(-2*X1c*X1c*(G2 + I2*iota - 2*lp*sign_G*B20 + \
+    grad_grad_B_alt = grad_grad_B_alt.at[:,1,1,2].set((-2*X1c*X1c*(G2 + I2*iota - 2*lp*sign_G*B20 + \
                                            2*lp*sign_G*B2c + 2*B0*sign_G*iota_N0*Z2s + \
                                            2*B0*lp*sign_G*X20*curvature - \
                                            2*B0*lp*sign_G*X2c*curvature - \
                                            B0*sign_G*d_Z20_d_varphi + \
-                                           B0*sign_G*d_Z2c_d_varphi))/(lp)
+                                           B0*sign_G*d_Z2c_d_varphi))/(lp))
 
     # Element 231
-    grad_grad_B_alt[:,1,2,0] =(B0*X1c*(lp*iota_N0*Y1c*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,1,2,0].set((B0*X1c*(lp*iota_N0*Y1c*\
                                        (sign_G*sign_psi + X1c*Y1s)*\
                                        torsion + \
                                        (-(sign_G*sign_psi*iota_N0) + \
@@ -1098,10 +1127,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                        lp*X1c*Y1s*torsion*\
                                        d_Y1s_d_varphi - \
                                        lp*sign_G*sign_psi*Y1s*d_torsion_d_varphi))/\
-                                       (lp*lp*sign_G)
+                                       (lp*lp*sign_G))
 
     # Element 232
-    grad_grad_B_alt[:,1,2,1] =(B0*X1c*(lp*iota_N0*Y1c*Y1c*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,1,2,1].set((B0*X1c*(lp*iota_N0*Y1c*Y1c*\
                                        Y1s*torsion + \
                                        lp*iota_N0*Y1s*Y1s*Y1s*torsion - \
                                        lp*lp*sign_G*sign_psi*Y1s*torsion*torsion - \
@@ -1115,15 +1144,15 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                             lp*lp*Y1s*Y1s*torsion*torsion + \
                                             (iota_N0*Y1c - d_Y1s_d_varphi)*\
                                             d_Y1s_d_varphi) + \
-                                       sign_G*sign_psi*d2_Y1s_d_varphi2))/(lp*lp*sign_G)
+                                       sign_G*sign_psi*d2_Y1s_d_varphi2))/(lp*lp*sign_G))
 
     # Element 233
-    grad_grad_B_alt[:,1,2,2] =(B0*X1c*curvature*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,1,2,2].set((B0*X1c*curvature*\
                                (iota_N0*X1c + \
-                                2*lp*Y1s*torsion))/(lp*sign_psi)
+                                2*lp*Y1s*torsion))/(lp*sign_psi))
 
     # Element 311
-    grad_grad_B_alt[:,2,0,0] =(B0*(2*lp*lp*sign_G*sign_psi*curvature*curvature + \
+    grad_grad_B_alt = grad_grad_B_alt.at[:,2,0,0].set((B0*(2*lp*lp*sign_G*sign_psi*curvature*curvature + \
                                    lp*iota_N0*X1c*X1c*torsion - \
                                    lp*iota_N0*Y1c*Y1c*torsion - \
                                    lp*iota_N0*Y1s*Y1s*torsion + \
@@ -1135,10 +1164,10 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                    d_Y1s_d_varphi + \
                                    d_X1c_d_varphi*d_Y1s_d_varphi + \
                                    Y1s*d2_X1c_d_varphi2))/\
-                                   (lp*lp*sign_psi)
+                                   (lp*lp*sign_psi))
 
     # Element 312
-    grad_grad_B_alt[:,2,0,1] =(B0*(lp*X1c*(2*iota_N0*Y1c*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,2,0,1].set((B0*(lp*X1c*(2*iota_N0*Y1c*\
                                            torsion + \
                                            Y1s*d_torsion_d_varphi) + \
                                    Y1s*(2*lp*torsion*\
@@ -1146,25 +1175,25 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                         2*iota_N0*d_Y1s_d_varphi + \
                                         d2_Y1c_d_varphi2) + \
                                    Y1c*(2*iota_N0*d_Y1c_d_varphi - \
-                                        d2_Y1s_d_varphi2)))/(lp*lp*sign_psi)
+                                        d2_Y1s_d_varphi2)))/(lp*lp*sign_psi))
 
     # Element 313
-    grad_grad_B_alt[:,2,0,2] =(B0*(-(iota_N0*X1c*Y1c*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,2,0,2].set((B0*(-(iota_N0*X1c*Y1c*\
                                      curvature) - \
                                    Y1s*curvature*\
                                    d_X1c_d_varphi + \
-                                   sign_G*sign_psi*d_curvature_d_varphi))/(lp*sign_psi)
+                                   sign_G*sign_psi*d_curvature_d_varphi))/(lp*sign_psi))
 
     # Element 321
-    grad_grad_B_alt[:,2,1,0] =(B0*X1c*(2*lp*iota_N0*Y1c*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,2,1,0].set((B0*X1c*(2*lp*iota_N0*Y1c*\
                                        torsion - \
                                        2*iota_N0*d_X1c_d_varphi - \
                                        lp*(2*torsion*d_Y1s_d_varphi + \
                                            Y1s*d_torsion_d_varphi)))/\
-                                           (lp*lp*sign_psi)
+                                           (lp*lp*sign_psi))
 
     # Element 322
-    grad_grad_B_alt[:,2,1,1] =-((B0*(iota_N0*Y1c*d_X1c_d_varphi + \
+    grad_grad_B_alt = grad_grad_B_alt.at[:,2,1,1].set(-((B0*(iota_N0*Y1c*d_X1c_d_varphi + \
                                      iota_N0*X1c*d_Y1c_d_varphi - \
                                      d_X1c_d_varphi*\
                                      d_Y1s_d_varphi + \
@@ -1175,34 +1204,35 @@ def calculate_grad_grad_B_tensor(self, two_ways=False):
                                            d_Y1c_d_varphi) + \
                                       Y1c*d_Y1s_d_varphi) - \
                                      X1c*d2_Y1s_d_varphi2))/\
-                                (lp*lp*sign_psi))
+                                (lp*lp*sign_psi)))
 
     # Element 323
-    grad_grad_B_alt[:,2,1,2] =(B0*curvature*(iota_N0*X1c*X1c + \
+    grad_grad_B_alt = grad_grad_B_alt.at[:,2,1,2].set((B0*curvature*(iota_N0*X1c*X1c + \
                                              lp*sign_G*sign_psi*torsion + \
                                              lp*X1c*Y1s*torsion))/\
-                                             (lp*sign_psi)
+                                             (lp*sign_psi))
 
     # Element 331
-    grad_grad_B_alt[:,2,2,0] =(B0*(-(iota_N0*X1c*Y1c*\
+    grad_grad_B_alt = grad_grad_B_alt.at[:,2,2,0].set((B0*(-(iota_N0*X1c*Y1c*\
                                      curvature) - \
                                    Y1s*curvature*\
                                    d_X1c_d_varphi + \
-                                   sign_G*sign_psi*d_curvature_d_varphi))/(lp*sign_psi)
+                                   sign_G*sign_psi*d_curvature_d_varphi))/(lp*sign_psi))
 
     # Element 332
-    grad_grad_B_alt[:,2,2,1] =-((B0*curvature*(iota_N0*Y1c*Y1c + \
+    grad_grad_B_alt = grad_grad_B_alt.at[:,2,2,1].set(-((B0*curvature*(iota_N0*Y1c*Y1c + \
                                                iota_N0*Y1s*Y1s - \
                                                lp*sign_G*sign_psi*torsion + \
                                                Y1s*(lp*X1c*torsion + \
                                                     d_Y1c_d_varphi) - \
                                                Y1c*d_Y1s_d_varphi))/\
-                                (lp*sign_psi))
+                                (lp*sign_psi)))
 
     # Element 333
-    grad_grad_B_alt[:,2,2,2] =(-2*B0*curvature*curvature)/sign_G
+    grad_grad_B_alt = grad_grad_B_alt.at[:,2,2,2].set((-2*B0*curvature*curvature)/sign_G)
 
     self.grad_grad_B_alt = grad_grad_B_alt
+    """
 
 
 def Bfield_cylindrical(self, r=0, theta=0):
@@ -1245,11 +1275,11 @@ def Bfield_cylindrical(self, r=0, theta=0):
         return B0_vector
     else:
         factor = B0 * B0 / G0
-        B1_vector_t = factor * (X1c * np.cos(theta) + X1s * np.sin(theta)) * d_l_d_varphi * curvature
-        B1_vector_n = factor * (np.cos(theta) * (d_X1c_d_varphi - Y1c * d_l_d_varphi * torsion + iotaN * X1s) \
-                                + np.sin(theta) * (d_X1s_d_varphi - Y1s * d_l_d_varphi * torsion - iotaN * X1c))
-        B1_vector_b = factor * (np.cos(theta) * (d_Y1c_d_varphi + X1c * d_l_d_varphi * torsion + iotaN * Y1s) \
-                                + np.sin(theta) * (d_Y1s_d_varphi + X1s * d_l_d_varphi * torsion - iotaN * Y1c))
+        B1_vector_t = factor * (X1c * jnp.cos(theta) + X1s * jnp.sin(theta)) * d_l_d_varphi * curvature
+        B1_vector_n = factor * (jnp.cos(theta) * (d_X1c_d_varphi - Y1c * d_l_d_varphi * torsion + iotaN * X1s) \
+                                + jnp.sin(theta) * (d_X1s_d_varphi - Y1s * d_l_d_varphi * torsion - iotaN * X1c))
+        B1_vector_b = factor * (jnp.cos(theta) * (d_Y1c_d_varphi + X1c * d_l_d_varphi * torsion + iotaN * Y1s) \
+                                + jnp.sin(theta) * (d_Y1s_d_varphi + X1s * d_l_d_varphi * torsion - iotaN * Y1c))
 
         B1_vector = B1_vector_t * t + B1_vector_n * n + B1_vector_b * b
         B_vector_cylindrical = B0_vector + r * B1_vector
@@ -1270,11 +1300,11 @@ def Bfield_cartesian(self, r=0, theta=0):
     B_vector_cylindrical = self.Bfield_cylindrical(r,theta)
     phi = self.phi
 
-    B_x = np.cos(phi) * B_vector_cylindrical[0] - np.sin(phi) * B_vector_cylindrical[1]
-    B_y = np.sin(phi) * B_vector_cylindrical[0] + np.cos(phi) * B_vector_cylindrical[1]
+    B_x = jnp.cos(phi) * B_vector_cylindrical[0] - jnp.sin(phi) * B_vector_cylindrical[1]
+    B_y = jnp.sin(phi) * B_vector_cylindrical[0] + jnp.cos(phi) * B_vector_cylindrical[1]
     B_z = B_vector_cylindrical[2]
 
-    B_vector_cartesian = np.array([B_x, B_y, B_z])
+    B_vector_cartesian = jnp.array([B_x, B_y, B_z])
 
     return B_vector_cartesian
 
@@ -1287,11 +1317,11 @@ def grad_B_tensor_cartesian(self):
 
     B0, B1, B2 = self.Bfield_cylindrical()
     nablaB = self.grad_B_tensor_cylindrical
-    cosphi = np.cos(self.phi)
-    sinphi = np.sin(self.phi)
+    cosphi = jnp.cos(self.phi)
+    sinphi = jnp.sin(self.phi)
     R0 = self.R0
 
-    grad_B_vector_cartesian = np.array([
+    grad_B_vector_cartesian = jnp.array([
 [cosphi**2*nablaB[0, 0] - cosphi*sinphi*(nablaB[0, 1] + nablaB[1, 0]) + 
    sinphi**2*nablaB[1, 1], cosphi**2*nablaB[0, 1] - sinphi**2*nablaB[1, 0] + 
    cosphi*sinphi*(nablaB[0, 0] - nablaB[1, 1]), cosphi*nablaB[0, 2] - 
@@ -1311,7 +1341,7 @@ def grad_grad_B_tensor_cylindrical(self):
     vector B=(B_R,B_phi,B_Z) at every point along the axis (hence with nphi points)
     where R, phi and Z are the standard cylindrical coordinates.
     '''
-    return np.transpose(self.grad_grad_B,(1,2,3,0))
+    return jnp.transpose(self.grad_grad_B,(1,2,3,0))
 
 def grad_grad_B_tensor_cartesian(self):
     '''
@@ -1320,10 +1350,10 @@ def grad_grad_B_tensor_cartesian(self):
     where x, y and z are the standard cartesian coordinates.
     '''
     nablanablaB = self.grad_grad_B_tensor_cylindrical()
-    cosphi = np.cos(self.phi)
-    sinphi = np.sin(self.phi)
+    cosphi = jnp.cos(self.phi)
+    sinphi = jnp.sin(self.phi)
 
-    grad_grad_B_vector_cartesian = np.array([[
+    grad_grad_B_vector_cartesian = jnp.array([[
 [cosphi**3*nablanablaB[0, 0, 0] - cosphi**2*sinphi*(nablanablaB[0, 0, 1] + 
       nablanablaB[0, 1, 0] + nablanablaB[1, 0, 0]) + 
     cosphi*sinphi**2*(nablanablaB[0, 1, 1] + nablanablaB[1, 0, 1] + 

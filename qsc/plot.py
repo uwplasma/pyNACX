@@ -3,15 +3,20 @@ This module contains a function to plot a near-axis surface.
 """
 
 import numpy as np
+from examples.results_class import Results
+import jax.numpy as jnp
 from scipy.interpolate import interp2d, interp1d
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import matplotlib.colors as clr
 from matplotlib.colors import LightSource
 import matplotlib.ticker as tck
-from .util import to_Fourier
 
-def plot(self, newfigure=True, show=True):
+from qsc import Frenet_to_cylindrical
+from .util import B_mag, to_Fourier
+import logging 
+
+def plot(results: Results, newfigure=True, show=True):
     """
     Generate a matplotlib figure with an array of plots, showing the
     toroidally varying properties of the configuration.
@@ -23,13 +28,13 @@ def plot(self, newfigure=True, show=True):
     if newfigure:
         plt.figure(figsize=(14, 7))
     plt.rcParams.update({'font.size': 6})
-    if self.order == 'r1':
+    if results.order == 'r1':
         nrows = 3
         ncols = 6
-    elif self.order == 'r2':
+    elif results.order == 'r2':
         nrows = 4
         ncols = 8
-    elif self.order == 'r3':
+    elif results.order == 'r3':
         nrows = 5
         ncols = 7
     else:
@@ -46,12 +51,12 @@ def plot(self, newfigure=True, show=True):
             data = eval('self.' + title)
         plt.subplot(nrows, ncols, jplot)
         jplot = jplot + 1
-        plt.plot(self.phi, data, label=title)
+        plt.plot(results.phi, data, label=title)
         plt.xlabel(r'$\phi$')
         plt.title(title)
         if y0:
             plt.ylim(bottom=0)
-        plt.xlim((0, self.phi[-1]))
+        plt.xlim((0, results.phi[-1]))
 
     subplot('R0')
     subplot('Z0')
@@ -69,18 +74,18 @@ def plot(self, newfigure=True, show=True):
     subplot('Y1s')
     subplot('elongation', y0=True)
     subplot('L_grad_B', y0=True)
-    subplot('1/L_grad_B', data=self.inv_L_grad_B)
-    if self.order != 'r1':
+    subplot('1/L_grad_B', data=results.inv_L_grad_B)
+    if results.order != 'r1':
         jplot -= 2
         subplot('L_grad_grad_B')
         plt.title('scale lengths')
         plt.legend(loc=0, fontsize=5)
-        plt.ylim(0, max(max(self.L_grad_B), max(self.L_grad_grad_B)))
+        plt.ylim(0, max(max(results.L_grad_B), max(results.L_grad_grad_B)))
         
-        subplot('1/L_grad_grad_B', self.grad_grad_B_inverse_scale_length_vs_varphi)
+        subplot('1/L_grad_grad_B', results.grad_grad_B_inverse_scale_length_vs_varphi)
         plt.title('inv scale lengths')
         plt.legend(loc=0, fontsize=5)
-        plt.ylim(0, max(max(self.inv_L_grad_B), max(self.grad_grad_B_inverse_scale_length_vs_varphi)))
+        plt.ylim(0, max(max(results.inv_L_grad_B), max(results.grad_grad_B_inverse_scale_length_vs_varphi)))
         
         subplot('B20')
         subplot('V1')
@@ -95,10 +100,10 @@ def plot(self, newfigure=True, show=True):
         subplot('Z20')
         subplot('Z2c')
         subplot('Z2s')
-        data = self.r_singularity_vs_varphi
-        data[data > 1e20] = np.NAN
+        data = results.r_singularity_vs_varphi
+        data = data.at[data > 1e20].set(jnp.nan)
         subplot('r_singularity', data=data, y0=True)
-        if self.order != 'r2':
+        if results.order != 'r2':
             subplot('X3c1')
             subplot('Y3c1')
             subplot('Y3s1')
@@ -121,11 +126,11 @@ def set_axes_equal(ax):
     z_limits = ax.get_zlim3d()
 
     x_range = abs(x_limits[1] - x_limits[0])
-    x_middle = np.mean(x_limits)
+    x_middle = jnp.mean(jnp.array(x_limits))
     y_range = abs(y_limits[1] - y_limits[0])
-    y_middle = np.mean(y_limits)
+    y_middle = jnp.mean(jnp.array(y_limits))
     z_range = abs(z_limits[1] - z_limits[0])
-    z_middle = np.mean(z_limits)
+    z_middle = jnp.mean(jnp.array(z_limits))
 
     # The plot bounding box is a sphere in the sense of the infinity
     # norm, hence call half the max range the plot radius.
@@ -161,7 +166,7 @@ def create_subplot(ax, x_2D_plot, y_2D_plot, z_2D_plot, colormap, elev=90, azim=
     ax.elev = elev
     ax.azim = azim
 
-def create_field_lines(qsc, alphas, X_2D, Y_2D, Z_2D, phimax=2*np.pi, nphi=500):
+def create_field_lines(qsc: Results, alphas, X_2D, Y_2D, Z_2D, phimax=2*jnp.pi, nphi=500):
     '''
     Function to compute the (X, Y, Z) coordinates of field lines at
     several alphas, where alpha = theta-iota*varphi with (theta,varphi)
@@ -177,22 +182,22 @@ def create_field_lines(qsc, alphas, X_2D, Y_2D, Z_2D, phimax=2*np.pi, nphi=500):
       phimax: maximum value for the field line following angle phi
       nphi: grid resolution for the output fieldline
     '''
-    phi_array = np.linspace(0,phimax,nphi,endpoint=False)
-    fieldline_X = np.zeros((len(alphas),nphi))
-    fieldline_Y = np.zeros((len(alphas),nphi))
-    fieldline_Z = np.zeros((len(alphas),nphi))
+    phi_array = jnp.linspace(0,phimax,nphi,endpoint=False)
+    fieldline_X = jnp.zeros((len(alphas),nphi))
+    fieldline_Y = jnp.zeros((len(alphas),nphi))
+    fieldline_Z = jnp.zeros((len(alphas),nphi))
     [ntheta_RZ,nphi_RZ] = X_2D.shape
-    phi1D   = np.linspace(0,2*np.pi,nphi_RZ)
-    theta1D = np.linspace(0,2*np.pi,ntheta_RZ)
+    phi1D   = jnp.linspace(0,2*jnp.pi,nphi_RZ)
+    theta1D = jnp.linspace(0,2*jnp.pi,ntheta_RZ)
     X_2D_spline = interp2d(phi1D, theta1D, X_2D, kind='cubic')
     Y_2D_spline = interp2d(phi1D, theta1D, Y_2D, kind='cubic')
     Z_2D_spline = interp2d(phi1D, theta1D, Z_2D, kind='cubic')
     for i in range(len(alphas)):
         for j in range(len(phi_array)):
-            phi_mod = np.mod(phi_array[j],2*np.pi)
+            phi_mod = jnp.mod(phi_array[j],2*jnp.pi)
             varphi0=qsc.nu_spline(phi_array[j])+2*phi_array[j]-phi_mod
             theta_fieldline=qsc.iota*varphi0+alphas[i]
-            theta_fieldline_mod=np.mod(theta_fieldline,2*np.pi)
+            theta_fieldline_mod=jnp.mod(theta_fieldline,2*jnp.pi)
             fieldline_X[i,j] = X_2D_spline(phi_mod,theta_fieldline_mod)[0]
             fieldline_Y[i,j] = Y_2D_spline(phi_mod,theta_fieldline_mod)[0]
             fieldline_Z[i,j] = Z_2D_spline(phi_mod,theta_fieldline_mod)[0]
@@ -229,27 +234,27 @@ def create_subplot_mayavi(mlab, R, alphas, x_2D_plot, y_2D_plot, z_2D_plot,
         rx= R.from_euler('x', degrees_array_x[i], degrees=True)
         rz= R.from_euler('z', degrees_array_z[i], degrees=True)
         # Initialize rotated arrays
-        x_2D_plot_rotated = np.zeros((x_2D_plot.shape[0],x_2D_plot.shape[1]))
-        y_2D_plot_rotated = np.zeros((x_2D_plot.shape[0],x_2D_plot.shape[1]))
-        z_2D_plot_rotated = np.zeros((x_2D_plot.shape[0],x_2D_plot.shape[1]))
-        fieldline_X_rotated = np.zeros((fieldline_X.shape[0],fieldline_X.shape[1]))
-        fieldline_Y_rotated = np.zeros((fieldline_X.shape[0],fieldline_X.shape[1]))
-        fieldline_Z_rotated = np.zeros((fieldline_X.shape[0],fieldline_X.shape[1]))
+        x_2D_plot_rotated = jnp.zeros((x_2D_plot.shape[0],x_2D_plot.shape[1]))
+        y_2D_plot_rotated = jnp.zeros((x_2D_plot.shape[0],x_2D_plot.shape[1]))
+        z_2D_plot_rotated = jnp.zeros((x_2D_plot.shape[0],x_2D_plot.shape[1]))
+        fieldline_X_rotated = jnp.zeros((fieldline_X.shape[0],fieldline_X.shape[1]))
+        fieldline_Y_rotated = jnp.zeros((fieldline_X.shape[0],fieldline_X.shape[1]))
+        fieldline_Z_rotated = jnp.zeros((fieldline_X.shape[0],fieldline_X.shape[1]))
         # Rotate surfaces
         for th in range(x_2D_plot.shape[0]):
             for ph in range(x_2D_plot.shape[1]):
-                [x_2D_plot_rotated[th,ph], y_2D_plot_rotated[th,ph], z_2D_plot_rotated[th,ph]] = rx.apply(rz.apply(np.array([x_2D_plot[th,ph], y_2D_plot[th,ph], z_2D_plot[th,ph]])))
+                [x_2D_plot_rotated[th,ph], y_2D_plot_rotated[th,ph], z_2D_plot_rotated[th,ph]] = rx.apply(rz.apply(jnp.array([x_2D_plot[th,ph], y_2D_plot[th,ph], z_2D_plot[th,ph]])))
         # Rotate field lines
         for th in range(fieldline_X.shape[0]):
             for ph in range(fieldline_X.shape[1]):
-                [fieldline_X_rotated[th,ph], fieldline_Y_rotated[th,ph], fieldline_Z_rotated[th,ph]] = rx.apply(rz.apply(np.array([fieldline_X[th,ph], fieldline_Y[th,ph], fieldline_Z[th,ph]])))
+                [fieldline_X_rotated[th,ph], fieldline_Y_rotated[th,ph], fieldline_Z_rotated[th,ph]] = rx.apply(rz.apply(jnp.array([fieldline_X[th,ph], fieldline_Y[th,ph], fieldline_Z[th,ph]])))
         # Plot surfaces
         mlab.mesh(x_2D_plot_rotated, y_2D_plot_rotated-shift_array[i], z_2D_plot_rotated, scalars=Bmag, colormap='viridis')
         # Plot field lines
         for j in range(len(alphas)):
             mlab.plot3d(fieldline_X_rotated[j], fieldline_Y_rotated[j]-shift_array[i], fieldline_Z_rotated[j], color=(0,0,0), line_width=0.001, tube_radius=0.005)
 
-def get_boundary(self, r=0.1, ntheta=40, nphi=130, ntheta_fourier=20, mpol=13, ntor=25):
+def get_boundary(result: Results, r=0.1, ntheta=40, nphi=130, ntheta_fourier=20, mpol=13, ntor=25):
     '''
     Function that, for a given near-axis radial coordinate r, outputs
     the [X,Y,Z,R] components of the boundary. The resolution along the toroidal
@@ -265,32 +270,32 @@ def get_boundary(self, r=0.1, ntheta=40, nphi=130, ntheta_fourier=20, mpol=13, n
       ntor: resolution in toroidal Fourier space
     '''
     # Get surface shape at fixed off-axis toroidal angle phi
-    R_2D, Z_2D, _ = self.Frenet_to_cylindrical(r, ntheta=ntheta_fourier)
+    R_2D, Z_2D, _ = Frenet_to_cylindrical.Frenet_to_cylindrical(result, r, ntheta=ntheta_fourier) 
     # Get Fourier coefficients in order to plot with arbitrary resolution
-    RBC, RBS, ZBC, ZBS = to_Fourier(R_2D, Z_2D, self.nfp, mpol=mpol, ntor=ntor, lasym=self.lasym)
-    if not self.lasym:
-        RBS = np.zeros((int(2*ntor+1),int(mpol+1)))
-        ZBC = np.zeros((int(2*ntor+1),int(mpol+1)))
+    RBC, RBS, ZBC, ZBS = to_Fourier(R_2D, Z_2D, result.nfp, mpol=mpol, ntor=ntor, lasym=result.lasym)
+    if not result.lasym:
+        RBS = jnp.zeros((int(2*ntor+1),int(mpol+1)))
+        ZBC = jnp.zeros((int(2*ntor+1),int(mpol+1)))
 
-    theta1D = np.linspace(0, 2*np.pi, ntheta)
-    phi1D = np.linspace(0, 2*np.pi, nphi)
-    phi2D, theta2D = np.meshgrid(phi1D, theta1D)
-    R_2Dnew = np.zeros((ntheta, nphi))
-    Z_2Dnew = np.zeros((ntheta, nphi))
+    theta1D = jnp.linspace(0, 2*np.pi, ntheta)
+    phi1D = jnp.linspace(0, 2*np.pi, nphi)
+    phi2D, theta2D = jnp.meshgrid(phi1D, theta1D)
+    R_2Dnew = jnp.zeros((ntheta, nphi))
+    Z_2Dnew = jnp.zeros((ntheta, nphi))
     for m in range(mpol + 1):
         for n in range(-ntor, ntor + 1):
-            angle = m * theta2D - n * self.nfp * phi2D
-            R_2Dnew += RBC[n+ntor,m] * np.cos(angle) + RBS[n+ntor,m] * np.sin(angle)
-            Z_2Dnew += ZBC[n+ntor,m] * np.cos(angle) + ZBS[n+ntor,m] * np.sin(angle)
+            angle = m * theta2D - n * result.nfp * phi2D
+            R_2Dnew += RBC[n+ntor,m] * jnp.cos(angle) + RBS[n+ntor,m] * jnp.sin(angle)
+            Z_2Dnew += ZBC[n+ntor,m] * jnp.cos(angle) + ZBS[n+ntor,m] * jnp.sin(angle)
 
     # X, Y, Z arrays for the whole surface
-    x_2D_plot = R_2Dnew * np.cos(phi1D)
-    y_2D_plot = R_2Dnew * np.sin(phi1D)
+    x_2D_plot = R_2Dnew * jnp.cos(phi1D)
+    y_2D_plot = R_2Dnew * jnp.sin(phi1D)
     z_2D_plot = Z_2Dnew
 
     return x_2D_plot, y_2D_plot, z_2D_plot, R_2Dnew
 
-def plot_boundary(self, r=0.1, ntheta=80, nphi=150, ntheta_fourier=20, nsections=8,
+def plot_boundary(results: Results, r=0.1, ntheta=80, nphi=150, ntheta_fourier=20, nsections=8,
          fieldlines=False, savefig=None, colormap=None, azim_default=None,
          show=True, **kwargs):
     """
@@ -340,8 +345,8 @@ def plot_boundary(self, r=0.1, ntheta=80, nphi=150, ntheta_fourier=20, nsections
     .. image:: poloidalplot.png
        :width: 200
     """
-    x_2D_plot, y_2D_plot, z_2D_plot, R_2D_plot = self.get_boundary(r=r, ntheta=ntheta, nphi=nphi, ntheta_fourier=ntheta_fourier)
-    phi = np.linspace(0, 2 * np.pi, nphi)  # Endpoint = true and no nfp factor, because this is what is used in get_boundary()
+    x_2D_plot, y_2D_plot, z_2D_plot, R_2D_plot = get_boundary(results, r=r, ntheta=ntheta, nphi=nphi, ntheta_fourier=ntheta_fourier) 
+    phi = jnp.linspace(0, 2 * np.pi, nphi)  # Endpoint = true and no nfp factor, because this is what is used in get_boundary()
     R_2D_spline = interp1d(phi, R_2D_plot, axis=1)
     z_2D_spline = interp1d(phi, z_2D_plot, axis=1)
     
@@ -359,24 +364,24 @@ def plot_boundary(self, r=0.1, ntheta=80, nphi=150, ntheta_fourier=20, nsections
         return color
     
     ## Poloidal plot
-    phi1dplot_RZ = np.linspace(0, 2 * np.pi / self.nfp, nsections, endpoint=False)
+    phi1dplot_RZ = jnp.linspace(0, 2 * np.pi / results.nfp, nsections, endpoint=False)
     fig = plt.figure(figsize=(6, 6), dpi=80)
     ax  = plt.gca()
     for i, phi in enumerate(phi1dplot_RZ):
-        phinorm = phi * self.nfp / (2 * np.pi)
+        phinorm = phi * results.nfp / (2 * np.pi)
         if phinorm == 0:
             label = r'$\phi$=0'
         elif phinorm == 0.25:
-            label = r'$\phi={\pi}/$' + str(2 * self.nfp)
+            label = r'$\phi={\pi}/$' + str(2 * results.nfp)
         elif phinorm == 0.5:
-            label = r'$\phi=\pi/$' + str(self.nfp)
+            label = r'$\phi=\pi/$' + str(results.nfp)
         elif phinorm == 0.75:
-            label = r'$\phi={3\pi}/$' + str(2 * self.nfp)
+            label = r'$\phi={3\pi}/$' + str(2 * results.nfp)
         else:
             label = '_nolegend_'
         color = get_next_color()
         # Plot location of the axis
-        plt.plot(self.R0_func(phi), self.Z0_func(phi), marker="x", linewidth=2, label=label, color=color)
+        plt.plot(results.R0_func(phi), results.Z0_func(phi), marker="x", linewidth=2, label=label, color=color)
         # Plot poloidal cross-section
         plt.plot(R_2D_spline(phi), z_2D_spline(phi), color=color)
     plt.xlabel('R (meters)')
@@ -392,17 +397,24 @@ def plot_boundary(self, r=0.1, ntheta=80, nphi=150, ntheta_fourier=20, nsections
     # QH stellarators look rotated in the phi direction when
     # azim_default = 0
     if azim_default == None:
-        if self.helicity == 0:
+        if results.helicity == 0:
             azim_default = 0
         else:
             azim_default = 45
     # Define the magnetic field modulus and create its theta,phi array
     # The norm instance will be used as the colormap for the surface
-    theta1D = np.linspace(0, 2 * np.pi, ntheta)
-    phi1D = np.linspace(0, 2 * np.pi, nphi)
-    phi2D, theta2D = np.meshgrid(phi1D, theta1D)
+    theta1D = jnp.linspace(0, 2 * np.pi, ntheta)
+    phi1D = jnp.linspace(0, 2 * np.pi, nphi)
+    phi2D, theta2D = jnp.meshgrid(phi1D, theta1D)
     # Create a color map similar to viridis 
-    Bmag = self.B_mag(r, theta2D, phi2D)
+    Bmag = B_mag(results, r, theta2D, phi2D) # not in results class !!! -> changed taking results in as a argument 
+    #logging.basicConfig(level=logging.DEBUG)
+    
+    #logging.debug(f"Type of Bmag before conversion: {type(Bmag)}")
+
+    Bmag = np.array(Bmag , dtype=float)
+    print("Type of Bmag after conversion:", type(Bmag))
+
     norm = clr.Normalize(vmin=Bmag.min(), vmax=Bmag.max())
     if fieldlines==False:
         if colormap==None:
@@ -444,9 +456,9 @@ def plot_boundary(self, r=0.1, ntheta=80, nphi=150, ntheta_fourier=20, nsections
         # Plot different field lines corresponding to different alphas
         # where alpha=theta-iota*varphi with (theta,varphi) the Boozer angles
         #alphas = [0, np.pi/4, np.pi/2, 3*np.pi/4, np.pi, 5*np.pi/4, 3*np.pi/2, 7*np.pi/4]
-        alphas = np.linspace(0, 2 * np.pi, 8, endpoint=False)
+        alphas = jnp.linspace(0, 2 * np.pi, 8, endpoint=False)
         # Create the field line arrays
-        fieldline_X, fieldline_Y, fieldline_Z = create_field_lines(self, alphas, x_2D_plot, y_2D_plot, z_2D_plot)
+        fieldline_X, fieldline_Y, fieldline_Z = create_field_lines(results, alphas, x_2D_plot, y_2D_plot, z_2D_plot)
         # Define the rotation arrays for the subplots
         degrees_array_x = [0., -66., 81.] # degrees for rotation in x
         degrees_array_z = [azim_default, azim_default, azim_default] # degrees for rotation in z
@@ -502,7 +514,7 @@ def B_fieldline(self, r=0.1, alpha=0, phimax=None, nphi=400, show=True):
     '''
     if phimax is None:
         phimax = 10 * np.pi / abs(self.iota)
-    varphi_array = np.linspace(0, phimax, nphi)
+    varphi_array = jnp.linspace(0, phimax, nphi)
     _, ax = plt.subplots(1, 1, figsize=(10, 6), dpi=80, facecolor='w', edgecolor='k')
     plt.xlabel(r'$\varphi$')
     plt.ylabel(r'$B(\varphi)$')
@@ -528,9 +540,9 @@ def B_contour(self, r=0.1, ntheta=100, nphi=120, ncontours=10, show=True):
       ncontours (int): number of contours to show in the plot
       show (bool): Whether or not to call the matplotlib ``show()`` command.
     '''
-    theta_array = np.linspace(0, 2 * np.pi, ntheta)
-    phi_array = np.linspace(0, 2 * np.pi, nphi)
-    phi_2D, theta_2D = np.meshgrid(phi_array, theta_array)
+    theta_array = jnp.linspace(0, 2 * np.pi, ntheta)
+    phi_array = jnp.linspace(0, 2 * np.pi, nphi)
+    phi_2D, theta_2D = jnp.meshgrid(phi_array, theta_array)
     magB_2D = self.B_mag(r, theta_2D, phi_2D, Boozer_toroidal=True)
     fig, ax = plt.subplots(1, 1)
     contourplot = ax.contourf(phi_2D / np.pi, theta_2D / np.pi, magB_2D, ncontours, cmap=cm.plasma)
@@ -569,12 +581,12 @@ def plot_axis(self, nphi=100, frenet=True, nphi_frenet=80, frenet_factor=0.12, s
     '''
     # Create array of toroidal angles along the axis
     # where the axis points will be created
-    phi_array = np.linspace(0, 2 * np.pi, nphi)
+    phi_array = jnp.linspace(0, 2 * np.pi, nphi)
     # Calculate the x, y and z components of the axis
     R0 = self.R0_func(phi_array)
     Z0 = self.Z0_func(phi_array)
-    x_plot = R0 * np.cos(phi_array)
-    y_plot = R0 * np.sin(phi_array)
+    x_plot = R0 * jnp.cos(phi_array)
+    y_plot = R0 * jnp.sin(phi_array)
     z_plot = Z0
     if frenet:
         # Show Frenet-Serret frame
@@ -590,19 +602,19 @@ def plot_axis(self, nphi=100, frenet=True, nphi_frenet=80, frenet_factor=0.12, s
         ax.label_text_property.bold = False
         ax.label_text_property.italic = False
         # Create array of toroidal angles where the Frenet-Serret is shown
-        phi_array = np.linspace(0, 2 * np.pi, nphi_frenet)
+        phi_array = jnp.linspace(0, 2 * np.pi, nphi_frenet)
         # Calculate origin and vector arrays for the Frenet-Serret frame
         R0 = self.R0_func(phi_array)
         Z0 = self.Z0_func(phi_array)
-        x_plot = R0*np.cos(phi_array)
-        y_plot = R0*np.sin(phi_array)
+        x_plot = R0*jnp.cos(phi_array)
+        y_plot = R0*jnp.sin(phi_array)
         z_plot = Z0
         # Normal vector (red)
         normal_R   = self.normal_R_spline(phi_array)
         normal_phi = self.normal_phi_spline(phi_array)
         normal_Z   = self.normal_z_spline(phi_array)
-        normal_X   = normal_R * np.cos(phi_array) - normal_phi * np.sin(phi_array)
-        normal_Y   = normal_R * np.sin(phi_array) + normal_phi * np.cos(phi_array)
+        normal_X   = normal_R * jnp.cos(phi_array) - normal_phi * jnp.sin(phi_array)
+        normal_Y   = normal_R * jnp.sin(phi_array) + normal_phi * jnp.cos(phi_array)
         mlab.quiver3d(x_plot, y_plot, z_plot,
                       normal_X, normal_Y, normal_Z,
                       scale_factor=frenet_factor,
@@ -611,8 +623,8 @@ def plot_axis(self, nphi=100, frenet=True, nphi_frenet=80, frenet_factor=0.12, s
         binormal_R   = self.binormal_R_spline(phi_array)
         binormal_phi = self.binormal_phi_spline(phi_array)
         binormal_Z   = self.binormal_z_spline(phi_array)
-        binormal_X   = binormal_R * np.cos(phi_array) - binormal_phi * np.sin(phi_array)
-        binormal_Y   = binormal_R * np.sin(phi_array) + binormal_phi * np.cos(phi_array)
+        binormal_X   = binormal_R * jnp.cos(phi_array) - binormal_phi * jnp.sin(phi_array)
+        binormal_Y   = binormal_R * jnp.sin(phi_array) + binormal_phi * jnp.cos(phi_array)
         mlab.quiver3d(x_plot, y_plot, z_plot,
                       binormal_X, binormal_Y, binormal_Z,
                       scale_factor=frenet_factor,
@@ -621,8 +633,8 @@ def plot_axis(self, nphi=100, frenet=True, nphi_frenet=80, frenet_factor=0.12, s
         tangent_R   = self.tangent_R_spline(phi_array)
         tangent_phi = self.tangent_phi_spline(phi_array)
         tangent_Z   = self.tangent_z_spline(phi_array)
-        tangent_X   = tangent_R * np.cos(phi_array) - tangent_phi * np.sin(phi_array)
-        tangent_Y   = tangent_R * np.sin(phi_array) + tangent_phi * np.cos(phi_array)
+        tangent_X   = tangent_R * jnp.cos(phi_array) - tangent_phi * jnp.sin(phi_array)
+        tangent_Y   = tangent_R * jnp.sin(phi_array) + tangent_phi * jnp.cos(phi_array)
         mlab.quiver3d(x_plot, y_plot, z_plot,
                       tangent_X, tangent_Y, tangent_Z,
                       scale_factor=frenet_factor,
@@ -684,9 +696,9 @@ def flux_tube(self, r=0.12, alpha=0, delta_r=0.03, delta_alpha=0.2, delta_phi=4*
     x_2D_plot, y_2D_plot, z_2D_plot, R_2D_plot = self.get_boundary(r=r, ntheta=ntheta, nphi=nphi, ntheta_fourier=ntheta_fourier)
     # Define the magnetic field modulus and create its theta,phi array
     # The norm instance will be used as the colormap for the surface
-    theta1D = np.linspace(0, 2 * np.pi, ntheta)
-    phi1D = np.linspace(0, 2 * np.pi, nphi)
-    phi2D, theta2D = np.meshgrid(phi1D, theta1D)
+    theta1D = jnp.linspace(0, 2 * np.pi, ntheta)
+    phi1D = jnp.linspace(0, 2 * np.pi, nphi)
+    phi2D, theta2D = jnp.meshgrid(phi1D, theta1D)
     # Create a color map similar to viridis 
     Bmag = self.B_mag(r, theta2D, phi2D)
     norm = clr.Normalize(vmin=Bmag.min(), vmax=Bmag.max())
