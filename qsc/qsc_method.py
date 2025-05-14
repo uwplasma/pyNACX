@@ -53,8 +53,8 @@ def Qsc_method(rc, zs, rs=[], zc=[], nfp=1, etabar=1., sigma0=0., B0=1., I2=0., 
   axis_length = pre_calculations_results[0][20]
   
   calculation_results = calculate(nfp, etabar, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_phi, d_d_varphi, sG, spsi, B0, G0, iotaN, torsion, abs_G0_over_B0, B2s, B2c, p2, I2, nphi, order, iota, d_l_d_varphi, tangent_cylindrical, normal_cylindrical, binormal_cylindrical, d_phi, axis_length)
-  
-  return pre_calculations_results, calculation_results
+  inputs = rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2, order
+  return pre_calculations_results, calculation_results, inputs
 
 
 def pre_calculations(rc, zs, rs, zc, nfp, etabar, sigma0, B0, I2, sG, spsi, nphi, B2s, B2c, p2, order, nfourier):

@@ -5,12 +5,13 @@ off-axis cylindrical toroidal angle
 """
 
 import numpy as np
+from examples.results_class import Results
 import jax.numpy as jnp
 from scipy.optimize import root_scalar
 
 from qsc.init_axis import convert_to_spline
 
-def Frenet_to_cylindrical_residual_func(phi0, phi_target, qsc):
+def Frenet_to_cylindrical_residual_func(phi0, phi_target, qsc, X_spline, Y_spline, Z_spline):
     """
     This function takes a point on the magnetic axis with a given
     toroidal angle phi0, computes the actual toroidal angle phi
@@ -24,8 +25,8 @@ def Frenet_to_cylindrical_residual_func(phi0, phi_target, qsc):
     sinphi0 = jnp.sin(phi0)
     cosphi0 = jnp.cos(phi0)
     R0_at_phi0   = qsc.R0_func(phi0)
-    X_at_phi0    = qsc.X_spline(phi0)
-    Y_at_phi0    = qsc.Y_spline(phi0)
+    X_at_phi0    = X_spline(phi0)
+    Y_at_phi0    = Y_spline(phi0)
     normal_R     = qsc.normal_R_spline(phi0)
     normal_phi   = qsc.normal_phi_spline(phi0)
     binormal_R   = qsc.binormal_R_spline(phi0)
@@ -40,7 +41,7 @@ def Frenet_to_cylindrical_residual_func(phi0, phi_target, qsc):
     total_y = R0_at_phi0 * sinphi0 + X_at_phi0 * normal_y + Y_at_phi0 * binormal_y
 
     if qsc.order != 'r1':
-        Z_at_phi0    = qsc.Z_spline(phi0)
+        Z_at_phi0    = Z_spline(phi0)
         tangent_R    = qsc.tangent_R_spline(phi0)
         tangent_phi  = qsc.tangent_phi_spline(phi0)
 
@@ -56,7 +57,7 @@ def Frenet_to_cylindrical_residual_func(phi0, phi_target, qsc):
     if (Frenet_to_cylindrical_residual < -jnp.pi): Frenet_to_cylindrical_residual = Frenet_to_cylindrical_residual + 2*np.pi
     return Frenet_to_cylindrical_residual
 
-def Frenet_to_cylindrical_1_point(phi0, qsc):
+def Frenet_to_cylindrical_1_point(phi0, qsc, X_spline, Y_spline, Z_spline):
     """
     This function takes a point on the magnetic axis with a given
     toroidal angle phi0 and computes the cylindrical coordinate
@@ -67,15 +68,15 @@ def Frenet_to_cylindrical_1_point(phi0, qsc):
     """
     sinphi0 = jnp.sin(phi0)
     cosphi0 = jnp.cos(phi0)
-    R0_at_phi0   = qsc.R0_func(phi0)
-    z0_at_phi0   = qsc.Z0_func(phi0)
-    X_at_phi0    = qsc.X_spline(phi0)
-    Y_at_phi0    = qsc.Y_spline(phi0)
-    Z_at_phi0    = qsc.Z_spline(phi0)
-    normal_R     = qsc.normal_R_spline(phi0)
-    normal_phi   = qsc.normal_phi_spline(phi0)
-    normal_z     = qsc.normal_z_spline(phi0)
-    binormal_R   = qsc.binormal_R_spline(phi0)
+    R0_at_phi0  = qsc.R0_func(phi0)
+    z0_at_phi0  = qsc.Z0_func(phi0)
+    X_at_phi0   = X_spline(phi0)#
+    Y_at_phi0   = Y_spline(phi0)#
+    Z_at_phi0   = Z_spline(phi0)#
+    normal_R    = qsc.normal_R_spline(phi0)
+    normal_phi  = qsc.normal_phi_spline(phi0)
+    normal_z    = qsc.normal_z_spline(phi0)
+    binormal_R  = qsc.binormal_R_spline(phi0)
     binormal_phi = qsc.binormal_phi_spline(phi0)
     binormal_z   = qsc.binormal_z_spline(phi0)
 
@@ -106,7 +107,7 @@ def Frenet_to_cylindrical_1_point(phi0, qsc):
 
     return total_R, total_z, total_phi
 
-def Frenet_to_cylindrical(results, r, ntheta=20): # changed to use results class -> to_vmec will no longer work
+def Frenet_to_cylindrical(results: Results, r, ntheta=20): # changed to use results class -> to_vmec will no longer work
     r"""
     For a given minor radius coordinate :math:`r`, compute the
     shape of the flux surface in standard cylindrical coordinates
@@ -167,9 +168,9 @@ def Frenet_to_cylindrical(results, r, ntheta=20): # changed to use results class
             phi0_rootSolve_min = phi_target - 1.0 / results.nfp
             phi0_rootSolve_max = phi_target + 1.0 / results.nfp
             res = root_scalar(Frenet_to_cylindrical_residual_func, xtol=1e-15, rtol=1e-15, maxiter=1000,\
-                              args=(phi_target, self), bracket=[phi0_rootSolve_min, phi0_rootSolve_max], x0=phi_target)
+                              args=(phi_target, results, X_spline, Y_spline, Z_spline), bracket=[phi0_rootSolve_min, phi0_rootSolve_max], x0=phi_target) # shouldnt x0 be phi_0
             phi0_solution = res.root
-            final_R, final_z, _ = Frenet_to_cylindrical_1_point(phi0_solution, self) # requires some of the splines made in root Frenet_to_cylindrical_residual_func 
+            final_R, final_z, _ = Frenet_to_cylindrical_1_point(phi0_solution, results, X_spline, Y_spline, Z_spline) # requires some of the splines made in root Frenet_to_cylindrical_residual_func 
             R_2D = R_2D.at[j_theta,j_phi].set(final_R)
             Z_2D = Z_2D.at[j_theta,j_phi].set(final_z)
             phi0_2D = phi0_2D.at[j_theta,j_phi].set(phi0_solution)

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import sys
 
+from examples.results_class import Results
+from qsc import plot
 from qsc.plot import plot_boundary
-sys.path.append('/Users/z/Documents/GitHub/pyNACX')
 
 
 import numpy as np
@@ -15,10 +16,10 @@ from qsc import derive_r3 , calculate_r1
   
 
 print("Running pyNACX...")
-stel = Qsc(rc=[1, 0.09], zs=[0, -0.09], nfp=2, etabar=0.95, I2=0.9, order='r2', B2c=-0.7, p2=-600000.)
+#stel = Qsc(rc=[1, 0.09], zs=[0, -0.09], nfp=2, etabar=0.95, I2=0.9, order='r2', B2c=-0.7, p2=-600000.)
 
 # this runs the procedures for making a stellarator in a jax compatibile way    
-#ans = Qsc_method(rc=[1, 0.09], zs=[0, -0.09], nfp=2, etabar=0.95, I2=0.9, order='r2', B2c=-0.7, p2=-600000.)
+ans = Qsc_method(rc=[1, 0.09], zs=[0, -0.09], nfp=2, etabar=0.95, I2=0.9, order='r2', B2c=-0.7, p2=-600000.)
 
 
 
@@ -181,6 +182,23 @@ res = Results(
   Z3s3_untwisted= ans[1][0][26],
   Z3c1_untwisted= ans[1][0][27],
   Z3c3_untwisted= ans[1][0][28],
+  # inputs
+  rc = ans[2][0], 
+  zs = ans[2][1],
+  rs = ans[2][2],
+  zc = ans[2][3],
+  nfp= ans[2][4],
+  etabar= ans[2][5],
+  sigma0= ans[2][6],
+  B0= ans[2][7],
+  I2= ans[2][8],
+  sG= ans[2][9],
+  spsi= ans[2][10],
+  nphi= ans[2][11],
+  B2s= ans[2][12],
+  B2c= ans[2][13],
+  p2= ans[2][14],
+  order= ans[2][15],
 )
   
 
@@ -194,4 +212,4 @@ print("pyNACX finished")
 #print(stel.grad_grad_B_inverse_scale_length) # Scale length associated with the grad grad B tensor Semo: grad_grad_B_inverse_scale_length is not calculted in r1
 #print("plotting...")
 plot_boundary(res) # Plot the flux surface shape at the default radius r=1
-stel.plot() # Plot relevant near axis parameters
+plot.plot(res) # Plot relevant near axis parameters

@@ -16,7 +16,7 @@ from qsc import Frenet_to_cylindrical
 from .util import B_mag, to_Fourier
 import logging 
 
-def plot(self, newfigure=True, show=True):
+def plot(results: Results, newfigure=True, show=True):
     """
     Generate a matplotlib figure with an array of plots, showing the
     toroidally varying properties of the configuration.
@@ -28,13 +28,13 @@ def plot(self, newfigure=True, show=True):
     if newfigure:
         plt.figure(figsize=(14, 7))
     plt.rcParams.update({'font.size': 6})
-    if self.order == 'r1':
+    if results.order == 'r1':
         nrows = 3
         ncols = 6
-    elif self.order == 'r2':
+    elif results.order == 'r2':
         nrows = 4
         ncols = 8
-    elif self.order == 'r3':
+    elif results.order == 'r3':
         nrows = 5
         ncols = 7
     else:
@@ -51,12 +51,12 @@ def plot(self, newfigure=True, show=True):
             data = eval('self.' + title)
         plt.subplot(nrows, ncols, jplot)
         jplot = jplot + 1
-        plt.plot(self.phi, data, label=title)
+        plt.plot(results.phi, data, label=title)
         plt.xlabel(r'$\phi$')
         plt.title(title)
         if y0:
             plt.ylim(bottom=0)
-        plt.xlim((0, self.phi[-1]))
+        plt.xlim((0, results.phi[-1]))
 
     subplot('R0')
     subplot('Z0')
@@ -74,18 +74,18 @@ def plot(self, newfigure=True, show=True):
     subplot('Y1s')
     subplot('elongation', y0=True)
     subplot('L_grad_B', y0=True)
-    subplot('1/L_grad_B', data=self.inv_L_grad_B)
-    if self.order != 'r1':
+    subplot('1/L_grad_B', data=results.inv_L_grad_B)
+    if results.order != 'r1':
         jplot -= 2
         subplot('L_grad_grad_B')
         plt.title('scale lengths')
         plt.legend(loc=0, fontsize=5)
-        plt.ylim(0, max(max(self.L_grad_B), max(self.L_grad_grad_B)))
+        plt.ylim(0, max(max(results.L_grad_B), max(results.L_grad_grad_B)))
         
-        subplot('1/L_grad_grad_B', self.grad_grad_B_inverse_scale_length_vs_varphi)
+        subplot('1/L_grad_grad_B', results.grad_grad_B_inverse_scale_length_vs_varphi)
         plt.title('inv scale lengths')
         plt.legend(loc=0, fontsize=5)
-        plt.ylim(0, max(max(self.inv_L_grad_B), max(self.grad_grad_B_inverse_scale_length_vs_varphi)))
+        plt.ylim(0, max(max(results.inv_L_grad_B), max(results.grad_grad_B_inverse_scale_length_vs_varphi)))
         
         subplot('B20')
         subplot('V1')
@@ -100,10 +100,10 @@ def plot(self, newfigure=True, show=True):
         subplot('Z20')
         subplot('Z2c')
         subplot('Z2s')
-        data = self.r_singularity_vs_varphi
+        data = results.r_singularity_vs_varphi
         data = data.at[data > 1e20].set(jnp.nan)
         subplot('r_singularity', data=data, y0=True)
-        if self.order != 'r2':
+        if results.order != 'r2':
             subplot('X3c1')
             subplot('Y3c1')
             subplot('Y3s1')
@@ -270,7 +270,7 @@ def get_boundary(result: Results, r=0.1, ntheta=40, nphi=130, ntheta_fourier=20,
       ntor: resolution in toroidal Fourier space
     '''
     # Get surface shape at fixed off-axis toroidal angle phi
-    R_2D, Z_2D, _ = Frenet_to_cylindrical.Frenet_to_cylindrical(result, r, ntheta=ntheta_fourier) # this doesnt yet work off results class 
+    R_2D, Z_2D, _ = Frenet_to_cylindrical.Frenet_to_cylindrical(result, r, ntheta=ntheta_fourier) 
     # Get Fourier coefficients in order to plot with arbitrary resolution
     RBC, RBS, ZBC, ZBS = to_Fourier(R_2D, Z_2D, result.nfp, mpol=mpol, ntor=ntor, lasym=result.lasym)
     if not result.lasym:
@@ -345,7 +345,7 @@ def plot_boundary(results: Results, r=0.1, ntheta=80, nphi=150, ntheta_fourier=2
     .. image:: poloidalplot.png
        :width: 200
     """
-    x_2D_plot, y_2D_plot, z_2D_plot, R_2D_plot = self.get_boundary(r=r, ntheta=ntheta, nphi=nphi, ntheta_fourier=ntheta_fourier) 
+    x_2D_plot, y_2D_plot, z_2D_plot, R_2D_plot = get_boundary(results, r=r, ntheta=ntheta, nphi=nphi, ntheta_fourier=ntheta_fourier) 
     phi = jnp.linspace(0, 2 * np.pi, nphi)  # Endpoint = true and no nfp factor, because this is what is used in get_boundary()
     R_2D_spline = interp1d(phi, R_2D_plot, axis=1)
     z_2D_spline = interp1d(phi, z_2D_plot, axis=1)

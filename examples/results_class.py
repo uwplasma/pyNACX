@@ -1,4 +1,4 @@
-from typing import NamedTuple
+from typing import NamedTuple, List
 import jax.numpy as jnp
 
 
@@ -6,9 +6,7 @@ class Results(NamedTuple):
   """
   results class that stores the results of the calculation for use in plotting software
   """
-  #inputs ... need to add
-  
-  # init acess(pre calc)
+  # init axis(pre calc)
   helicity: jnp.ndarray
   normal_cylindrical: jnp.ndarray
   etabar_squared_over_curvature_squared: jnp.ndarray
@@ -167,3 +165,20 @@ class Results(NamedTuple):
   Z3s3_untwisted: jnp.ndarray 
   Z3c1_untwisted: jnp.ndarray 
   Z3c3_untwisted: jnp.ndarray 
+  #inputs 
+  rc: jnp.ndarray
+  zs: jnp.ndarray
+  rs: jnp.ndarray
+  zc: jnp.ndarray
+  nfp: int 
+  etabar: float
+  sigma0: float
+  B0: float
+  I2: float
+  sG: int
+  spsi: int
+  nphi: int
+  B2s: float
+  B2c: float
+  p2: float
+  order: str
