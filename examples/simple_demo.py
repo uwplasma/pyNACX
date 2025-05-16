@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 
-from examples.results_class import Results
+from qsc.results_class import Results
 from qsc import plot
 from qsc.plot import plot_boundary
 

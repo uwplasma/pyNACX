@@ -7,7 +7,7 @@ Various utility functions
 import logging
 import numpy as np
 import scipy.optimize
-from examples.results_class import Results
+from results_class import Results
 from qsc.fourier_interpolation import fourier_interpolation
 from scipy.interpolate import CubicSpline as spline
 
