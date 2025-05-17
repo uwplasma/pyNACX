@@ -8,13 +8,14 @@ import logging
 import numpy as np
 import scipy.optimize
 from qsc.fourier_interpolation import fourier_interpolation
-from scipy.interpolate import CubicSpline as spline
+#from scipy.interpolate import CubicSpline as spline
 
 import jax
 import jax.scipy.optimize as jso
 import jax.numpy as jnp
 from jaxopt import ScipyMinimize
 #from qsc.init_axis import convert_to_spline
+from interpax import CubicSpline as spline
 from qsc.results_class import Results
 
 
@@ -98,7 +99,7 @@ def fourier_minimum(y):
     """
     # Handle the case of a constant:
     y = jnp.array(y) # ensure correct argument
-    print(y)
+    
     if (jnp.max(y) - jnp.min(y)) / jnp.max(jnp.array([1e-14, jnp.abs(jnp.mean(y))])) < 1e-14:
         return y[0]
     

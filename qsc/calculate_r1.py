@@ -218,10 +218,10 @@ def r1_diagnostics(nfp, etabar, sG, spsi, curvature, sigma, helicity, varphi, X1
     
     max_elongation = -jax_fourier_minimum(-elongation).x
     
-    jnp.save('debug3' , X1c)
-    jnp.save('debug4' , d_d_varphi)
+    #jnp.save('debug3' , X1c)
+    #jnp.save('debug4' , d_d_varphi)
     d_X1c_d_varphi = jnp.matmul(d_d_varphi, X1c)
-    jnp.save('d_X1c_d_varphi_og' , d_X1c_d_varphi)
+    #jnp.save('d_X1c_d_varphi_og' , d_X1c_d_varphi)
     d_X1s_d_varphi = jnp.matmul(d_d_varphi, X1s)
     d_Y1s_d_varphi = jnp.matmul(d_d_varphi, Y1s)
     d_Y1c_d_varphi = jnp.matmul(d_d_varphi, Y1c)

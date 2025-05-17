@@ -5,7 +5,7 @@ curvature and torsion from the magnetix axis shape.
 
 import logging
 import numpy as np
-from scipy.interpolate import CubicSpline as spline
+#from scipy.interpolate import CubicSpline as spline
 
 from qsc.util import jax_fourier_minimum
 from .spectral_diff_matrix import jax_spectral_diff_matrix, spectral_diff_matrix
@@ -13,7 +13,7 @@ from .spectral_diff_matrix import jax_spectral_diff_matrix, spectral_diff_matrix
 
 import jax
 import jax.numpy as jnp
-from interpax import CubicSpline #  i found this online, open source support for cubic splines
+from interpax import CubicSpline as spline #  i found this online, open source support for cubic splines
 
 # Set default floating-point precision to 64-bit (double precision)
 jax.config.update('jax_enable_x64', True)
