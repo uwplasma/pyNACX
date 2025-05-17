@@ -13,7 +13,7 @@ from .util import mu0
 import jax.numpy as jnp
 from .calculate_r1_helpers import *
 from .calculate_r2_helpers import * 
-from .derive_r2 import *
+#from .derive_r2 import *
 
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

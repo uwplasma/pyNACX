@@ -11,7 +11,7 @@ import jax
 import jax.numpy as jnp
 from qsc import Qsc
 from qsc.qsc_method import Qsc_method
-from qsc import derive_r3 , calculate_r1
+from qsc import calculate_r1
   
   
 
