@@ -5,7 +5,7 @@ off-axis cylindrical toroidal angle
 """
 
 import numpy as np
-from examples.results_class import Results
+from .results_class import Results
 import jax.numpy as jnp
 from scipy.optimize import root_scalar
 

@@ -7,7 +7,7 @@ import numpy as np
 from scipy import integrate as integ
 from .util import mu0
 import jax.numpy as jnp
-from .derive_r3 import * 
+#from .derive_r3 import * 
 
 
 #logging.basicConfig(level=logging.DEBUG)

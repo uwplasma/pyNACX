@@ -6,8 +6,10 @@ curvature and torsion from the magnetix axis shape.
 import logging
 import numpy as np
 from scipy.interpolate import CubicSpline as spline
+
+from qsc.util import jax_fourier_minimum
 from .spectral_diff_matrix import jax_spectral_diff_matrix, spectral_diff_matrix
-from .util import fourier_minimum, jax_fourier_minimum
+#from .util import jax_fourier_minimum
 
 import jax
 import jax.numpy as jnp
@@ -63,10 +65,11 @@ def convert_to_spline(array, phi, nfp):
     sp = spline(jnp.append(phi,2*jnp.pi/nfp), jnp.append(array,array[0]), bc_type='periodic') #need to get open source to work here
     return sp
 
-def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0, order, B2s):
+def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0, order, B2s):
     """
     Initialize the curvature, torsion, differentiation matrix, etc. waiting on interpax support for cubic spline
     """
+    #from .util import jax_fourier_minimum
 
     # Generate phi
     
@@ -188,41 +191,41 @@ def init_axis(self, nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, s
     print('before spline')
 
     # Functions that converts a toroidal angle phi0 on the axis to the axis radial and vertical coordinates
-    R0_func = self.convert_to_spline(sum([rc[i]*jnp.cos(i*nfp*phi) +\
+    R0_func = convert_to_spline(sum([rc[i]*jnp.cos(i*nfp*phi) +\
                                                rs[i]*jnp.sin(i*nfp*phi) \
                                               for i in range(len(rc))]), phi, nfp)
-    Z0_func = self.convert_to_spline(sum([zc[i]*jnp.cos(i*nfp*phi) +\
+    Z0_func = convert_to_spline(sum([zc[i]*jnp.cos(i*nfp*phi) +\
                                                zs[i]*jnp.sin(i*nfp*phi) \
                                               for i in range(len(zs))]), phi, nfp)
-    self.lasym = lasym
-    self.R0_func = R0_func
-    self.Z0_func = Z0_func
+    #self.lasym = lasym
+    #self.R0_func = R0_func
+    #self.Z0_func = Z0_func
 
     # Spline interpolants for the cylindrical components of the Frenet-Serret frame:
     #got rid of self statments
-    self.normal_R_spline     = self.convert_to_spline(normal_cylindrical[:,0], phi, nfp)
-    self.normal_phi_spline   = self.convert_to_spline(normal_cylindrical[:,1], phi, nfp)
-    self.normal_z_spline     = self.convert_to_spline(normal_cylindrical[:,2], phi, nfp)
-    self.binormal_R_spline   = self.convert_to_spline(binormal_cylindrical[:,0], phi, nfp)
-    self.binormal_phi_spline = self.convert_to_spline(binormal_cylindrical[:,1], phi, nfp)
-    self.binormal_z_spline   = self.convert_to_spline(binormal_cylindrical[:,2], phi, nfp)
-    self.tangent_R_spline    = self.convert_to_spline(tangent_cylindrical[:,0], phi, nfp)
-    self.tangent_phi_spline  = self.convert_to_spline(tangent_cylindrical[:,1], phi, nfp)
-    self.tangent_z_spline    = self.convert_to_spline(tangent_cylindrical[:,2], phi, nfp)
+    normal_R_spline     = convert_to_spline(normal_cylindrical[:,0], phi, nfp)
+    normal_phi_spline   = convert_to_spline(normal_cylindrical[:,1], phi, nfp)
+    normal_z_spline     = convert_to_spline(normal_cylindrical[:,2], phi, nfp)
+    binormal_R_spline   = convert_to_spline(binormal_cylindrical[:,0], phi, nfp)
+    binormal_phi_spline = convert_to_spline(binormal_cylindrical[:,1], phi, nfp)
+    binormal_z_spline   = convert_to_spline(binormal_cylindrical[:,2], phi, nfp)
+    tangent_R_spline    = convert_to_spline(tangent_cylindrical[:,0], phi, nfp)
+    tangent_phi_spline  = convert_to_spline(tangent_cylindrical[:,1], phi, nfp)
+    tangent_z_spline    = convert_to_spline(tangent_cylindrical[:,2], phi, nfp)
     
-    normal_R_spline     = self.convert_to_spline(normal_cylindrical[:,0], phi, nfp)
-    normal_phi_spline   = self.convert_to_spline(normal_cylindrical[:,1], phi, nfp)
-    normal_z_spline     = self.convert_to_spline(normal_cylindrical[:,2], phi, nfp)
-    binormal_R_spline   = self.convert_to_spline(binormal_cylindrical[:,0], phi, nfp)
-    binormal_phi_spline = self.convert_to_spline(binormal_cylindrical[:,1], phi, nfp)
-    binormal_z_spline   = self.convert_to_spline(binormal_cylindrical[:,2], phi, nfp)
-    tangent_R_spline    = self.convert_to_spline(tangent_cylindrical[:,0], phi, nfp)
-    tangent_phi_spline  = self.convert_to_spline(tangent_cylindrical[:,1], phi, nfp)
-    tangent_z_spline    = self.convert_to_spline(tangent_cylindrical[:,2], phi, nfp)
+    normal_R_spline     = convert_to_spline(normal_cylindrical[:,0], phi, nfp)
+    normal_phi_spline   = convert_to_spline(normal_cylindrical[:,1], phi, nfp)
+    normal_z_spline     = convert_to_spline(normal_cylindrical[:,2], phi, nfp)
+    binormal_R_spline   = convert_to_spline(binormal_cylindrical[:,0], phi, nfp)
+    binormal_phi_spline = convert_to_spline(binormal_cylindrical[:,1], phi, nfp)
+    binormal_z_spline   = convert_to_spline(binormal_cylindrical[:,2], phi, nfp)
+    tangent_R_spline    = convert_to_spline(tangent_cylindrical[:,0], phi, nfp)
+    tangent_phi_spline  = convert_to_spline(tangent_cylindrical[:,1], phi, nfp)
+    tangent_z_spline    = convert_to_spline(tangent_cylindrical[:,2], phi, nfp)
     print('after spline')
     # Spline interpolant for nu = varphi - phi, used for plotting
-    self.nu_spline = self.convert_to_spline(varphi - phi, phi, nfp)
-    nu_spline = self.convert_to_spline(varphi - phi, phi, nfp)
+    #self.nu_spline = self.convert_to_spline(varphi - phi, phi, nfp)
+    nu_spline = convert_to_spline(varphi - phi, phi, nfp)
 
     return helicity,\
     normal_cylindrical, \

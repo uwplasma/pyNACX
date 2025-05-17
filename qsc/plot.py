@@ -3,7 +3,7 @@ This module contains a function to plot a near-axis surface.
 """
 
 import numpy as np
-from examples.results_class import Results
+from .results_class import Results
 import jax.numpy as jnp
 from scipy.interpolate import interp2d, interp1d
 import matplotlib.pyplot as plt
