@@ -423,8 +423,8 @@ def calc_r2_new(X1c, Y1c, Y1s, B0_over_abs_G0, d_d_varphi, iota_N, torsion, abs_
     Y2c_untwisted = Y2s * (-sinangle) + Y2c * cosangle
     Z2s_untwisted = Z2s *   cosangle  + Z2c * sinangle
     Z2c_untwisted = Z2s * (-sinangle) + Z2c * cosangle
-    print('\n\n\n\n\n\n\n')
-    print(f'nphi: {nphi}')
+    
+    
     r2_results = N_helicity, G2, d_curvature_d_varphi, d_torsion_d_varphi, d_X20_d_varphi, d_X2s_d_varphi, d_X2c_d_varphi, d_Y20_d_varphi, d_Y2s_d_varphi, d_Y2c_d_varphi, d_Z20_d_varphi, d_Z2s_d_varphi, d_Z2c_d_varphi, d2_X1c_d_varphi2, d2_Y1c_d_varphi2, d2_Y1s_d_varphi2, V1, V2, V3, X20, X2s, X2c, Y20, Y2s, Y2c, Z20, Z2s, Z2c, beta_1s, B20, X20_untwisted, X2s_untwisted, X2c_untwisted, Y20_untwisted, Y2s_untwisted, Y2c_untwisted, Z20_untwisted, Z2s_untwisted, Z2c_untwisted
     
     return mercier_results, grad_grad_B_results, r2_results, r_singularity_results

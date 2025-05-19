@@ -28,13 +28,13 @@ def plot(results: Results, newfigure=True, show=True):
     if newfigure:
         plt.figure(figsize=(14, 7))
     plt.rcParams.update({'font.size': 6})
-    if results.order == 'r1':
+    if results['order'] == 'r1':
         nrows = 3
         ncols = 6
-    elif results.order == 'r2':
+    elif results['order'] == 'r2':
         nrows = 4
         ncols = 8
-    elif results.order == 'r3':
+    elif results['order'] == 'r3':
         nrows = 5
         ncols = 7
     else:
@@ -51,12 +51,12 @@ def plot(results: Results, newfigure=True, show=True):
             data = eval('self.' + title)
         plt.subplot(nrows, ncols, jplot)
         jplot = jplot + 1
-        plt.plot(results.phi, data, label=title)
+        plt.plot(results['phi'], data, label=title)
         plt.xlabel(r'$\phi$')
         plt.title(title)
         if y0:
             plt.ylim(bottom=0)
-        plt.xlim((0, results.phi[-1]))
+        plt.xlim((0, results['phi'][-1]))
 
     subplot('R0')
     subplot('Z0')
@@ -74,18 +74,18 @@ def plot(results: Results, newfigure=True, show=True):
     subplot('Y1s')
     subplot('elongation', y0=True)
     subplot('L_grad_B', y0=True)
-    subplot('1/L_grad_B', data=results.inv_L_grad_B)
-    if results.order != 'r1':
+    subplot('1/L_grad_B', data=results['inv_L_grad_B'])
+    if results['order'] != 'r1':
         jplot -= 2
         subplot('L_grad_grad_B')
         plt.title('scale lengths')
         plt.legend(loc=0, fontsize=5)
-        plt.ylim(0, max(max(results.L_grad_B), max(results.L_grad_grad_B)))
+        plt.ylim(0, max(max(results['L_grad_B']), max(results['L_grad_grad_B'])))
         
-        subplot('1/L_grad_grad_B', results.grad_grad_B_inverse_scale_length_vs_varphi)
+        subplot('1/L_grad_grad_B', results['grad_grad_B_inverse_scale_length_vs_varphi'])
         plt.title('inv scale lengths')
         plt.legend(loc=0, fontsize=5)
-        plt.ylim(0, max(max(results.inv_L_grad_B), max(results.grad_grad_B_inverse_scale_length_vs_varphi)))
+        plt.ylim(0, max(max(results['inv_L_grad_B']), max(results['grad_grad_B_inverse_scale_length_vs_varphi'])))
         
         subplot('B20')
         subplot('V1')
@@ -100,10 +100,10 @@ def plot(results: Results, newfigure=True, show=True):
         subplot('Z20')
         subplot('Z2c')
         subplot('Z2s')
-        data = results.r_singularity_vs_varphi
+        data = results['r_singularity_vs_varphi']
         data = data.at[data > 1e20].set(jnp.nan)
         subplot('r_singularity', data=data, y0=True)
-        if results.order != 'r2':
+        if results['order'] != 'r2':
             subplot('X3c1')
             subplot('Y3c1')
             subplot('Y3s1')
@@ -195,8 +195,8 @@ def create_field_lines(qsc: Results, alphas, X_2D, Y_2D, Z_2D, phimax=2*jnp.pi, 
     for i in range(len(alphas)):
         for j in range(len(phi_array)):
             phi_mod = jnp.mod(phi_array[j],2*jnp.pi)
-            varphi0=qsc.nu_spline(phi_array[j])+2*phi_array[j]-phi_mod
-            theta_fieldline=qsc.iota*varphi0+alphas[i]
+            varphi0=qsc['nu_spline'](phi_array[j])+2*phi_array[j]-phi_mod
+            theta_fieldline=qsc['iota']*varphi0+alphas[i]
             theta_fieldline_mod=jnp.mod(theta_fieldline,2*jnp.pi)
             fieldline_X[i,j] = X_2D_spline(phi_mod,theta_fieldline_mod)[0]
             fieldline_Y[i,j] = Y_2D_spline(phi_mod,theta_fieldline_mod)[0]
@@ -364,24 +364,24 @@ def plot_boundary(results: Results, r=0.1, ntheta=80, nphi=150, ntheta_fourier=2
         return color
     
     ## Poloidal plot
-    phi1dplot_RZ = jnp.linspace(0, 2 * np.pi / results.nfp, nsections, endpoint=False)
+    phi1dplot_RZ = jnp.linspace(0, 2 * np.pi / results['nfp'], nsections, endpoint=False)
     fig = plt.figure(figsize=(6, 6), dpi=80)
     ax  = plt.gca()
     for i, phi in enumerate(phi1dplot_RZ):
-        phinorm = phi * results.nfp / (2 * np.pi)
+        phinorm = phi * results['nfp'] / (2 * np.pi)
         if phinorm == 0:
             label = r'$\phi$=0'
         elif phinorm == 0.25:
-            label = r'$\phi={\pi}/$' + str(2 * results.nfp)
+            label = r'$\phi={\pi}/$' + str(2 * results['nfp'])
         elif phinorm == 0.5:
-            label = r'$\phi=\pi/$' + str(results.nfp)
+            label = r'$\phi=\pi/$' + str(results['nfp'])
         elif phinorm == 0.75:
-            label = r'$\phi={3\pi}/$' + str(2 * results.nfp)
+            label = r'$\phi={3\pi}/$' + str(2 * results['nfp'])
         else:
             label = '_nolegend_'
         color = get_next_color()
         # Plot location of the axis
-        plt.plot(results.R0_func(phi), results.Z0_func(phi), marker="x", linewidth=2, label=label, color=color)
+        plt.plot(results['R0_func'](phi), results['Z0_func'](phi), marker="x", linewidth=2, label=label, color=color)
         # Plot poloidal cross-section
         plt.plot(R_2D_spline(phi), z_2D_spline(phi), color=color)
     plt.xlabel('R (meters)')
@@ -397,7 +397,7 @@ def plot_boundary(results: Results, r=0.1, ntheta=80, nphi=150, ntheta_fourier=2
     # QH stellarators look rotated in the phi direction when
     # azim_default = 0
     if azim_default == None:
-        if results.helicity == 0:
+        if results['helicity'] == 0:
             azim_default = 0
         else:
             azim_default = 45
@@ -407,7 +407,7 @@ def plot_boundary(results: Results, r=0.1, ntheta=80, nphi=150, ntheta_fourier=2
     phi1D = jnp.linspace(0, 2 * np.pi, nphi)
     phi2D, theta2D = jnp.meshgrid(phi1D, theta1D)
     # Create a color map similar to viridis 
-    Bmag = B_mag(results, r, theta2D, phi2D) # not in results class !!! -> changed taking results in as a argument 
+    Bmag = B_mag(results, r, theta2D, phi2D) # not in results class !!! -> changed taking to results in as a argument 
     #logging.basicConfig(level=logging.DEBUG)
     
     #logging.debug(f"Type of Bmag before conversion: {type(Bmag)}")

@@ -202,21 +202,21 @@ def B_mag(results: Results, r, theta, phi, Boozer_toroidal = False):
       Boozer_toroidal: False if phi is the cylindrical toroidal angle, True for the Boozer one
     '''
     if Boozer_toroidal == False:
-        thetaN = theta - (results.iota - results.iotaN) * (phi + results.nu_spline(phi))
+        thetaN = theta - (results['iota'] - results['iotaN']) * (phi + results['nu_spline'](phi))
     else:
-        thetaN = theta - (results.iota - results.iotaN) * phi
+        thetaN = theta - (results['iota'] - results['iotaN']) * phi
 
-    B = results.B0*(1 + r * results.etabar * jnp.cos(thetaN))
+    B = results['B0']*(1 + r * results['etabar'] * jnp.cos(thetaN))
 
     # Add O(r^2) terms if necessary:
-    if results.order != 'r1':
+    if results['order'] != 'r1':
         if Boozer_toroidal == False:
-            B20_spline = convert_to_spline(results.B20, results.phi, results.nfp)
+            B20_spline = convert_to_spline(results['B20'], results['phi'], results['nfp'])
         else:
-            B20_spline = spline(jnp.append(results.varphi, 2 * jnp.pi / results.nfp),
-                                     jnp.append(results.B20, results.B20[0]),
+            B20_spline = spline(jnp.append(results['varphi'], 2 * jnp.pi / results['nfp']),
+                                     jnp.append(results['B20'], results['B20'][0]),
                                      bc_type='periodic')
 
-        B += (r**2) * (B20_spline(phi) + results.B2c * jnp.cos(2 * thetaN) + results.B2s * jnp.sin(2 * thetaN))
+        B += (r**2) * (B20_spline(phi) + results['B2c'] * jnp.cos(2 * thetaN) + results['B2s'] * jnp.sin(2 * thetaN))
 
     return B
