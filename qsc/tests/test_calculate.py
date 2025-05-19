@@ -116,11 +116,10 @@ jnp.allclose(r3_results[0][29], results['Z3c3_untwisted'])
 
 print (bool)
 
+# testing function in jitted context 
+jitted_function = jax.jit(calculate, static_argnames=['order', 'nphi'])
 
-
-jitted_function = jax.jit(calculate)
-
-r1_results, r2_results, r3_results = jitted_function(jnp.asarray(data['nfp']), jnp.asarray(data['etabar']), jnp.asarray(data['curvature']), jnp.asarray(data['sigma']), jnp.asarray(data['helicity']), jnp.asarray(data['varphi']), jnp.asarray(data['X1s']), jnp.asarray(data['X1c']), jnp.asarray(data['d_l_d_phi']), jnp.asarray(data['d_d_varphi']), jnp.asarray(data['sG']), jnp.asarray(data['spsi']), jnp.asarray(data['B0']), jnp.asarray(data['G0']), jnp.asarray(data['iotaN']), jnp.asarray(data['torsion']), jnp.asarray(data['abs_G0_over_B0']), jnp.asarray(data['B2s']), jnp.asarray(data['B2c']), jnp.asarray(data['p2']), jnp.asarray(data['I2']), data['nphi'], data['order'], jnp.asarray(data['iota']), jnp.asarray(data['d_l_d_varphi']), jnp.asarray(data['tangent_cylindrical']), jnp.asarray(data['normal_cylindrical']), jnp.asarray(data['binormal_cylindrical']), jnp.asarray(data['d_phi']), jnp.asarray(data['axis_length']))
+r1_results, r2_results, r3_results = jitted_function(jnp.asarray(data['nfp']), jnp.asarray(data['etabar']), jnp.asarray(data['curvature']), jnp.asarray(data['sigma']), jnp.asarray(data['helicity']), jnp.asarray(data['varphi']), jnp.asarray(data['X1s']), jnp.asarray(data['X1c']), jnp.asarray(data['d_l_d_phi']), jnp.asarray(data['d_d_varphi']), jnp.asarray(data['sG']), jnp.asarray(data['spsi']), jnp.asarray(data['B0']), jnp.asarray(data['G0']), jnp.asarray(data['iotaN']), jnp.asarray(data['torsion']), jnp.asarray(data['abs_G0_over_B0']), jnp.asarray(data['B2s']), jnp.asarray(data['B2c']), jnp.asarray(data['p2']), jnp.asarray(data['I2']), data['nphi'], 'r3', jnp.asarray(data['iota']), jnp.asarray(data['d_l_d_varphi']), jnp.asarray(data['tangent_cylindrical']), jnp.asarray(data['normal_cylindrical']), jnp.asarray(data['binormal_cylindrical']), jnp.asarray(data['d_phi']), jnp.asarray(data['axis_length']))
 
 bool = jnp.allclose(r1_results[0][0], results['Y1s']) & \
 jnp.allclose(r1_results[0][1], results['Y1c']) & \
