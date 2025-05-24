@@ -78,7 +78,7 @@ def new_solve_sigma_equation(nphi, sigma0, helicity, nfp, d_d_varphi, etabar_squ
     """
     x0 = jnp.full(nphi, sigma0)
     x0.at[0].set(0) # Initial guess for iota
-    
+    print(x0)
     def _residual(x):
         """
         Residual in the sigma equation, used for Newton's method.  x is
@@ -119,9 +119,10 @@ def new_solve_sigma_equation(nphi, sigma0, helicity, nfp, d_d_varphi, etabar_squ
         
         return jac
     
-    jitted_new_new_newton = jax.jit(new_new_newton, static_argnames=["f", "jac", "niter", "tol", "nlinesearch"])
+    #jitted_new_new_newton = jax.jit(new_new_newton, static_argnames=["f", "jac", "niter", "tol", "nlinesearch"])
     
-    sigma = jitted_new_new_newton(_residual, x0, _jacobian) # helper residual is a functon that runs without self but still returns r  
+    sigma = new_new_newton(_residual, x0, _jacobian) # helper residual is a functon that runs without self but still returns r  
+    print(sigma)
     iota = sigma[0]
     iotaN = calc_iotaN(iota, helicity, nfp)
     sigma = sigma.at[0].set(sigma0)

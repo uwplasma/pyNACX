@@ -114,7 +114,7 @@ jnp.allclose(r3_results[0][27], results['Z3s3_untwisted']) & \
 jnp.allclose(r3_results[0][28], results['Z3c1_untwisted']) & \
 jnp.allclose(r3_results[0][29], results['Z3c3_untwisted']) 
 
-print (bool)
+print(f'un-jitted test: {bool}')
 
 # testing function in jitted context 
 jitted_function = jax.jit(calculate, static_argnames=['order', 'nphi'])
@@ -220,7 +220,8 @@ jnp.allclose(r3_results[0][27], results['Z3s3_untwisted']) & \
 jnp.allclose(r3_results[0][28], results['Z3c1_untwisted']) & \
 jnp.allclose(r3_results[0][29], results['Z3c3_untwisted']) 
 
-print (bool)
+print(f'jitted test pass: {bool}')
+
 
 
 

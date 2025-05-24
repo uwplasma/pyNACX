@@ -81,6 +81,7 @@ def new_new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
     x_best = jnp.copy(x0)
     residual = f(x0)
     initial_residual_norm = calc_residual_norm(residual)
+    print(initial_residual_norm)
     residual_norm = initial_residual_norm
     #logger.info('Beginning Newton method. residual {}'.format(residual_norm))
 
@@ -96,8 +97,11 @@ def new_new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
         con = residual_norm < last_residual_norm
         
         x = jax.lax.cond(con, lambda _ : y, lambda _ : x, None)
-        
+        print(y)
+        print(x)
+
         x_best = jnp.copy(x)
+        print(x_best)
         
         con2 = residual_norm < tol 
         
@@ -113,7 +117,7 @@ def new_new_line_search(f, x0, step_direction, last_residual_norm,  nlinesearch=
     returns updated x, residual_norm, residual.
     """
     step_scale = 1.0
-    for jlinesearch in range(nlinesearch):
+    for jlinesearch in range(10): # set at 10 for jit compatibility
         x = x0 + step_scale * step_direction
         residual = f(x)
         residual_norm = calc_residual_norm(residual)
