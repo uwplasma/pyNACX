@@ -59,6 +59,7 @@ jnp.allclose(values[43], results['nu_spline'])
 
 print(f'un-jitted test: {bool}')
 
+# jit the function 
 jitted_function = jax.jit(init_axis)
 
 # run method 

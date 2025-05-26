@@ -77,37 +77,46 @@ def new_new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
     niter = max number of Newton iterations.
     tol = stop when the residual norm is less than this.
     """
+        #con2 = residual_norm < tol 
+        
+        #nlinesearch = jax.lax.cond(con2, lambda _ : 1, lambda _ : nlinesearch, None)
+        
     x = jnp.copy(x0)
     x_best = jnp.copy(x0)
     residual = f(x0)
-    initial_residual_norm = calc_residual_norm(residual)
-    print(initial_residual_norm)
+    initial_residual_norm = jnp.sqrt(jnp.sum(residual * residual))
+    #print(initial_residual_norm)
     residual_norm = initial_residual_norm
-    #logger.info('Beginning Newton method. residual {}'.format(residual_norm))
 
     for jnewton in range(niter):
         last_residual_norm = residual_norm
-        j = jac(x) # not currently being used: jaccobian of f using reverse mode because im guesing that we have more inputs than outputs 
+#        if residual_norm < tol:
+ #           break
+
+        j = jac(x)
+        #print(f'jac {j}')
+        #print(f'x {x}')
         x0 = jnp.copy(x)
-        #logger.info('Newton iteration {}'.format(jnewton))
-        step_direction = compute_newton_step_direction(j, residual)
+        step_direction = -jnp.linalg.solve(j, residual)
+        done = jnp.array(False)
+        #print(f'step-dir: {step_direction}')
 
-        y, residual_norm, residual = new_new_line_search(f, x0, step_direction, last_residual_norm,  nlinesearch=nlinesearch)
-        
-        con = residual_norm < last_residual_norm
-        
-        x = jax.lax.cond(con, lambda _ : y, lambda _ : x, None)
-        print(y)
-        print(x)
 
-        x_best = jnp.copy(x)
-        print(x_best)
-        
-        con2 = residual_norm < tol 
-        
-        nlinesearch = jax.lax.cond(con2, lambda _ : 1, lambda _ : nlinesearch, None)
-        
-        
+        step_scale = 1.0
+        for _ in range(nlinesearch):
+            x = x0 + step_scale * step_direction
+            residual = f(x)
+            residual_norm = jnp.sqrt(jnp.sum(residual * residual))
+
+            is_better = residual_norm <= last_residual_norm
+
+            # Use JAX's conditional update
+            x_best = jax.lax.select(is_better, x, x_best)
+            done = jax.lax.select(is_better, True, done)
+
+            # Stop scaling down if we're done
+            step_scale = jax.lax.select(done, step_scale, step_scale / 2)
+            
     return x_best
     
 
@@ -116,16 +125,20 @@ def new_new_line_search(f, x0, step_direction, last_residual_norm,  nlinesearch=
     performs a line search.
     returns updated x, residual_norm, residual.
     """
+    x_best = jnp.copy(x0)
     step_scale = 1.0
-    for jlinesearch in range(10): # set at 10 for jit compatibility
+    for jlinesearch in range(nlinesearch): # set at 10 for jit compatibility
         x = x0 + step_scale * step_direction
         residual = f(x)
-        residual_norm = calc_residual_norm(residual)
-        con = residual_norm < last_residual_norm
-        logger.info('  Line search step {} residual {}'.format(jlinesearch, residual_norm))
-        step_scale = jax.lax.cond(con, lambda _ : step_scale,  lambda _ : step_scale/2, None)
+        residual_norm = jnp.sqrt(jnp.sum(residual*residual))
+        
+        if residual_norm < last_residual_norm: 
+            x_best = jnp.copy(x)
+            break 
+
+        step_scale =  step_scale/2
        
-    return x, residual_norm, residual
+    return x_best, residual_norm, residual
         
 
 def calc_residual_norm(residual): 

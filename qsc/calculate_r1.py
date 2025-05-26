@@ -87,7 +87,6 @@ def new_solve_sigma_equation(nphi, sigma0, helicity, nfp, d_d_varphi, etabar_squ
         """
         sigma = jnp.copy(x)
         sigma = sigma.at[0].set(sigma0) # somthing is not right here
-
     
         iota = x[0]
         r = jnp.matmul(d_d_varphi, sigma) \
@@ -111,18 +110,17 @@ def new_solve_sigma_equation(nphi, sigma0, helicity, nfp, d_d_varphi, etabar_squ
         # For convenience we will fill all the columns now, and re-write the first column in a moment.
         jac = jnp.copy(d_d_varphi)
         for j in range(nphi):
-            jac.at[j, j].add((iota + helicity * nfp) * 2 * sigma[j])
+            jac = jac.at[j, j].add((iota + helicity * nfp) * 2 * sigma[j])
 
         # d (Riccati equation) / d iota:
-        jac.at[:, 0].set(etabar_squared_over_curvature_squared * etabar_squared_over_curvature_squared + 1 + sigma * sigma)
+        jac = jac.at[:, 0].set(etabar_squared_over_curvature_squared * etabar_squared_over_curvature_squared + 1 + sigma * sigma)
 
-        
         return jac
     
     #jitted_new_new_newton = jax.jit(new_new_newton, static_argnames=["f", "jac", "niter", "tol", "nlinesearch"])
     
-    sigma = new_new_newton(_residual, x0, _jacobian) # helper residual is a functon that runs without self but still returns r  
-    print(sigma)
+    sigma = new_new_newton(_residual, x0, jac=_jacobian) # helper residual is a functon that runs without self but still returns r  
+    #print(sigma)
     iota = sigma[0]
     iotaN = calc_iotaN(iota, helicity, nfp)
     sigma = sigma.at[0].set(sigma0)
