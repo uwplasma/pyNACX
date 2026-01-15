@@ -4,6 +4,7 @@ import unittest
 import numpy as np
 import logging
 from qsc.qsc import Qsc
+from qsc.qsc_method import Qsc_method
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +22,9 @@ class GradBTensorTests(unittest.TestCase):
                         B0 = np.random.rand() * 2 + 0.3
                         nphi = int(np.random.rand() * 10 + 3)
                         etabar = (np.random.rand() - 0.5) * 4
-                        stel = Qsc(rc=[R0], zs=[0], nfp=nfp, nphi=nphi, sG=sG, \
+                        stel = Qsc_method(rc=[R0], zs=[0], nfp=nfp, nphi=nphi, sG=sG, \
                                    spsi=spsi, B0=B0, etabar=etabar)
+                        
                         val = sG * B0 / R0
                         if np.mod(nphi, 2) == 0:
                             nphi += 1

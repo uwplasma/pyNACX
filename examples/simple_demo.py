@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 
-from qsc.results_class import Results
+from qsc.types import Results
 from qsc import plot
 from qsc.plot import plot_boundary
 
@@ -9,7 +9,7 @@ from qsc.plot import plot_boundary
 import numpy as np
 import jax
 import jax.numpy as jnp
-from qsc import Qsc
+
 from qsc.qsc_method import Qsc_method
 from qsc import calculate_r1
   

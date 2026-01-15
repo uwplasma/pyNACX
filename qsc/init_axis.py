@@ -8,6 +8,7 @@ import numpy as np
 from scipy.interpolate import CubicSpline as spline
 
 from qsc.util import jax_fourier_minimum
+from qsc.types import Init_Axis_Results
 from .spectral_diff_matrix import jax_spectral_diff_matrix, spectral_diff_matrix
 #from .util import jax_fourier_minimum
 
@@ -62,10 +63,10 @@ def calculate_helicity(nphi, normal_cylindrical, spsi, sG):
 
 # Define periodic spline interpolant conversion used in several scripts and plotting
 def convert_to_spline(array, phi, nfp):
-    sp = spline(jnp.append(phi,2*jnp.pi/nfp), jnp.append(array,array[0]), bc_type='periodic') #need to get open source to work here
+    sp = spline(phi, array, bc_type='periodic')
     return sp
 
-def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0, order, B2s):
+def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0, order, B2s)-> Init_Axis_Results:
     """
     Initialize the curvature, torsion, differentiation matrix, etc. waiting on interpax support for cubic spline
     """
@@ -227,51 +228,52 @@ def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0,
     #self.nu_spline = self.convert_to_spline(varphi - phi, phi, nfp)
     nu_spline = convert_to_spline(varphi - phi, phi, nfp)
 
-    return helicity,\
-    normal_cylindrical, \
-    etabar_squared_over_curvature_squared, \
-    varphi, \
-    d_d_phi, \
-    d_varphi_d_phi, \
-    d_d_varphi, \
-    phi, \
-    abs_G0_over_B0, \
-    d_phi, \
-    R0, \
-    Z0, \
-    R0p, \
-    Z0p, \
-    R0pp, \
-    Z0pp, \
-    R0ppp, \
-    Z0ppp, \
-    G0, \
-    d_l_d_phi, \
-    axis_length, \
-    curvature, \
-    torsion, \
-    X1s, \
-    X1c, \
-    min_R0, \
-    tangent_cylindrical, \
-    normal_cylindrical, \
-    binormal_cylindrical, \
-    Bbar, \
-    abs_G0_over_B0, \
-    lasym, \
-    R0_func, \
-    Z0_func, \
-    normal_R_spline, \
-    normal_phi_spline, \
-    normal_z_spline, \
-    binormal_R_spline, \
-    binormal_phi_spline, \
-    binormal_z_spline, \
-    tangent_R_spline, \
-    tangent_phi_spline, \
-    tangent_z_spline, \
-    nu_spline
-    
+    return Init_Axis_Results( 
+        helicity,
+        normal_cylindrical,
+        etabar_squared_over_curvature_squared,
+        varphi,
+        d_d_phi,
+        d_varphi_d_phi,
+        d_d_varphi,
+        phi,
+        abs_G0_over_B0,
+        d_phi,
+        R0,
+        Z0,
+        R0p,
+        Z0p,
+        R0pp,
+        Z0pp,
+        R0ppp,
+        Z0ppp,
+        G0,
+        d_l_d_phi,
+        axis_length,
+        curvature,
+        torsion,
+        X1s,
+        X1c,
+        min_R0,
+        tangent_cylindrical,
+        normal_cylindrical,
+        binormal_cylindrical,
+        Bbar,
+        abs_G0_over_B0,
+        lasym,
+        R0_func,
+        Z0_func,
+        normal_R_spline,
+        normal_phi_spline,
+        normal_z_spline,
+        binormal_R_spline,
+        binormal_phi_spline,
+        binormal_z_spline,
+        tangent_R_spline,
+        tangent_phi_spline,
+        tangent_z_spline,
+        nu_spline 
+    )
     
     
     

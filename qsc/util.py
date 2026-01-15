@@ -15,7 +15,7 @@ import jax.scipy.optimize as jso
 import jax.numpy as jnp
 from jaxopt import ScipyMinimize
 #from qsc.init_axis import convert_to_spline
-from qsc.results_class import Results
+from qsc.types import Results
 
 
 #logging.basicConfig(level=logging.INFO)
@@ -201,21 +201,21 @@ def B_mag(results: Results, r, theta, phi, Boozer_toroidal = False):
       Boozer_toroidal: False if phi is the cylindrical toroidal angle, True for the Boozer one
     '''
     if Boozer_toroidal == False:
-        thetaN = theta - (results.iota - results.iotaN) * (phi + results.nu_spline(phi))
+        thetaN = theta - (results.pre_calculation_results.solve_sigma_equation_results.iota - results.pre_calculation_results.solve_sigma_equation_results.iotaN) * (phi + results.pre_calculation_results.init_axis_results.nu_spline(phi))
     else:
-        thetaN = theta - (results.iota - results.iotaN) * phi
+        thetaN = theta - (results.pre_calculation_results.solve_sigma_equation_results.iota - results.pre_calculation_results.solve_sigma_equation_results.iotaN) * phi
 
-    B = results.B0*(1 + r * results.etabar * jnp.cos(thetaN))
+    B = results.inputs.B0*(1 + r * results.inputs.etabar * jnp.cos(thetaN))
 
     # Add O(r^2) terms if necessary:
-    if results.order != 'r1':
+    if results.inputs.order != 'r1':
         if Boozer_toroidal == False:
-            B20_spline = convert_to_spline(results.B20, results.phi, results.nfp)
+            B20_spline = convert_to_spline(results.complete_calculation_results.complete_r2_results.r2_results.B20, results.pre_calculation_results.init_axis_results.phi, results.inputs.nfp)
         else:
-            B20_spline = spline(jnp.append(results.varphi, 2 * jnp.pi / results.nfp),
-                                     jnp.append(results.B20, results.B20[0]),
+            B20_spline = spline(jnp.append(results.pre_calculation_results.init_axis_results.varphi, 2 * jnp.pi / results.inputs.nfp),
+                                     jnp.append(results.complete_calculation_results.complete_r2_results.r2_results.B20, results.complete_calculation_results.complete_r2_results.r2_results.B20[0]),
                                      bc_type='periodic')
 
-        B += (r**2) * (B20_spline(phi) + results.B2c * jnp.cos(2 * thetaN) + results.B2s * jnp.sin(2 * thetaN))
+        B += (r**2) * (B20_spline(phi) + results.inputs.B2c * jnp.cos(2 * thetaN) + results.inputs.B2s * jnp.sin(2 * thetaN))
 
     return B
