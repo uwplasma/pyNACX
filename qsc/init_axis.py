@@ -63,7 +63,7 @@ def calculate_helicity(nphi, normal_cylindrical, spsi, sG):
 
 # Define periodic spline interpolant conversion used in several scripts and plotting
 def convert_to_spline(array, phi, nfp):
-    sp = spline(phi, array, bc_type='periodic')
+    sp = spline(jnp.append(phi,2*jnp.pi/nfp), jnp.append(array,array[0]), bc_type='periodic') #need to get open source to work here
     return sp
 
 def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0, order, B2s)-> Init_Axis_Results:
@@ -71,7 +71,7 @@ def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0,
     Initialize the curvature, torsion, differentiation matrix, etc. waiting on interpax support for cubic spline
     """
     #from .util import jax_fourier_minimum
-
+    
     # Generate phi
     
     phi = jnp.linspace(0, 2 * jnp.pi / nfp, nphi, endpoint=False)
@@ -84,6 +84,7 @@ def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0,
     sinangles = jnp.sin(angles)
     cosangles = jnp.cos(angles)
     
+
     # Compute R0, Z0, R0p, Z0p, R0pp, Z0pp, R0ppp, Z0ppp
     R0 = jnp.dot(rc, cosangles) + jnp.dot(rs, sinangles)
     
@@ -112,10 +113,18 @@ def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0,
     d3_r_d_phi3_cylindrical = jnp.array([R0ppp - 3 * R0p, 3 * R0pp - R0, Z0ppp]) #.transpose()
     d3_r_d_phi3_cylindrical = jnp.transpose(d3_r_d_phi3_cylindrical)
 
+    print(f"d_l_d_phi -- Any NaNs in array? {jnp.isnan(d_l_d_phi).any()}")
+    print(f"Any Infs in array? {jnp.isinf(d_l_d_phi).any()}")
+    print(f"Max value: {jnp.max(d_l_d_phi)}, Min value: {jnp.min(d_l_d_phi)}")
+
     # Calculate tangent_cylindrical and d_tangent_d_l_cylindrical
     tangent_cylindrical = d_r_d_phi_cylindrical / d_l_d_phi[:, jnp.newaxis]
     d_tangent_d_l_cylindrical = ((-d_r_d_phi_cylindrical * d2_l_d_phi2[:, jnp.newaxis] / d_l_d_phi[:, jnp.newaxis]) \
                                 + d2_r_d_phi2_cylindrical) / (d_l_d_phi[:, jnp.newaxis] * d_l_d_phi[:, jnp.newaxis])
+
+    print(f"d_tangent_d_l_cylindrical -- Any NaNs in array? {jnp.isnan(d_tangent_d_l_cylindrical).any()}")
+    print(f"Any Infs in array? {jnp.isinf(d_tangent_d_l_cylindrical).any()}")
+    print(f"Max value: {jnp.max(d_tangent_d_l_cylindrical)}, Min value: {jnp.min(d_tangent_d_l_cylindrical)}")
 
     curvature = jnp.sqrt(d_tangent_d_l_cylindrical[:,0] * d_tangent_d_l_cylindrical[:,0] + \
                         d_tangent_d_l_cylindrical[:,1] * d_tangent_d_l_cylindrical[:,1] + \
@@ -128,8 +137,17 @@ def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0,
     #standard_deviation_of_R = jnp.sqrt(jnp.sum((R0 - mean_of_R) ** 2 * d_l_d_phi) * d_phi * nfp / axis_length)
     #tandard_deviation_of_Z = jnp.sqrt(jnp.sum((Z0 - mean_of_Z) ** 2 * d_l_d_phi) * d_phi * nfp / axis_length)
 
+    print(f"Curvature -- Any NaNs in array? {jnp.isnan(curvature).any()}")
+    print(f"Any Infs in array? {jnp.isinf(curvature).any()}")
+    print(f"Max value: {jnp.max(curvature)}, Min value: {jnp.min(curvature)}")
+    
+
     # Calculate normal_cylindrical
     normal_cylindrical = d_tangent_d_l_cylindrical / curvature[:, jnp.newaxis]
+    print(f"Any NaNs in array? {jnp.isnan(normal_cylindrical).any()}")
+    print(f"Any Infs in array? {jnp.isinf(normal_cylindrical).any()}")
+    print(f"Max value: {jnp.max(normal_cylindrical)}, Min value: {jnp.min(normal_cylindrical)}")
+    
     print('before helicity')
     helicity = calculate_helicity(nphi, normal_cylindrical, spsi, sG)
     print('after helicity')
@@ -204,6 +222,10 @@ def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0,
 
     # Spline interpolants for the cylindrical components of the Frenet-Serret frame:
     #got rid of self statments
+    print(f"Any NaNs in array? {jnp.isnan(normal_cylindrical[:,0]).any()}")
+    print(f"Any Infs in array? {jnp.isinf(normal_cylindrical[:,0]).any()}")
+    print(f"Max value: {jnp.max(normal_cylindrical[:,0])}, Min value: {jnp.min(normal_cylindrical[:,0])}")
+
     normal_R_spline     = convert_to_spline(normal_cylindrical[:,0], phi, nfp)
     normal_phi_spline   = convert_to_spline(normal_cylindrical[:,1], phi, nfp)
     normal_z_spline     = convert_to_spline(normal_cylindrical[:,2], phi, nfp)

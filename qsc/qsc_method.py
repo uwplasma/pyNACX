@@ -36,15 +36,21 @@ def Qsc_method(rc, zs, rs=[], zc=[], nfp=1, etabar=1., sigma0=0., B0=1., I2=0., 
 
   find_max = jnp.array([len(rc), len(zs), len(rs), len(zc)])
   nfourier = jnp.max(find_max)
+
+  rc_temp = rc
+  zs_temp = zs
+  rs_temp = rs
+  zc_temp = zc
+
   rc = jnp.zeros(nfourier)
   zs = jnp.zeros(nfourier)
   rs = jnp.zeros(nfourier)
   zc = jnp.zeros(nfourier)
   
-  rc = rc.at[:len(rc)].set(rc)
-  zs = zs.at[:len(zs)].set(zs)
-  rs = rs.at[:len(rs)].set(rs)
-  zc = zc.at[:len(zc)].set(zc)
+  rc = rc.at[:len(rc_temp)].set(rc_temp)
+  zs = zs.at[:len(zs_temp)].set(zs_temp)
+  rs = rs.at[:len(rs_temp)].set(rs_temp)
+  zc = zc.at[:len(zc_temp)].set(zc_temp)
   
   if jnp.mod(nphi, 2) == 0:
             nphi += 1
