@@ -8,7 +8,7 @@ import numpy as np
 from scipy.io import netcdf
 import jax.numpy as jnp
 import jax
-from qsc.calculate_r3 import calc_r3
+from calculate_r3 import calc_r3
 from qsc.init_axis import init_axis
 from qsc.calculate_r1 import solve_sigma_equation, r1_diagnostics
 from qsc.calculate_r2 import calc_r2
@@ -25,9 +25,6 @@ def calculate(nfp, etabar, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_p
     """
     print("\nCalculating R1...")
     r1_results = r1_diagnostics(nfp, etabar, sG, spsi, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_phi, d_d_varphi, B0, d_l_d_varphi, tangent_cylindrical, normal_cylindrical, binormal_cylindrical, iotaN, torsion)
-
-    
-
     Y1s = r1_results[0][0]
     Y1c = r1_results[0][1]
     d_X1c_d_varphi = r1_results[0][9]

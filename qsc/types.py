@@ -48,10 +48,8 @@ class Init_Axis_Results(NamedTuple):
   X1c: jnp.ndarray
   min_R0: jnp.ndarray
   tangent_cylindrical: jnp.ndarray
-  normal_cylindrical: jnp.ndarray
   binormal_cylindrical: jnp.ndarray
   Bbar: jnp.ndarray
-  abs_G0_over_B0: jnp.ndarray
   lasym: jnp.ndarray
   R0_func: jnp.ndarray
   Z0_func: jnp.ndarray
@@ -103,19 +101,19 @@ class Complete_R1_Results(NamedTuple):
   r1_results: R1_Results
   grad_b_tensor_results: Grad_B_Tensor_Results
 
-class Mercier_Results: 
+class Mercier_Results(NamedTuple): 
   DGeod_times_r2: jnp.ndarray 
   d2_volume_d_psi2: jnp.ndarray 
   DWell_times_r2: jnp.ndarray 
   DMerc_times_r2: jnp.ndarray
 
-class Grad_Grad_B_Results:
+class Grad_Grad_B_Results(NamedTuple):
   grad_grad_B: jnp.ndarray  
   grad_grad_B_inverse_scale_length_vs_varphi: jnp.ndarray  
   L_grad_grad_B: jnp.ndarray 
   grad_grad_B_inverse_scale_length: jnp.ndarray 
 
-class R2_results:
+class R2_results(NamedTuple):
   N_helicity: jnp.ndarray 
   G2: jnp.ndarray 
   d_curvature_d_varphi: jnp.ndarray 
@@ -156,7 +154,7 @@ class R2_results:
   Z2s_untwisted: jnp.ndarray 
   Z2c_untwisted: jnp.ndarray 
 
-class R_Singularity_Results: 
+class R_Singularity_Results(NamedTuple): 
   r_singularity_vs_varphi: jnp.ndarray 
   inv_r_singularity_vs_varphi: jnp.ndarray 
   r_singularity_basic_vs_varphi: jnp.ndarray 

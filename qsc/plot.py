@@ -3,7 +3,7 @@ This module contains a function to plot a near-axis surface.
 """
 
 import numpy as np
-from .types import Results
+from qsc.types import Results
 import jax.numpy as jnp
 from scipy.interpolate import interp2d, interp1d
 import matplotlib.pyplot as plt
@@ -48,7 +48,7 @@ def plot(results: Results, newfigure=True, show=True):
         """
         nonlocal jplot
         if data is None:
-            data = eval('self.' + title)
+            data = eval("results." + title)
         plt.subplot(nrows, ncols, jplot)
         jplot = jplot + 1
         plt.plot(results.pre_calculation_results.init_axis_results.phi, data, label=title)
@@ -58,7 +58,7 @@ def plot(results: Results, newfigure=True, show=True):
             plt.ylim(bottom=0)
         plt.xlim((0, results.pre_calculation_results.init_axis_results.phi[-1]))
 
-    subplot('R0')
+    subplot('.R0')
     subplot('Z0')
     subplot('R0p')
     subplot('Z0p')

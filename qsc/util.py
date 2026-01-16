@@ -8,13 +8,14 @@ import logging
 import numpy as np
 import scipy.optimize
 from qsc.fourier_interpolation import fourier_interpolation
-from scipy.interpolate import CubicSpline as spline
+from interpax import CubicSpline
+
 
 import jax
 import jax.scipy.optimize as jso
 import jax.numpy as jnp
 from jaxopt import ScipyMinimize
-#from qsc.init_axis import convert_to_spline
+
 from qsc.types import Results
 
 
@@ -24,8 +25,10 @@ logger = logging.getLogger(__name__)
 mu0 = 4 * jnp.pi * 1e-7
 
 # Define periodic spline interpolant conversion used in several scripts and plotting
+
+# Define periodic spline interpolant conversion used in several scripts and plotting
 def convert_to_spline(array, phi, nfp):
-    sp = spline(jnp.append(phi,2*jnp.pi/nfp), jnp.append(array,array[0]), bc_type='periodic') #need to get open source to work here
+    sp = CubicSpline(jnp.append(phi,2*jnp.pi/nfp), jnp.append(array,array[0]), bc_type='periodic') #need to get open source to work here
     return sp
 
 class Struct():

@@ -5,16 +5,15 @@ curvature and torsion from the magnetix axis shape.
 
 import logging
 import numpy as np
-from scipy.interpolate import CubicSpline as spline
 
-from qsc.util import jax_fourier_minimum
+from qsc.util import jax_fourier_minimum, convert_to_spline
 from qsc.types import Init_Axis_Results
 from .spectral_diff_matrix import jax_spectral_diff_matrix, spectral_diff_matrix
 #from .util import jax_fourier_minimum
 
 import jax
 import jax.numpy as jnp
-from interpax import CubicSpline #  i found this online, open source support for cubic splines
+
 
 # Set default floating-point precision to 64-bit (double precision)
 jax.config.update('jax_enable_x64', True)
@@ -60,11 +59,6 @@ def calculate_helicity(nphi, normal_cylindrical, spsi, sG):
     counter *= spsi * sG
     helicity = counter / 4
     return helicity
-
-# Define periodic spline interpolant conversion used in several scripts and plotting
-def convert_to_spline(array, phi, nfp):
-    sp = spline(jnp.append(phi,2*jnp.pi/nfp), jnp.append(array,array[0]), bc_type='periodic') #need to get open source to work here
-    return sp
 
 def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0, order, B2s)-> Init_Axis_Results:
     """
@@ -137,17 +131,17 @@ def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0,
     #standard_deviation_of_R = jnp.sqrt(jnp.sum((R0 - mean_of_R) ** 2 * d_l_d_phi) * d_phi * nfp / axis_length)
     #tandard_deviation_of_Z = jnp.sqrt(jnp.sum((Z0 - mean_of_Z) ** 2 * d_l_d_phi) * d_phi * nfp / axis_length)
 
-    print(f"Curvature -- Any NaNs in array? {jnp.isnan(curvature).any()}")
-    print(f"Any Infs in array? {jnp.isinf(curvature).any()}")
-    print(f"Max value: {jnp.max(curvature)}, Min value: {jnp.min(curvature)}")
     
+    
+    
+
 
     # Calculate normal_cylindrical
     normal_cylindrical = d_tangent_d_l_cylindrical / curvature[:, jnp.newaxis]
-    print(f"Any NaNs in array? {jnp.isnan(normal_cylindrical).any()}")
-    print(f"Any Infs in array? {jnp.isinf(normal_cylindrical).any()}")
-    print(f"Max value: {jnp.max(normal_cylindrical)}, Min value: {jnp.min(normal_cylindrical)}")
     
+    
+    
+
     print('before helicity')
     helicity = calculate_helicity(nphi, normal_cylindrical, spsi, sG)
     print('after helicity')
@@ -222,9 +216,6 @@ def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0,
 
     # Spline interpolants for the cylindrical components of the Frenet-Serret frame:
     #got rid of self statments
-    print(f"Any NaNs in array? {jnp.isnan(normal_cylindrical[:,0]).any()}")
-    print(f"Any Infs in array? {jnp.isinf(normal_cylindrical[:,0]).any()}")
-    print(f"Max value: {jnp.max(normal_cylindrical[:,0])}, Min value: {jnp.min(normal_cylindrical[:,0])}")
 
     normal_R_spline     = convert_to_spline(normal_cylindrical[:,0], phi, nfp)
     normal_phi_spline   = convert_to_spline(normal_cylindrical[:,1], phi, nfp)
@@ -251,51 +242,50 @@ def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0,
     nu_spline = convert_to_spline(varphi - phi, phi, nfp)
 
     return Init_Axis_Results( 
-        helicity,
-        normal_cylindrical,
-        etabar_squared_over_curvature_squared,
-        varphi,
-        d_d_phi,
-        d_varphi_d_phi,
-        d_d_varphi,
-        phi,
-        abs_G0_over_B0,
-        d_phi,
-        R0,
-        Z0,
-        R0p,
-        Z0p,
-        R0pp,
-        Z0pp,
-        R0ppp,
-        Z0ppp,
-        G0,
-        d_l_d_phi,
-        axis_length,
-        curvature,
-        torsion,
-        X1s,
-        X1c,
-        min_R0,
-        tangent_cylindrical,
-        normal_cylindrical,
-        binormal_cylindrical,
-        Bbar,
-        abs_G0_over_B0,
-        lasym,
-        R0_func,
-        Z0_func,
-        normal_R_spline,
-        normal_phi_spline,
-        normal_z_spline,
-        binormal_R_spline,
-        binormal_phi_spline,
-        binormal_z_spline,
-        tangent_R_spline,
-        tangent_phi_spline,
-        tangent_z_spline,
-        nu_spline 
+        helicity, 
+        normal_cylindrical, 
+        etabar_squared_over_curvature_squared, 
+        varphi, 
+        d_d_phi, 
+        d_varphi_d_phi, 
+        d_d_varphi, 
+        phi, 
+        abs_G0_over_B0, 
+        d_phi, 
+        R0, 
+        Z0, 
+        R0p, 
+        Z0p, 
+        R0pp, 
+        Z0pp, 
+        R0ppp, 
+        Z0ppp, 
+        G0, 
+        d_l_d_phi, 
+        axis_length, 
+        curvature, 
+        torsion, 
+        X1s, 
+        X1c, 
+        min_R0, 
+        tangent_cylindrical, 
+        binormal_cylindrical, 
+        Bbar, 
+        lasym, 
+        R0_func, 
+        Z0_func, 
+        normal_R_spline, 
+        normal_phi_spline, 
+        normal_z_spline, 
+        binormal_R_spline, 
+        binormal_phi_spline, 
+        binormal_z_spline, 
+        tangent_R_spline, 
+        tangent_phi_spline, 
+        tangent_z_spline, 
+        nu_spline  
     )
+
     
     
     

@@ -124,13 +124,13 @@ def calculate(nfp, etabar, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_p
     A jax compatible driver of main calculations.
   """
   print("\nCalculating R1...")
-  r1_results = r1_diagnostics(nfp, etabar, sG, spsi, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_phi, d_d_varphi, B0, d_l_d_varphi, tangent_cylindrical, normal_cylindrical, binormal_cylindrical, iotaN, torsion)
+  r1_res = r1_diagnostics(nfp, etabar, sG, spsi, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_phi, d_d_varphi, B0, d_l_d_varphi, tangent_cylindrical, normal_cylindrical, binormal_cylindrical, iotaN, torsion)
 
-  Y1s = r1_results.r1_results.Y1s
-  Y1c = r1_results.r1_results.Y1c
-  d_X1c_d_varphi = r1_results.r1_results.d_X1c_d_varphi
-  d_Y1s_d_varphi = r1_results.r1_results.d_Y1s_d_varphi
-  d_Y1c_d_varphi = r1_results.r1_results.d_Y1c_d_varphi
+  Y1s = r1_res.r1_results.Y1s
+  Y1c = r1_res.r1_results.Y1c
+  d_X1c_d_varphi = r1_res.r1_results.d_X1c_d_varphi
+  d_Y1s_d_varphi = r1_res.r1_results.d_Y1s_d_varphi
+  d_Y1c_d_varphi = r1_res.r1_results.d_Y1c_d_varphi
                 
   dummy_r2 = jax.eval_shape(calc_r2, X1c, Y1c, Y1s, B0 / jnp.abs(G0), d_d_varphi, iotaN, torsion, abs_G0_over_B0, B2s, B0, curvature, etabar, B2c, spsi, sG, p2, sigma, I2/B0, nphi, d_l_d_phi, helicity, nfp, G0, iota, I2, varphi, d_X1c_d_varphi, d_Y1c_d_varphi, d_Y1s_d_varphi, d_phi, axis_length)
   
@@ -176,7 +176,7 @@ def calculate(nfp, etabar, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_p
                     operand=None)
         
   return Complete_Calculation_Results(
-      r1_results,
+      r1_res,
       r2_results,
       r3_result
     ) 

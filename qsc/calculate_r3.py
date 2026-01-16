@@ -5,7 +5,7 @@ This module contains calculations for O(r**3) terms.
 import logging
 import numpy as np
 from scipy import integrate as integ
-from .util import mu0
+from qsc.util import mu0
 import jax.numpy as jnp
 from qsc.types import Complete_R3_Results
 
@@ -57,11 +57,6 @@ def calc_r3(B0, G0, X20, Y1c, X2c, X2s, B1c, X1c, X1s, Y1s, I2, iotaN, B20, Y20,
     print(f'd_X1c_d_varphi {d_X1c_d_varphi}')
     print(f'd_Y1c_d_varphi {d_Y1c_d_varphi}')
     """
-
-
-   
-
-    
     
     X3c1 = X1c * flux_constraint_coefficient
     Y3c1 = Y1c * flux_constraint_coefficient

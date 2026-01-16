@@ -91,7 +91,7 @@ def new_new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
         #logger.info('Newton iteration {}'.format(jnewton))
         step_direction = compute_newton_step_direction(j, residual)
 
-        y, residual_norm, residual = new_new_line_search(f, x0, step_direction, last_residual_norm,  nlinesearch=nlinesearch)
+        y, residual_norm, residual = new_new_line_search(f, x0, step_direction, last_residual_norm)
         
         con = residual_norm < last_residual_norm
         
@@ -106,7 +106,7 @@ def new_new_newton(f, x0, jac, niter=20, tol=1e-13, nlinesearch=10):
         
     return x_best
     
-
+@jax.jit(static_argnums=(0,4))
 def new_new_line_search(f, x0, step_direction, last_residual_norm,  nlinesearch=10): 
     """
     performs a line search.
