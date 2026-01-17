@@ -1,5 +1,8 @@
 # pyNACX
 
+!!! A jax compatible periodic spline is needed and can only be found in this repo https://github.com/semzit/interpax
+  clone it locally and then run pyQSX with the interpax virtual environment
+  
 Refactor of pyQSC to use JAX for automatic differentiation and GPU acceleration.
 
 The Python implementation of the Quasisymmetric Stellarator Construction method
