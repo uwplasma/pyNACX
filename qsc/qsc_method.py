@@ -12,7 +12,7 @@ from qsc.types import *
 import jax
 import jax.numpy as jnp
 
-                
+@jax.jit()
 def Qsc_method(rc, zs, rs=[], zc=[], nfp=1, etabar=1., sigma0=0., B0=1., I2=0., sG=1, spsi=1, nphi=61, B2s=0., B2c=0., p2=0., order="r1") -> Results: 
   
   inputs = Inputs(
@@ -108,11 +108,9 @@ def pre_calculations(
   """
   
   init_axis_results = init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0, order, B2s)
-  print("\nInit axis completed...")
-              
+
   solve_sigma_equation_results = solve_sigma_equation(nphi, sigma0, init_axis_results.helicity, nfp, init_axis_results.d_d_varphi, init_axis_results.etabar_squared_over_curvature_squared, spsi, init_axis_results.torsion, I2, B0, init_axis_results.G0)
-  print("\nSigma equation solved...")
-  
+
   return Pre_Calculation_Results(
     init_axis_results, 
     solve_sigma_equation_results
@@ -123,7 +121,6 @@ def calculate(nfp, etabar, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_p
   """
     A jax compatible driver of main calculations.
   """
-  print("\nCalculating R1...")
   r1_res = r1_diagnostics(nfp, etabar, sG, spsi, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_phi, d_d_varphi, B0, d_l_d_varphi, tangent_cylindrical, normal_cylindrical, binormal_cylindrical, iotaN, torsion)
 
   Y1s = r1_res.r1_results.Y1s
@@ -141,8 +138,6 @@ def calculate(nfp, etabar, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_p
                       lambda _: zero_r2,
                       operand=None)
         
- 
-  print("\nCalculating R2...")
 
   X20 = r2_results.  r2_results[2][20]
   X2c = r2_results[2][22]
@@ -157,8 +152,6 @@ def calculate(nfp, etabar, curvature, sigma, helicity, varphi, X1s, X1c, d_l_d_p
   d_Z20_d_varphi = r2_results[2][10]
   G2 = r2_results[2][1]
   N_helicity  = r2_results[2][0]
-        
-  print("\nCalculating R3...")
 
   dummy_r3 = jax.eval_shape(calc_r3, B0, G0, X20, Y1c, X2c, X2s, etabar * B0, 
                           X1c, X1s, Y1s, I2, iotaN, B20, Y20, Y2c, Y2s, Z20, 

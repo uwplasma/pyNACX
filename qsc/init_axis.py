@@ -107,18 +107,10 @@ def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0,
     d3_r_d_phi3_cylindrical = jnp.array([R0ppp - 3 * R0p, 3 * R0pp - R0, Z0ppp]) #.transpose()
     d3_r_d_phi3_cylindrical = jnp.transpose(d3_r_d_phi3_cylindrical)
 
-    print(f"d_l_d_phi -- Any NaNs in array? {jnp.isnan(d_l_d_phi).any()}")
-    print(f"Any Infs in array? {jnp.isinf(d_l_d_phi).any()}")
-    print(f"Max value: {jnp.max(d_l_d_phi)}, Min value: {jnp.min(d_l_d_phi)}")
-
     # Calculate tangent_cylindrical and d_tangent_d_l_cylindrical
     tangent_cylindrical = d_r_d_phi_cylindrical / d_l_d_phi[:, jnp.newaxis]
     d_tangent_d_l_cylindrical = ((-d_r_d_phi_cylindrical * d2_l_d_phi2[:, jnp.newaxis] / d_l_d_phi[:, jnp.newaxis]) \
                                 + d2_r_d_phi2_cylindrical) / (d_l_d_phi[:, jnp.newaxis] * d_l_d_phi[:, jnp.newaxis])
-
-    print(f"d_tangent_d_l_cylindrical -- Any NaNs in array? {jnp.isnan(d_tangent_d_l_cylindrical).any()}")
-    print(f"Any Infs in array? {jnp.isinf(d_tangent_d_l_cylindrical).any()}")
-    print(f"Max value: {jnp.max(d_tangent_d_l_cylindrical)}, Min value: {jnp.min(d_tangent_d_l_cylindrical)}")
 
     curvature = jnp.sqrt(d_tangent_d_l_cylindrical[:,0] * d_tangent_d_l_cylindrical[:,0] + \
                         d_tangent_d_l_cylindrical[:,1] * d_tangent_d_l_cylindrical[:,1] + \
@@ -131,16 +123,8 @@ def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0,
     #standard_deviation_of_R = jnp.sqrt(jnp.sum((R0 - mean_of_R) ** 2 * d_l_d_phi) * d_phi * nfp / axis_length)
     #tandard_deviation_of_Z = jnp.sqrt(jnp.sum((Z0 - mean_of_Z) ** 2 * d_l_d_phi) * d_phi * nfp / axis_length)
 
-    
-    
-    
-
-
     # Calculate normal_cylindrical
     normal_cylindrical = d_tangent_d_l_cylindrical / curvature[:, jnp.newaxis]
-    
-    
-    
 
     print('before helicity')
     helicity = calculate_helicity(nphi, normal_cylindrical, spsi, sG)
@@ -217,16 +201,6 @@ def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0,
     # Spline interpolants for the cylindrical components of the Frenet-Serret frame:
     #got rid of self statments
 
-    normal_R_spline     = convert_to_spline(normal_cylindrical[:,0], phi, nfp)
-    normal_phi_spline   = convert_to_spline(normal_cylindrical[:,1], phi, nfp)
-    normal_z_spline     = convert_to_spline(normal_cylindrical[:,2], phi, nfp)
-    binormal_R_spline   = convert_to_spline(binormal_cylindrical[:,0], phi, nfp)
-    binormal_phi_spline = convert_to_spline(binormal_cylindrical[:,1], phi, nfp)
-    binormal_z_spline   = convert_to_spline(binormal_cylindrical[:,2], phi, nfp)
-    tangent_R_spline    = convert_to_spline(tangent_cylindrical[:,0], phi, nfp)
-    tangent_phi_spline  = convert_to_spline(tangent_cylindrical[:,1], phi, nfp)
-    tangent_z_spline    = convert_to_spline(tangent_cylindrical[:,2], phi, nfp)
-    
     normal_R_spline     = convert_to_spline(normal_cylindrical[:,0], phi, nfp)
     normal_phi_spline   = convert_to_spline(normal_cylindrical[:,1], phi, nfp)
     normal_z_spline     = convert_to_spline(normal_cylindrical[:,2], phi, nfp)

@@ -22,7 +22,7 @@ def solve_sigma_equation(nphi, sigma0, helicity, nfp, d_d_varphi, etabar_squared
     in progress solve sigma to equation that is unreliant on self
     """
     x0 = jnp.full(nphi, sigma0)
-    x0.at[0].set(0) # Initial guess for iota
+    x0 = x0.at[0].set(0) # Initial guess for iota
     
     def _residual(x):
         """
@@ -31,9 +31,8 @@ def solve_sigma_equation(nphi, sigma0, helicity, nfp, d_d_varphi, etabar_squared
         except that the first element of x is actually iota.
         """
         sigma = jnp.copy(x)
-        sigma = sigma.at[0].set(sigma0) # somthing is not right here
+        sigma = sigma.at[0].set(sigma0)
 
-    
         iota = x[0]
         r = jnp.matmul(d_d_varphi, sigma) \
             + (iota + helicity * nfp) * \
@@ -48,25 +47,24 @@ def solve_sigma_equation(nphi, sigma0, helicity, nfp, d_d_varphi, etabar_squared
         the state vector, corresponding to sigma on the phi grid,
         except that the first element of x is actually iota.
         """
-        sigma = jnp.copy(x)
-        sigma.at[0].set(sigma0)
+        sigma = x.at[0].set(sigma0)
         iota = x[0]
 
-        # d (Riccati equation) / d sigma:
-        # For convenience we will fill all the columns now, and re-write the first column in a moment.
-        jac = jnp.copy(d_d_varphi)
-        for j in range(nphi):
-            jac.at[j, j].add((iota + helicity * nfp) * 2 * sigma[j])
+        # Create the diagonal update
+        diag_vals = (iota + helicity * nfp) * 2 * sigma
 
-        # d (Riccati equation) / d iota:
-        jac.at[:, 0].set(etabar_squared_over_curvature_squared * etabar_squared_over_curvature_squared + 1 + sigma * sigma)
+        # Add the diagonal to the derivative matrix
+        jac = d_d_varphi + jnp.diag(diag_vals)
 
+        # Set the first column (d_residual / d_iota)
+        iota_deriv = etabar_squared_over_curvature_squared ** 2 + 1 + sigma ** 2
+        jac = jac.at[:, 0].set(iota_deriv)
         
         return jac
     
     jitted_new_new_newton = jax.jit(new_new_newton, static_argnames=["f", "jac", "niter", "tol", "nlinesearch"])
     
-    sigma = jitted_new_new_newton(_residual, x0, _jacobian) # helper residual is a functon that runs without self but still returns r  
+    sigma = jitted_new_new_newton(_residual, x0, _jacobian) # helper residual is a functon that runs without self but still returns r
     iota = sigma[0]
     iotaN = calc_iotaN(iota, helicity, nfp)
     sigma = sigma.at[0].set(sigma0)
@@ -108,11 +106,8 @@ def r1_diagnostics(nfp, etabar, sG, spsi, curvature, sigma, helicity, varphi, X1
     
     
     max_elongation = -jax_fourier_minimum(-elongation).x
-    
-    jnp.save('debug3' , X1c)
-    jnp.save('debug4' , d_d_varphi)
+
     d_X1c_d_varphi = jnp.matmul(d_d_varphi, X1c)
-    jnp.save('d_X1c_d_varphi_og' , d_X1c_d_varphi)
     d_X1s_d_varphi = jnp.matmul(d_d_varphi, X1s)
     d_Y1s_d_varphi = jnp.matmul(d_d_varphi, Y1s)
     d_Y1c_d_varphi = jnp.matmul(d_d_varphi, Y1c)

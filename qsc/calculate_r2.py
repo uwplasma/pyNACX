@@ -18,7 +18,7 @@ from qsc.types import R2_results, Complete_R2_Results
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-#@jax.jit(static_argnums=(18,21))
+@jax.jit(static_argnums=(18,21))
 def calc_r2(X1c, Y1c, Y1s, B0_over_abs_G0, d_d_varphi, iota_N, torsion, abs_G0_over_B0, B2s, B0, curvature, etabar, B2c, spsi, sG, p2, sigma, I2_over_B0, nphi, d_l_d_phi, helicity, nfp, G0, iota, I2, varphi, d_X1c_d_varphi, d_Y1c_d_varphi, d_Y1s_d_varphi, d_phi, axis_length) -> Complete_R2_Results:
     V1 = X1c * X1c + Y1c * Y1c + Y1s * Y1s
     V2 = 2 * Y1s * Y1c
