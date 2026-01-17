@@ -60,6 +60,7 @@ def calculate_helicity(nphi, normal_cylindrical, spsi, sG):
     helicity = counter / 4
     return helicity
 
+jax.jit()
 def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0, order, B2s)-> Init_Axis_Results:
     """
     Initialize the curvature, torsion, differentiation matrix, etc. waiting on interpax support for cubic spline
@@ -126,9 +127,8 @@ def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0,
     # Calculate normal_cylindrical
     normal_cylindrical = d_tangent_d_l_cylindrical / curvature[:, jnp.newaxis]
 
-    print('before helicity')
     helicity = calculate_helicity(nphi, normal_cylindrical, spsi, sG)
-    print('after helicity')
+
     # b = t x n
     binormal_cylindrical = jnp.zeros((nphi, 3))
     binormal_cylindrical = binormal_cylindrical.at[:,0].set(tangent_cylindrical[:,1] * normal_cylindrical[:,2] - tangent_cylindrical[:,2] * normal_cylindrical[:,1])
@@ -174,19 +174,15 @@ def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0,
     # Add all results to self:
     X1s = jnp.zeros(nphi)
     X1c = etabar / curvature
-    print('before fourier min')
     min_R0 = jax_fourier_minimum(R0)
-    print('after fourier min')
     Bbar = spsi * B0
 
     # The output is not stellarator-symmetric if (1) R0s is nonzero,
     # (2) Z0c is nonzero, (3) sigma_initial is nonzero, or (B2s is
     # nonzero and order != 'r1')
-    lasym = jnp.max(jnp.abs(rs)) > 0 or jnp.max(jnp.abs(zc)) > 0 \
-        or sigma0 != 0 or (order != 'r1' and B2s != 0)
-    
-    print('before spline')
 
+    lasym = (jnp.max(jnp.abs(rs)) > 0) | (jnp.max(jnp.abs(zc)) > 0) \
+            | (sigma0 != 0) | ((order != 'r1') & (B2s != 0))
     # Functions that converts a toroidal angle phi0 on the axis to the axis radial and vertical coordinates
     R0_func = convert_to_spline(sum([rc[i]*jnp.cos(i*nfp*phi) +\
                                                rs[i]*jnp.sin(i*nfp*phi) \
@@ -210,7 +206,7 @@ def init_axis(nphi, nfp, rc, rs, zc, zs, nfourier, sG, B0, etabar, spsi, sigma0,
     tangent_R_spline    = convert_to_spline(tangent_cylindrical[:,0], phi, nfp)
     tangent_phi_spline  = convert_to_spline(tangent_cylindrical[:,1], phi, nfp)
     tangent_z_spline    = convert_to_spline(tangent_cylindrical[:,2], phi, nfp)
-    print('after spline')
+
     # Spline interpolant for nu = varphi - phi, used for plotting
     #self.nu_spline = self.convert_to_spline(varphi - phi, phi, nfp)
     nu_spline = convert_to_spline(varphi - phi, phi, nfp)

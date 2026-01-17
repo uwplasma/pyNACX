@@ -20,7 +20,7 @@ print("Running pyNACX...")
 # stel = Qsc(rc=[1, 0.09], zs=[0, -0.09], nfp=2, etabar=0.95, I2=0.9, order='r2', B2c=-0.7, p2=-600000.)
 
 # this runs the procedures for making a stellarator in a jax compatibile way    
-ans = Qsc_method(rc=[1, 0.09], zs=[0, -0.09], nfp=2, etabar=0.95, I2=0.9, order='r1', B2c=-0.7, p2=-600000.)
+ans = Qsc_method(rc=(1, 0.09), zs=(0, -0.09), nfp=2, etabar=0.95, I2=0.9, order='r1', B2c=-0.7, p2=-600000.)
 
 
 
